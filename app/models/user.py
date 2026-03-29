@@ -1,13 +1,22 @@
-from sqlmodel import Field, SQLModel
 from typing import Optional
-from pydantic import EmailStr
+from datetime import datetime, timezone
+from sqlmodel import Field, SQLModel, Relationship
+
+# ---------------------------------------------------------------------------
+# User
+# ---------------------------------------------------------------------------
 
 
-class UserBase(SQLModel,):
+class UserBase(SQLModel):
     username: str = Field(index=True, unique=True)
-    email: EmailStr = Field(index=True, unique=True)
+    email: str = Field(index=True, unique=True)
     password: str
-    role:str = ""
+    role: str = ""
+
 
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+
+    routines: list['Routine'] = Relationship(back_populates="owner")
+    sessions: list['WorkoutSession'] = Relationship(back_populates="user")
+    likes: list['RoutineLike'] = Relationship(back_populates="user")

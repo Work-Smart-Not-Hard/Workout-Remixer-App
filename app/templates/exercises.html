@@ -1,0 +1,253 @@
+{% extends "authenticated-base.html" %}
+{% block title %}Browse Exercises{% endblock %}
+
+{% block subpage_content %}
+<div class="container-fluid" id="content">
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="fw-bold">Browse Exercises</h4>
+        </div>
+    </div>
+
+    <!-- Search + Filters -->
+    <div class="row mb-3 g-2">
+        <div class="col-md-4">
+            <div class="input-group">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search exercises...">
+                <button class="btn btn-primary" onclick="applyFilters()">Search</button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select id="equipmentFilter" class="form-select" onchange="applyFilters()">
+                <option value="">All Equipment</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select id="muscleFilter" class="form-select" onchange="applyFilters()">
+                <option value="">All Muscles</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+
+    <!-- Results count -->
+    <div class="row mb-2">
+        <div class="col-12">
+            <small class="text-muted" id="resultCount"></small>
+        </div>
+    </div>
+
+    <!-- Exercise cards grid -->
+    <div class="row g-3" id="exerciseGrid">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading exercises — this may take a moment on first load...</p>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="row mt-4 mb-4">
+        <div class="col-12 d-flex justify-content-center gap-2">
+            <button class="btn btn-outline-primary" id="prevBtn" onclick="changePage(-1)" disabled>Previous</button>
+            <span class="btn btn-light disabled" id="pageIndicator"></span>
+            <button class="btn btn-outline-primary" id="nextBtn" onclick="changePage(1)">Next</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Exercise Detail Modal -->
+<div class="modal fade" id="exerciseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalExerciseName"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-5 text-center">
+                        <img id="modalGif" src="" alt="Exercise GIF" class="img-fluid rounded" style="max-height:280px;">
+                    </div>
+                    <div class="col-md-7">
+                        <div class="mb-3">
+                            <span class="badge bg-primary me-1" id="modalBodyPart"></span>
+                            <span class="badge bg-success me-1" id="modalTarget"></span>
+                            <span class="badge bg-secondary" id="modalEquipment"></span>
+                        </div>
+                        <h6 class="fw-bold">Secondary Muscles</h6>
+                        <p id="modalSecondary" class="text-muted mb-3"></p>
+                        <h6 class="fw-bold">Instructions</h6>
+                        <ol id="modalInstructions" class="ps-3"></ol>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+    const PAGE_SIZE = 20;
+    let allExercises = [];
+    let filteredExercises = [];
+    let currentPage = 0;
+
+    // ── Bootstrap ─────────────────────────────────────────────────────────────
+
+    async function init() {
+        // Dropdowns come from local FastAPI (instant — no Render call)
+        const [musclesRes, equipmentsRes] = await Promise.all([
+            fetch('/api/exercises/muscles'),
+            fetch('/api/exercises/equipments'),
+        ]);
+        populateSelect('muscleFilter', await musclesRes.json());
+        populateSelect('equipmentFilter', await equipmentsRes.json());
+
+        // Exercises come from Render — may be slow on cold start
+        const exercisesRes = await fetch('/api/exercises');
+        const json = await exercisesRes.json();
+        allExercises = json.data || [];
+        filteredExercises = allExercises;
+        renderPage();
+    }
+
+    function populateSelect(selectId, values) {
+        const select = document.getElementById(selectId);
+        values.forEach(val => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = val.charAt(0).toUpperCase() + val.slice(1);
+            select.appendChild(opt);
+        });
+    }
+
+    // ── Filtering ─────────────────────────────────────────────────────────────
+
+    async function applyFilters() {
+        const search = document.getElementById('searchInput').value.trim();
+        const equipment = document.getElementById('equipmentFilter').value;
+        const muscle = document.getElementById('muscleFilter').value;
+
+        if (search) {
+            // Server-side fuzzy search, then client-side filter on result
+            showSpinner();
+            const params = new URLSearchParams({ search, limit: 1500 });
+            if (muscle) params.set('muscles', muscle);
+            if (equipment) params.set('equipment', equipment);
+            const res = await fetch(`/api/exercises?${params}`);
+            const json = await res.json();
+            filteredExercises = json.data || [];
+        } else {
+            // No search — instant client-side filter on full cache
+            filteredExercises = allExercises.filter(ex => {
+                const equipMatch = !equipment ||
+                    ex.equipments.some(e => e.toLowerCase() === equipment.toLowerCase());
+                const muscleMatch = !muscle ||
+                    ex.targetMuscles.some(m => m.toLowerCase() === muscle.toLowerCase()) ||
+                    ex.secondaryMuscles.some(m => m.toLowerCase() === muscle.toLowerCase());
+                return equipMatch && muscleMatch;
+            });
+        }
+
+        currentPage = 0;
+        renderPage();
+    }
+
+    // ── Rendering ─────────────────────────────────────────────────────────────
+
+    function renderPage() {
+        const grid = document.getElementById('exerciseGrid');
+        const start = currentPage * PAGE_SIZE;
+        const pageItems = filteredExercises.slice(start, start + PAGE_SIZE);
+
+        document.getElementById('resultCount').textContent =
+            `${filteredExercises.length.toLocaleString()} exercise${filteredExercises.length !== 1 ? 's' : ''} found`;
+
+        if (!pageItems.length) {
+            grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">No exercises match your filters.</div>`;
+            updatePaginationControls();
+            return;
+        }
+
+        grid.innerHTML = pageItems.map(ex => `
+            <div class="col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100 shadow-sm" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
+                    <img src="${ex.gifUrl}" class="card-img-top" alt="${ex.name}"
+                         style="height:180px; object-fit:cover;" loading="lazy">
+                    <div class="card-body p-2">
+                        <p class="fw-semibold mb-1" style="font-size:0.85rem; text-transform:capitalize;">
+                            ${ex.name}
+                        </p>
+                        <div>
+                            ${ex.equipments.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.7rem">${e}</span>`).join('')}
+                            ${ex.targetMuscles.map(m => `<span class="badge bg-success me-1" style="font-size:0.7rem">${m}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        updatePaginationControls();
+    }
+
+    function updatePaginationControls() {
+        const totalPages = Math.ceil(filteredExercises.length / PAGE_SIZE);
+        document.getElementById('pageIndicator').textContent =
+            totalPages > 0 ? `Page ${currentPage + 1} of ${totalPages}` : 'No results';
+        document.getElementById('prevBtn').disabled = currentPage === 0;
+        document.getElementById('nextBtn').disabled = (currentPage + 1) >= totalPages;
+    }
+
+    function changePage(direction) {
+        currentPage += direction;
+        renderPage();
+        window.scrollTo(0, 0);
+    }
+
+    function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('equipmentFilter').value = '';
+        document.getElementById('muscleFilter').value = '';
+        filteredExercises = allExercises;
+        currentPage = 0;
+        renderPage();
+    }
+
+    function showSpinner() {
+        document.getElementById('exerciseGrid').innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>`;
+    }
+
+    // ── Modal ─────────────────────────────────────────────────────────────────
+
+    function openExercise(ex) {
+        document.getElementById('modalExerciseName').textContent = ex.name;
+        document.getElementById('modalGif').src = ex.gifUrl;
+        document.getElementById('modalBodyPart').textContent = ex.bodyParts?.join(', ') || '';
+        document.getElementById('modalTarget').textContent = ex.targetMuscles?.join(', ') || '';
+        document.getElementById('modalEquipment').textContent = ex.equipments?.join(', ') || '';
+        document.getElementById('modalSecondary').textContent = ex.secondaryMuscles?.join(', ') || 'None';
+        const ol = document.getElementById('modalInstructions');
+        ol.innerHTML = (ex.instructions || [])
+            .map(i => `<li class="mb-1">${i.replace(/^Step:\d+\s*/, '')}</li>`)
+            .join('');
+        new bootstrap.Modal(document.getElementById('exerciseModal')).show();
+    }
+
+    document.getElementById('searchInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') applyFilters();
+    });
+
+    init();
+</script>
+{% endblock %}
