@@ -15,16 +15,16 @@
         <div class="col-md-4">
             <div class="input-group">
                 <input type="text" id="searchInput" class="form-control" placeholder="Search exercises...">
-                <button class="btn btn-primary" onclick="applyFilters()">Search</button>
+                <button class="btn btn-primary" onclick="doSearch()">Search</button>
             </div>
         </div>
         <div class="col-md-3">
-            <select id="equipmentFilter" class="form-select" onchange="applyFilters()">
+            <select id="equipmentFilter" class="form-select" onchange="applyLocalFilters()">
                 <option value="">All Equipment</option>
             </select>
         </div>
         <div class="col-md-3">
-            <select id="muscleFilter" class="form-select" onchange="applyFilters()">
+            <select id="muscleFilter" class="form-select" onchange="applyLocalFilters()">
                 <option value="">All Muscles</option>
             </select>
         </div>
@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <!-- Favourites strip (shown when favourites exist and no filters active) -->
+    <!-- Favourites strip -->
     <div id="favsSection" class="mb-4" style="display:none;">
         <h6 class="fw-semibold text-warning mb-2">
             <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
@@ -52,21 +52,22 @@
     <div class="row g-3" id="exerciseGrid">
         <div class="col-12 text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted" id="loadingMsg">Loading exercises...</p>
+            <p class="mt-2 text-muted">Loading exercises...</p>
         </div>
     </div>
 
+    <!-- Pagination -->
     <div class="row mt-4 mb-4">
         <div class="col-12 d-flex justify-content-center gap-2">
-            <button class="btn btn-outline-primary" id="prevBtn" onclick="changePage(-1)" disabled>Previous</button>
+            <button class="btn btn-outline-primary" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
             <span class="btn btn-light disabled" id="pageIndicator"></span>
-            <button class="btn btn-outline-primary" id="nextBtn" onclick="changePage(1)">Next</button>
+            <button class="btn btn-outline-primary" id="nextBtn" onclick="nextPage()" disabled>Next</button>
         </div>
     </div>
 
 </div>
 
-<!-- ── Exercise Action Modal ───────────────────────────────────────────────── -->
+<!-- Exercise Action Modal -->
 <div class="modal fade" id="exerciseModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -93,17 +94,14 @@
                 </div>
             </div>
             <div class="modal-footer flex-wrap gap-2">
-                <!-- Favourite toggle -->
                 <button id="favBtn" class="btn btn-outline-warning" onclick="toggleFavourite()">
                     <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
                     <span id="favBtnText">Favourite</span>
                 </button>
-                <!-- View exercise page -->
                 <a id="viewExBtn" href="#" class="btn btn-outline-info">
                     <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span>
                     View Stats
                 </a>
-                <!-- Add to routine -->
                 <button class="btn btn-primary" onclick="showAddToRoutine()">
                     <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">add</span>
                     Add to Routine
@@ -113,7 +111,7 @@
     </div>
 </div>
 
-<!-- ── Add to Routine Modal ───────────────────────────────────────────────── -->
+<!-- Add to Routine Modal -->
 <div class="modal fade" id="addToRoutineModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -122,7 +120,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <!-- Pick routine -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Select Routine</label>
                     <select id="routinePicker" class="form-select">
@@ -136,7 +133,6 @@
                            placeholder="New routine name (leave blank to use existing)">
                 </div>
                 <hr>
-                <!-- Sets / Reps -->
                 <div class="row g-2 mb-2">
                     <div class="col-6">
                         <label class="form-label">Sets</label>
@@ -150,7 +146,7 @@
                 <div class="row g-2 mb-2">
                     <div class="col-6">
                         <label class="form-label">Duration (s)</label>
-                        <input type="number" id="atrDuration" class="form-control" min="1" placeholder="e.g. 60">
+                        <input type="number" id="atrDuration" class="form-control" placeholder="e.g. 60">
                     </div>
                     <div class="col-6">
                         <label class="form-label">Rest (s)</label>
@@ -173,13 +169,16 @@
 
 {% block subpage_scripts %}
 <script>
-    const PAGE_SIZE = 20;
-    let allExercises = [];
-    let filteredExercises = [];
+    // ── State ─────────────────────────────────────────────────────────────────
+    let currentPage = [];       // exercises visible right now (filtered from currentBatch)
+    let currentBatch = [];      // raw 100 exercises fetched from API
+    let totalExercises = 0;
+    let currentOffset = 0;
+    let currentSearch = "";
     let favouriteIds = new Set();
-    let currentPage = 0;
     let currentExercise = null;
     let userRoutines = [];
+    const PAGE_SIZE = 100;
 
     // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -196,20 +195,19 @@
 
         const favs = await favsRes.json();
         favouriteIds = new Set(favs.map(f => f.exercise_id));
-
         userRoutines = await routinesRes.json();
         populateRoutinePicker();
 
-        await loadExercisesWithRetry();
+        await fetchAndRender(0, "");
     }
 
-    function populateSelect(selectId, values) {
-        const select = document.getElementById(selectId);
-        values.forEach(val => {
-            const opt = document.createElement('option');
-            opt.value = val;
-            opt.textContent = val.charAt(0).toUpperCase() + val.slice(1);
-            select.appendChild(opt);
+    function populateSelect(id, values) {
+        const sel = document.getElementById(id);
+        values.forEach(v => {
+            const o = document.createElement('option');
+            o.value = v;
+            o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+            sel.appendChild(o);
         });
     }
 
@@ -221,53 +219,138 @@
             : '<option value="">No routines yet — create one below</option>';
     }
 
-    // ── Fetch with retry ──────────────────────────────────────────────────────
+    // ── Fetch one page from API ───────────────────────────────────────────────
 
-    async function loadExercisesWithRetry(attempt = 1, maxAttempts = 5) {
+    async function fetchAndRender(offset, search, attempt = 1) {
+        showSpinner(attempt > 1 ? `Waking up exercise server — attempt ${attempt}...` : "Loading exercises...");
         try {
-            setLoadingMessage(`Loading exercises... (attempt ${attempt} of ${maxAttempts})`);
-            const res = await fetch('/api/exercises');
-            if (!res.ok) throw new Error(`${res.status}`);
+            const params = new URLSearchParams({ offset });
+            if (search) params.set('search', search);
+            const res = await fetch(`/api/exercises?${params}`);
+            if (!res.ok) throw new Error(res.status);
             const json = await res.json();
-            allExercises = json.data || [];
-            filteredExercises = allExercises;
+
+            currentBatch = json.data || [];
+            totalExercises = json.metadata?.totalExercises || currentBatch.length;
+            currentOffset = offset;
+            currentSearch = search;
+
+            applyLocalFilters();
             renderFavsStrip();
-            renderPage();
         } catch (err) {
-            if (attempt < maxAttempts) {
+            if (attempt < 6) {
                 const wait = attempt * 5;
                 for (let i = wait; i > 0; i--) {
-                    setLoadingMessage(`Waking up exercise server — retrying in ${i}s...`);
+                    showSpinner(`Exercise server is waking up — retrying in ${i}s...`);
                     await new Promise(r => setTimeout(r, 1000));
                 }
-                await loadExercisesWithRetry(attempt + 1, maxAttempts);
+                await fetchAndRender(offset, search, attempt + 1);
             } else {
                 document.getElementById('exerciseGrid').innerHTML = `
                     <div class="col-12 text-center py-5">
                         <p class="text-danger fw-semibold">Could not load exercises.</p>
-                        <button class="btn btn-primary" onclick="loadExercisesWithRetry()">Retry</button>
+                        <button class="btn btn-primary" onclick="fetchAndRender(0,'')">Retry</button>
                     </div>`;
             }
         }
     }
 
-    function setLoadingMessage(msg) {
-        document.getElementById('exerciseGrid').innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted">${msg}</p>
-            </div>`;
+    // ── Client-side filter on current batch ───────────────────────────────────
+
+    function applyLocalFilters() {
+        const equipment = document.getElementById('equipmentFilter').value.toLowerCase();
+        const muscle = document.getElementById('muscleFilter').value.toLowerCase();
+        const filtersActive = equipment || muscle;
+
+        document.getElementById('favsSection').style.display =
+            !filtersActive && favouriteIds.size > 0 ? '' : 'none';
+
+        currentPage = currentBatch.filter(ex => {
+            const eq = !equipment || ex.equipments.some(e => e.toLowerCase() === equipment);
+            const mu = !muscle ||
+                ex.targetMuscles.some(m => m.toLowerCase() === muscle) ||
+                ex.secondaryMuscles.some(m => m.toLowerCase() === muscle);
+            return eq && mu;
+        });
+
+        renderGrid();
+        updatePagination();
     }
 
-    // ── Favourites strip ──────────────────────────────────────────────────────
+    // ── Search ────────────────────────────────────────────────────────────────
+
+    async function doSearch() {
+        const q = document.getElementById('searchInput').value.trim();
+        await fetchAndRender(0, q);
+    }
+
+    async function clearFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('equipmentFilter').value = '';
+        document.getElementById('muscleFilter').value = '';
+        await fetchAndRender(0, '');
+    }
+
+    // ── Pagination ────────────────────────────────────────────────────────────
+
+    async function prevPage() {
+        const newOffset = Math.max(0, currentOffset - PAGE_SIZE);
+        await fetchAndRender(newOffset, currentSearch);
+        window.scrollTo(0, 0);
+    }
+
+    async function nextPage() {
+        const newOffset = currentOffset + PAGE_SIZE;
+        await fetchAndRender(newOffset, currentSearch);
+        window.scrollTo(0, 0);
+    }
+
+    function updatePagination() {
+        const currentPageNum = Math.floor(currentOffset / PAGE_SIZE) + 1;
+        const totalPages = Math.ceil(totalExercises / PAGE_SIZE);
+        document.getElementById('pageIndicator').textContent =
+            totalPages > 0 ? `Page ${currentPageNum} of ${totalPages}` : '';
+        document.getElementById('prevBtn').disabled = currentOffset === 0;
+        document.getElementById('nextBtn').disabled = currentOffset + PAGE_SIZE >= totalExercises;
+        document.getElementById('resultCount').textContent =
+            `${totalExercises.toLocaleString()} exercises total · showing ${currentPage.length} on this page`;
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    function renderGrid() {
+        const grid = document.getElementById('exerciseGrid');
+        if (!currentPage.length) {
+            grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">No exercises match your filters on this page.</div>`;
+            return;
+        }
+        grid.innerHTML = currentPage.map(ex => `
+            <div class="col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100 shadow-sm position-relative" role="button"
+                     onclick='openExercise(${JSON.stringify(ex)})'>
+                    ${favouriteIds.has(ex.exerciseId)
+                        ? `<span class="position-absolute top-0 end-0 m-1 badge bg-warning text-dark">
+                               <span class="material-symbols-outlined" style="font-size:0.8rem">star</span>
+                           </span>` : ''}
+                    <img src="${ex.gifUrl}" class="card-img-top" alt="${ex.name}"
+                         style="height:180px;object-fit:cover;" loading="lazy">
+                    <div class="card-body p-2">
+                        <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.85rem;">${ex.name}</p>
+                        <div>
+                            ${ex.equipments.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.7rem">${e}</span>`).join('')}
+                            ${ex.targetMuscles.map(m => `<span class="badge bg-success me-1" style="font-size:0.7rem">${m}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
 
     function renderFavsStrip() {
         const section = document.getElementById('favsSection');
         const grid = document.getElementById('favsGrid');
-        const favExercises = allExercises.filter(ex => favouriteIds.has(ex.exerciseId));
-
+        const favExercises = currentBatch.filter(ex => favouriteIds.has(ex.exerciseId));
         if (!favExercises.length) { section.style.display = 'none'; return; }
-
         section.style.display = '';
         grid.innerHTML = favExercises.map(ex => `
             <div class="col-6 col-md-3 col-lg-2">
@@ -281,110 +364,11 @@
         `).join('');
     }
 
-    // ── Filtering ─────────────────────────────────────────────────────────────
-
-    async function applyFilters() {
-        const search = document.getElementById('searchInput').value.trim();
-        const equipment = document.getElementById('equipmentFilter').value;
-        const muscle = document.getElementById('muscleFilter').value;
-
-        // Hide favs strip when filters are active
-        const filtersActive = search || equipment || muscle;
-        document.getElementById('favsSection').style.display =
-            filtersActive ? 'none' : (favouriteIds.size > 0 ? '' : 'none');
-
-        if (search) {
-            showSpinner();
-            const res = await fetch(`/api/exercises?search=${encodeURIComponent(search)}`);
-            const json = await res.json();
-            let results = json.data || [];
-            filteredExercises = results.filter(ex => clientFilter(ex, equipment, muscle));
-        } else {
-            filteredExercises = allExercises.filter(ex => clientFilter(ex, equipment, muscle));
-        }
-
-        currentPage = 0;
-        renderPage();
-    }
-
-    function clientFilter(ex, equipment, muscle) {
-        const equipMatch = !equipment ||
-            ex.equipments.some(e => e.toLowerCase() === equipment.toLowerCase());
-        const muscleMatch = !muscle ||
-            ex.targetMuscles.some(m => m.toLowerCase() === muscle.toLowerCase()) ||
-            ex.secondaryMuscles.some(m => m.toLowerCase() === muscle.toLowerCase());
-        return equipMatch && muscleMatch;
-    }
-
-    // ── Rendering ─────────────────────────────────────────────────────────────
-
-    function renderPage() {
-        const grid = document.getElementById('exerciseGrid');
-        const start = currentPage * PAGE_SIZE;
-        const pageItems = filteredExercises.slice(start, start + PAGE_SIZE);
-
-        document.getElementById('resultCount').textContent =
-            `${filteredExercises.length.toLocaleString()} exercise${filteredExercises.length !== 1 ? 's' : ''} found`;
-
-        if (!pageItems.length) {
-            grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">No exercises match your filters.</div>`;
-            updatePaginationControls();
-            return;
-        }
-
-        grid.innerHTML = pageItems.map(ex => `
-            <div class="col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 shadow-sm position-relative" role="button"
-                     onclick='openExercise(${JSON.stringify(ex)})'>
-                    ${favouriteIds.has(ex.exerciseId)
-                        ? `<span class="position-absolute top-0 end-0 m-1 badge bg-warning text-dark">
-                               <span class="material-symbols-outlined" style="font-size:0.8rem">star</span>
-                           </span>`
-                        : ''}
-                    <img src="${ex.gifUrl}" class="card-img-top" alt="${ex.name}"
-                         style="height:180px;object-fit:cover;" loading="lazy">
-                    <div class="card-body p-2">
-                        <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.85rem;">${ex.name}</p>
-                        <div>
-                            ${ex.equipments.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.7rem">${e}</span>`).join('')}
-                            ${ex.targetMuscles.map(m => `<span class="badge bg-success me-1" style="font-size:0.7rem">${m}</span>`).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        updatePaginationControls();
-    }
-
-    function updatePaginationControls() {
-        const totalPages = Math.ceil(filteredExercises.length / PAGE_SIZE);
-        document.getElementById('pageIndicator').textContent =
-            totalPages > 0 ? `Page ${currentPage + 1} of ${totalPages}` : 'No results';
-        document.getElementById('prevBtn').disabled = currentPage === 0;
-        document.getElementById('nextBtn').disabled = (currentPage + 1) >= totalPages;
-    }
-
-    function changePage(direction) {
-        currentPage += direction;
-        renderPage();
-        window.scrollTo(0, 0);
-    }
-
-    function clearFilters() {
-        document.getElementById('searchInput').value = '';
-        document.getElementById('equipmentFilter').value = '';
-        document.getElementById('muscleFilter').value = '';
-        filteredExercises = allExercises;
-        currentPage = 0;
-        document.getElementById('favsSection').style.display = favouriteIds.size > 0 ? '' : 'none';
-        renderPage();
-    }
-
-    function showSpinner() {
+    function showSpinner(msg = "Loading...") {
         document.getElementById('exerciseGrid').innerHTML = `
-            <div class="col-12 text-center py-3">
+            <div class="col-12 text-center py-5">
                 <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">${msg}</p>
             </div>`;
     }
 
@@ -393,30 +377,19 @@
     function openExercise(ex) {
         currentExercise = ex;
         const isFav = favouriteIds.has(ex.exerciseId);
-
         document.getElementById('modalExerciseName').textContent = ex.name;
         document.getElementById('modalGif').src = ex.gifUrl;
         document.getElementById('modalBodyPart').textContent = ex.bodyParts?.join(', ') || '';
         document.getElementById('modalTarget').textContent = ex.targetMuscles?.join(', ') || '';
         document.getElementById('modalEquipment').textContent = ex.equipments?.join(', ') || '';
         document.getElementById('modalSecondary').textContent = ex.secondaryMuscles?.join(', ') || 'None';
-
         document.getElementById('modalInstructions').innerHTML = (ex.instructions || [])
             .map(i => `<li class="mb-1">${i.replace(/^Step:\d+\s*/, '')}</li>`).join('');
-
-        // Favourite button state
-        const favBtn = document.getElementById('favBtn');
-        const favText = document.getElementById('favBtnText');
-        favBtn.className = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
-        favText.textContent = isFav ? 'Favourited' : 'Favourite';
-
-        // View stats link
+        document.getElementById('favBtn').className = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
+        document.getElementById('favBtnText').textContent = isFav ? 'Favourited' : 'Favourite';
         document.getElementById('viewExBtn').href = `/exercises/${ex.exerciseId}`;
-
         new bootstrap.Modal(document.getElementById('exerciseModal')).show();
     }
-
-    // ── Favourite toggle ──────────────────────────────────────────────────────
 
     async function toggleFavourite() {
         if (!currentExercise) return;
@@ -426,7 +399,6 @@
             body: JSON.stringify(currentExercise),
         });
         const data = await res.json();
-
         if (data.favourited) {
             favouriteIds.add(currentExercise.exerciseId);
             document.getElementById('favBtn').className = 'btn btn-warning';
@@ -436,82 +408,60 @@
             document.getElementById('favBtn').className = 'btn btn-outline-warning';
             document.getElementById('favBtnText').textContent = 'Favourite';
         }
-
-        renderPage();
+        renderGrid();
         renderFavsStrip();
     }
 
-    // ── Add to routine ────────────────────────────────────────────────────────
-
     function showAddToRoutine() {
         bootstrap.Modal.getInstance(document.getElementById('exerciseModal'))?.hide();
-        setTimeout(() => {
-            new bootstrap.Modal(document.getElementById('addToRoutineModal')).show();
-        }, 300);
+        setTimeout(() => new bootstrap.Modal(document.getElementById('addToRoutineModal')).show(), 300);
     }
 
     async function submitAddToRoutine() {
         if (!currentExercise) return;
-
         const newName = document.getElementById('newRoutineName').value.trim();
-        const pickedId = document.getElementById('routinePicker').value;
+        let routineId = document.getElementById('routinePicker').value;
 
-        let routineId = pickedId;
-
-        // Create new routine if name provided
         if (newName) {
-            const formData = new FormData();
-            formData.append('name', newName);
-            const res = await fetch('/api/routines', { method: 'POST', body: formData });
-            // redirect response — get routine id from Location header
+            const fd = new FormData();
+            fd.append('name', newName);
+            const res = await fetch('/api/routines', { method: 'POST', body: fd });
             if (res.redirected) {
                 const match = res.url.match(/\/routines\/(\d+)/);
                 routineId = match ? match[1] : null;
             }
         }
 
-        if (!routineId) {
-            alert('Please select or create a routine.');
-            return;
-        }
+        if (!routineId) { alert('Please select or create a routine.'); return; }
 
         const ex = currentExercise;
-        const formData = new FormData();
-        formData.append('exercise_id', ex.exerciseId);
-        formData.append('exercise_name', ex.name);
-        formData.append('exercise_body_parts', (ex.bodyParts || []).join(','));
-        formData.append('exercise_equipments', (ex.equipments || []).join(','));
-        formData.append('exercise_target_muscles', (ex.targetMuscles || []).join(','));
-        formData.append('exercise_gif_url', ex.gifUrl || '');
-        formData.append('sets', document.getElementById('atrSets').value || '');
-        formData.append('reps', document.getElementById('atrReps').value || '');
-        formData.append('duration_seconds', document.getElementById('atrDuration').value || '');
-        formData.append('rest_seconds', document.getElementById('atrRest').value || '60');
-        formData.append('notes', document.getElementById('atrNotes').value || '');
+        const fd = new FormData();
+        fd.append('exercise_id', ex.exerciseId);
+        fd.append('exercise_name', ex.name);
+        fd.append('exercise_body_parts', (ex.bodyParts || []).join(','));
+        fd.append('exercise_equipments', (ex.equipments || []).join(','));
+        fd.append('exercise_target_muscles', (ex.targetMuscles || []).join(','));
+        fd.append('exercise_gif_url', ex.gifUrl || '');
+        fd.append('sets', document.getElementById('atrSets').value || '');
+        fd.append('reps', document.getElementById('atrReps').value || '');
+        fd.append('duration_seconds', document.getElementById('atrDuration').value || '');
+        fd.append('rest_seconds', document.getElementById('atrRest').value || '60');
+        fd.append('notes', document.getElementById('atrNotes').value || '');
 
-        const addRes = await fetch(`/api/routines/${routineId}/exercises`, {
-            method: 'POST', body: formData,
-        });
-
+        await fetch(`/api/routines/${routineId}/exercises`, { method: 'POST', body: fd });
         bootstrap.Modal.getInstance(document.getElementById('addToRoutineModal'))?.hide();
-        if (addRes.ok || addRes.redirected) {
-            // Show success toast
-            showToast(`Added to routine!`);
-            // Refresh routine list in case new one was created
-            const rRes = await fetch('/api/routines');
-            userRoutines = await rRes.json();
-            populateRoutinePicker();
-        }
-    }
 
-    function showToast(msg) {
         document.getElementById('toastTitle').textContent = 'Success';
-        document.getElementById('toastContent').textContent = msg;
+        document.getElementById('toastContent').textContent = 'Added to routine!';
         new bootstrap.Toast(document.getElementById('appToast')).show();
+
+        const rRes = await fetch('/api/routines');
+        userRoutines = await rRes.json();
+        populateRoutinePicker();
     }
 
     document.getElementById('searchInput').addEventListener('keydown', e => {
-        if (e.key === 'Enter') applyFilters();
+        if (e.key === 'Enter') doSearch();
     });
 
     init();

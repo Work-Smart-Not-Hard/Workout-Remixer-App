@@ -15,6 +15,15 @@ async def exercises_view(request: Request, user: AuthDep):
     )
 
 
+@router.get("/exercises/{exercise_id}", response_class=HTMLResponse)
+async def exercise_detail_view(request: Request, exercise_id: str, user: AuthDep):
+    return templates.TemplateResponse(
+        request=request,
+        name="exercise_detail.html",
+        context={"user": user, "exercise_id": exercise_id},
+    )
+
+
 @api_router.get("/exercises/muscles")
 async def list_muscles(user: AuthDep):
     return ExerciseDBService().get_muscles()
@@ -29,11 +38,15 @@ async def list_equipments(user: AuthDep):
 async def list_exercises(
     user: AuthDep,
     search: str = "",
+    offset: int = 0,
 ):
-    """Returns all exercises (with optional fuzzy search). Filtering is done client-side."""
+    """
+    Returns one page of 100 exercises from ExerciseDB.
+    The frontend handles client-side filtering and calls this
+    with a new offset when the user pages forward.
+    """
     service = ExerciseDBService()
-    exercises = await service.get_all_exercises(search=search)
-    return {"data": exercises, "total": len(exercises)}
+    return await service.get_exercises_page(search=search, offset=offset)
 
 
 @api_router.get("/exercises/{exercise_id}")

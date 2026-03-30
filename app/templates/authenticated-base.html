@@ -80,6 +80,13 @@
             </li>
             
             <li class="nav-item">
+                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/dashboard' }}" href="/dashboard">
+                    <span class="material-symbols-outlined me-2">bar_chart</span>
+                    Dashboard
+                </a>
+            </li>
+
+            <li class="nav-item">
                 <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/exercises' }}" href="/exercises">
                     <span class="material-symbols-outlined me-2">fitness_center</span>
                     Exercises
