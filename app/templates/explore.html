@@ -1,0 +1,64 @@
+{% extends "authenticated-base.html" %}
+{% block title %}Explore Routines{% endblock %}
+
+{% block subpage_content %}
+<div class="container-fluid">
+
+    <div class="row mb-4">
+        <div class="col">
+            <h4 class="fw-bold mb-0">Explore</h4>
+            <p class="text-muted small mb-0">Public routines shared by the community</p>
+        </div>
+    </div>
+
+    {% for message in get_flashed_messages(request) %}
+    <div class="alert alert-{{ message.type }}" role="alert">{{ message.message }}</div>
+    {% endfor %}
+
+    {% if routines %}
+    <div class="row g-3">
+        {% for routine in routines %}
+        <div class="col-sm-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <h5 class="card-title fw-bold mb-0">{{ routine.name }}</h5>
+                        <span class="badge bg-success">Public</span>
+                    </div>
+                    <p class="text-muted small mb-1">
+                        by <strong>{{ routine.owner.username }}</strong>
+                    </p>
+                    {% if routine.description %}
+                    <p class="card-text text-muted small">{{ routine.description }}</p>
+                    {% endif %}
+                    <p class="text-muted small mb-0">
+                        {{ routine.created_at.strftime('%b %d, %Y') }}
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent d-flex gap-2">
+                    <a href="/routines/{{ routine.id }}" class="btn btn-outline-primary btn-sm flex-grow-1">
+                        View
+                    </a>
+                    <form method="POST" action="/api/routines/{{ routine.id }}/remix">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <span class="material-symbols-outlined me-1"
+                                  style="font-size:0.9rem;vertical-align:middle">shuffle</span>
+                            Remix
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <span class="material-symbols-outlined" style="font-size:3rem">group</span>
+        <p class="mt-2">No public routines yet.<br>
+            Make one of your routines public to be the first!
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

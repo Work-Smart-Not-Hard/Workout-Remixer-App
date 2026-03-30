@@ -33,22 +33,29 @@
         </div>
     </div>
 
-    <!-- Results count -->
     <div class="row mb-2">
         <div class="col-12">
             <small class="text-muted" id="resultCount"></small>
         </div>
     </div>
 
-    <!-- Exercise cards grid -->
+    <!-- Favourites strip (shown when favourites exist and no filters active) -->
+    <div id="favsSection" class="mb-4" style="display:none;">
+        <h6 class="fw-semibold text-warning mb-2">
+            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
+            Favourites
+        </h6>
+        <div class="row g-2" id="favsGrid"></div>
+        <hr>
+    </div>
+
     <div class="row g-3" id="exerciseGrid">
         <div class="col-12 text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Loading exercises — this may take a moment on first load...</p>
+            <p class="mt-2 text-muted" id="loadingMsg">Loading exercises...</p>
         </div>
     </div>
 
-    <!-- Pagination -->
     <div class="row mt-4 mb-4">
         <div class="col-12 d-flex justify-content-center gap-2">
             <button class="btn btn-outline-primary" id="prevBtn" onclick="changePage(-1)" disabled>Previous</button>
@@ -59,34 +66,105 @@
 
 </div>
 
-<!-- Exercise Detail Modal -->
+<!-- ── Exercise Action Modal ───────────────────────────────────────────────── -->
 <div class="modal fade" id="exerciseModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="modalExerciseName"></h5>
+                <h5 class="modal-title fw-bold text-capitalize" id="modalExerciseName"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-5 text-center">
-                        <img id="modalGif" src="" alt="Exercise GIF" class="img-fluid rounded" style="max-height:280px;">
-                    </div>
-                    <div class="col-md-7">
-                        <div class="mb-3">
+                        <img id="modalGif" src="" alt="" class="img-fluid rounded" style="max-height:260px;">
+                        <div class="mt-2">
                             <span class="badge bg-primary me-1" id="modalBodyPart"></span>
                             <span class="badge bg-success me-1" id="modalTarget"></span>
                             <span class="badge bg-secondary" id="modalEquipment"></span>
                         </div>
+                    </div>
+                    <div class="col-md-7">
                         <h6 class="fw-bold">Secondary Muscles</h6>
-                        <p id="modalSecondary" class="text-muted mb-3"></p>
+                        <p id="modalSecondary" class="text-muted small mb-3"></p>
                         <h6 class="fw-bold">Instructions</h6>
-                        <ol id="modalInstructions" class="ps-3"></ol>
+                        <ol id="modalInstructions" class="ps-3 small"></ol>
                     </div>
                 </div>
             </div>
+            <div class="modal-footer flex-wrap gap-2">
+                <!-- Favourite toggle -->
+                <button id="favBtn" class="btn btn-outline-warning" onclick="toggleFavourite()">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
+                    <span id="favBtnText">Favourite</span>
+                </button>
+                <!-- View exercise page -->
+                <a id="viewExBtn" href="#" class="btn btn-outline-info">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span>
+                    View Stats
+                </a>
+                <!-- Add to routine -->
+                <button class="btn btn-primary" onclick="showAddToRoutine()">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">add</span>
+                    Add to Routine
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Add to Routine Modal ───────────────────────────────────────────────── -->
+<div class="modal fade" id="addToRoutineModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Add to Routine</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Pick routine -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Select Routine</label>
+                    <select id="routinePicker" class="form-select">
+                        <option value="">Loading routines...</option>
+                    </select>
+                </div>
+                <div class="text-center text-muted small mb-3">— or —</div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Create New Routine</label>
+                    <input type="text" id="newRoutineName" class="form-control"
+                           placeholder="New routine name (leave blank to use existing)">
+                </div>
+                <hr>
+                <!-- Sets / Reps -->
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label">Sets</label>
+                        <input type="number" id="atrSets" class="form-control" min="1" placeholder="e.g. 3">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Reps</label>
+                        <input type="number" id="atrReps" class="form-control" min="1" placeholder="e.g. 10">
+                    </div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label">Duration (s)</label>
+                        <input type="number" id="atrDuration" class="form-control" min="1" placeholder="e.g. 60">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Rest (s)</label>
+                        <input type="number" id="atrRest" class="form-control" value="60" min="0">
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Notes</label>
+                    <input type="text" id="atrNotes" class="form-control" placeholder="e.g. slow eccentric">
+                </div>
+            </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddToRoutine()">Add</button>
             </div>
         </div>
     </div>
@@ -98,25 +176,31 @@
     const PAGE_SIZE = 20;
     let allExercises = [];
     let filteredExercises = [];
+    let favouriteIds = new Set();
     let currentPage = 0;
+    let currentExercise = null;
+    let userRoutines = [];
 
     // ── Bootstrap ─────────────────────────────────────────────────────────────
 
     async function init() {
-        // Dropdowns come from local FastAPI (instant — no Render call)
-        const [musclesRes, equipmentsRes] = await Promise.all([
+        const [musclesRes, equipmentsRes, favsRes, routinesRes] = await Promise.all([
             fetch('/api/exercises/muscles'),
             fetch('/api/exercises/equipments'),
+            fetch('/api/favourites'),
+            fetch('/api/routines'),
         ]);
+
         populateSelect('muscleFilter', await musclesRes.json());
         populateSelect('equipmentFilter', await equipmentsRes.json());
 
-        // Exercises come from Render — may be slow on cold start
-        const exercisesRes = await fetch('/api/exercises');
-        const json = await exercisesRes.json();
-        allExercises = json.data || [];
-        filteredExercises = allExercises;
-        renderPage();
+        const favs = await favsRes.json();
+        favouriteIds = new Set(favs.map(f => f.exercise_id));
+
+        userRoutines = await routinesRes.json();
+        populateRoutinePicker();
+
+        await loadExercisesWithRetry();
     }
 
     function populateSelect(selectId, values) {
@@ -129,6 +213,74 @@
         });
     }
 
+    function populateRoutinePicker() {
+        const picker = document.getElementById('routinePicker');
+        picker.innerHTML = userRoutines.length
+            ? '<option value="">— pick a routine —</option>' +
+              userRoutines.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
+            : '<option value="">No routines yet — create one below</option>';
+    }
+
+    // ── Fetch with retry ──────────────────────────────────────────────────────
+
+    async function loadExercisesWithRetry(attempt = 1, maxAttempts = 5) {
+        try {
+            setLoadingMessage(`Loading exercises... (attempt ${attempt} of ${maxAttempts})`);
+            const res = await fetch('/api/exercises');
+            if (!res.ok) throw new Error(`${res.status}`);
+            const json = await res.json();
+            allExercises = json.data || [];
+            filteredExercises = allExercises;
+            renderFavsStrip();
+            renderPage();
+        } catch (err) {
+            if (attempt < maxAttempts) {
+                const wait = attempt * 5;
+                for (let i = wait; i > 0; i--) {
+                    setLoadingMessage(`Waking up exercise server — retrying in ${i}s...`);
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                await loadExercisesWithRetry(attempt + 1, maxAttempts);
+            } else {
+                document.getElementById('exerciseGrid').innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <p class="text-danger fw-semibold">Could not load exercises.</p>
+                        <button class="btn btn-primary" onclick="loadExercisesWithRetry()">Retry</button>
+                    </div>`;
+            }
+        }
+    }
+
+    function setLoadingMessage(msg) {
+        document.getElementById('exerciseGrid').innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">${msg}</p>
+            </div>`;
+    }
+
+    // ── Favourites strip ──────────────────────────────────────────────────────
+
+    function renderFavsStrip() {
+        const section = document.getElementById('favsSection');
+        const grid = document.getElementById('favsGrid');
+        const favExercises = allExercises.filter(ex => favouriteIds.has(ex.exerciseId));
+
+        if (!favExercises.length) { section.style.display = 'none'; return; }
+
+        section.style.display = '';
+        grid.innerHTML = favExercises.map(ex => `
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="card shadow-sm" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
+                    <img src="${ex.gifUrl}" class="card-img-top" style="height:100px;object-fit:cover;" loading="lazy">
+                    <div class="card-body p-1">
+                        <p class="mb-0 text-capitalize" style="font-size:0.75rem;font-weight:600;">${ex.name}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
     // ── Filtering ─────────────────────────────────────────────────────────────
 
     async function applyFilters() {
@@ -136,29 +288,32 @@
         const equipment = document.getElementById('equipmentFilter').value;
         const muscle = document.getElementById('muscleFilter').value;
 
+        // Hide favs strip when filters are active
+        const filtersActive = search || equipment || muscle;
+        document.getElementById('favsSection').style.display =
+            filtersActive ? 'none' : (favouriteIds.size > 0 ? '' : 'none');
+
         if (search) {
-            // Server-side fuzzy search, then client-side filter on result
             showSpinner();
-            const params = new URLSearchParams({ search, limit: 1500 });
-            if (muscle) params.set('muscles', muscle);
-            if (equipment) params.set('equipment', equipment);
-            const res = await fetch(`/api/exercises?${params}`);
+            const res = await fetch(`/api/exercises?search=${encodeURIComponent(search)}`);
             const json = await res.json();
-            filteredExercises = json.data || [];
+            let results = json.data || [];
+            filteredExercises = results.filter(ex => clientFilter(ex, equipment, muscle));
         } else {
-            // No search — instant client-side filter on full cache
-            filteredExercises = allExercises.filter(ex => {
-                const equipMatch = !equipment ||
-                    ex.equipments.some(e => e.toLowerCase() === equipment.toLowerCase());
-                const muscleMatch = !muscle ||
-                    ex.targetMuscles.some(m => m.toLowerCase() === muscle.toLowerCase()) ||
-                    ex.secondaryMuscles.some(m => m.toLowerCase() === muscle.toLowerCase());
-                return equipMatch && muscleMatch;
-            });
+            filteredExercises = allExercises.filter(ex => clientFilter(ex, equipment, muscle));
         }
 
         currentPage = 0;
         renderPage();
+    }
+
+    function clientFilter(ex, equipment, muscle) {
+        const equipMatch = !equipment ||
+            ex.equipments.some(e => e.toLowerCase() === equipment.toLowerCase());
+        const muscleMatch = !muscle ||
+            ex.targetMuscles.some(m => m.toLowerCase() === muscle.toLowerCase()) ||
+            ex.secondaryMuscles.some(m => m.toLowerCase() === muscle.toLowerCase());
+        return equipMatch && muscleMatch;
     }
 
     // ── Rendering ─────────────────────────────────────────────────────────────
@@ -179,13 +334,17 @@
 
         grid.innerHTML = pageItems.map(ex => `
             <div class="col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 shadow-sm" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
+                <div class="card h-100 shadow-sm position-relative" role="button"
+                     onclick='openExercise(${JSON.stringify(ex)})'>
+                    ${favouriteIds.has(ex.exerciseId)
+                        ? `<span class="position-absolute top-0 end-0 m-1 badge bg-warning text-dark">
+                               <span class="material-symbols-outlined" style="font-size:0.8rem">star</span>
+                           </span>`
+                        : ''}
                     <img src="${ex.gifUrl}" class="card-img-top" alt="${ex.name}"
-                         style="height:180px; object-fit:cover;" loading="lazy">
+                         style="height:180px;object-fit:cover;" loading="lazy">
                     <div class="card-body p-2">
-                        <p class="fw-semibold mb-1" style="font-size:0.85rem; text-transform:capitalize;">
-                            ${ex.name}
-                        </p>
+                        <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.85rem;">${ex.name}</p>
                         <div>
                             ${ex.equipments.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.7rem">${e}</span>`).join('')}
                             ${ex.targetMuscles.map(m => `<span class="badge bg-success me-1" style="font-size:0.7rem">${m}</span>`).join('')}
@@ -218,30 +377,137 @@
         document.getElementById('muscleFilter').value = '';
         filteredExercises = allExercises;
         currentPage = 0;
+        document.getElementById('favsSection').style.display = favouriteIds.size > 0 ? '' : 'none';
         renderPage();
     }
 
     function showSpinner() {
         document.getElementById('exerciseGrid').innerHTML = `
-            <div class="col-12 text-center py-5">
+            <div class="col-12 text-center py-3">
                 <div class="spinner-border text-primary" role="status"></div>
             </div>`;
     }
 
-    // ── Modal ─────────────────────────────────────────────────────────────────
+    // ── Exercise modal ────────────────────────────────────────────────────────
 
     function openExercise(ex) {
+        currentExercise = ex;
+        const isFav = favouriteIds.has(ex.exerciseId);
+
         document.getElementById('modalExerciseName').textContent = ex.name;
         document.getElementById('modalGif').src = ex.gifUrl;
         document.getElementById('modalBodyPart').textContent = ex.bodyParts?.join(', ') || '';
         document.getElementById('modalTarget').textContent = ex.targetMuscles?.join(', ') || '';
         document.getElementById('modalEquipment').textContent = ex.equipments?.join(', ') || '';
         document.getElementById('modalSecondary').textContent = ex.secondaryMuscles?.join(', ') || 'None';
-        const ol = document.getElementById('modalInstructions');
-        ol.innerHTML = (ex.instructions || [])
-            .map(i => `<li class="mb-1">${i.replace(/^Step:\d+\s*/, '')}</li>`)
-            .join('');
+
+        document.getElementById('modalInstructions').innerHTML = (ex.instructions || [])
+            .map(i => `<li class="mb-1">${i.replace(/^Step:\d+\s*/, '')}</li>`).join('');
+
+        // Favourite button state
+        const favBtn = document.getElementById('favBtn');
+        const favText = document.getElementById('favBtnText');
+        favBtn.className = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
+        favText.textContent = isFav ? 'Favourited' : 'Favourite';
+
+        // View stats link
+        document.getElementById('viewExBtn').href = `/exercises/${ex.exerciseId}`;
+
         new bootstrap.Modal(document.getElementById('exerciseModal')).show();
+    }
+
+    // ── Favourite toggle ──────────────────────────────────────────────────────
+
+    async function toggleFavourite() {
+        if (!currentExercise) return;
+        const res = await fetch('/api/favourites/toggle', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(currentExercise),
+        });
+        const data = await res.json();
+
+        if (data.favourited) {
+            favouriteIds.add(currentExercise.exerciseId);
+            document.getElementById('favBtn').className = 'btn btn-warning';
+            document.getElementById('favBtnText').textContent = 'Favourited';
+        } else {
+            favouriteIds.delete(currentExercise.exerciseId);
+            document.getElementById('favBtn').className = 'btn btn-outline-warning';
+            document.getElementById('favBtnText').textContent = 'Favourite';
+        }
+
+        renderPage();
+        renderFavsStrip();
+    }
+
+    // ── Add to routine ────────────────────────────────────────────────────────
+
+    function showAddToRoutine() {
+        bootstrap.Modal.getInstance(document.getElementById('exerciseModal'))?.hide();
+        setTimeout(() => {
+            new bootstrap.Modal(document.getElementById('addToRoutineModal')).show();
+        }, 300);
+    }
+
+    async function submitAddToRoutine() {
+        if (!currentExercise) return;
+
+        const newName = document.getElementById('newRoutineName').value.trim();
+        const pickedId = document.getElementById('routinePicker').value;
+
+        let routineId = pickedId;
+
+        // Create new routine if name provided
+        if (newName) {
+            const formData = new FormData();
+            formData.append('name', newName);
+            const res = await fetch('/api/routines', { method: 'POST', body: formData });
+            // redirect response — get routine id from Location header
+            if (res.redirected) {
+                const match = res.url.match(/\/routines\/(\d+)/);
+                routineId = match ? match[1] : null;
+            }
+        }
+
+        if (!routineId) {
+            alert('Please select or create a routine.');
+            return;
+        }
+
+        const ex = currentExercise;
+        const formData = new FormData();
+        formData.append('exercise_id', ex.exerciseId);
+        formData.append('exercise_name', ex.name);
+        formData.append('exercise_body_parts', (ex.bodyParts || []).join(','));
+        formData.append('exercise_equipments', (ex.equipments || []).join(','));
+        formData.append('exercise_target_muscles', (ex.targetMuscles || []).join(','));
+        formData.append('exercise_gif_url', ex.gifUrl || '');
+        formData.append('sets', document.getElementById('atrSets').value || '');
+        formData.append('reps', document.getElementById('atrReps').value || '');
+        formData.append('duration_seconds', document.getElementById('atrDuration').value || '');
+        formData.append('rest_seconds', document.getElementById('atrRest').value || '60');
+        formData.append('notes', document.getElementById('atrNotes').value || '');
+
+        const addRes = await fetch(`/api/routines/${routineId}/exercises`, {
+            method: 'POST', body: formData,
+        });
+
+        bootstrap.Modal.getInstance(document.getElementById('addToRoutineModal'))?.hide();
+        if (addRes.ok || addRes.redirected) {
+            // Show success toast
+            showToast(`Added to routine!`);
+            // Refresh routine list in case new one was created
+            const rRes = await fetch('/api/routines');
+            userRoutines = await rRes.json();
+            populateRoutinePicker();
+        }
+    }
+
+    function showToast(msg) {
+        document.getElementById('toastTitle').textContent = 'Success';
+        document.getElementById('toastContent').textContent = msg;
+        new bootstrap.Toast(document.getElementById('appToast')).show();
     }
 
     document.getElementById('searchInput').addEventListener('keydown', e => {

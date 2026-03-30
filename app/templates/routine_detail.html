@@ -1,0 +1,332 @@
+{% extends "authenticated-base.html" %}
+{% block title %}{{ routine.name }}{% endblock %}
+
+{% block subpage_content %}
+<div class="container-fluid">
+
+    <!-- Header -->
+    <div class="row mb-4 align-items-start">
+        <div class="col">
+            <a href="/routines" class="text-muted text-decoration-none small">
+                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">arrow_back</span>
+                My Routines
+            </a>
+            <h4 class="fw-bold mt-1 mb-0">{{ routine.name }}</h4>
+            {% if routine.description %}
+            <p class="text-muted mb-0">{{ routine.description }}</p>
+            {% endif %}
+            <div class="mt-1">
+                {% if routine.is_public %}
+                <span class="badge bg-success">Public</span>
+                {% else %}
+                <span class="badge bg-secondary">Private</span>
+                {% endif %}
+                {% if routine.remixed_from_id %}
+                <span class="badge bg-info">Remixed</span>
+                {% endif %}
+            </div>
+        </div>
+        {% if routine.owner_id == user.id %}
+        <div class="col-auto d-flex gap-2">
+            {% if exercises %}
+            <form method="POST" action="/api/sessions/start">
+                <input type="hidden" name="routine_id" value="{{ routine.id }}">
+                <button type="submit" class="btn btn-success btn-sm">
+                    <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">play_arrow</span>
+                    Start Workout
+                </button>
+            </form>
+            {% endif %}
+            <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal">
+                Edit
+            </button>
+            <form method="POST" action="/api/routines/{{ routine.id }}/delete"
+                  onsubmit="return confirm('Delete this routine?')">
+                <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    {% for message in get_flashed_messages(request) %}
+    <div class="alert alert-{{ message.type }}" role="alert">{{ message.message }}</div>
+    {% endfor %}
+
+    <div class="row g-4">
+
+        <!-- Exercise list -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-semibold">
+                    Exercises
+                    <span class="badge bg-primary ms-1">{{ exercises|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if exercises %}
+                    <ul class="list-group list-group-flush">
+                        {% for re in exercises %}
+                        <li class="list-group-item d-flex align-items-center gap-3 py-3">
+                            {% if re.exercise.gif_url %}
+                            <img src="{{ re.exercise.gif_url }}" alt="{{ re.exercise.name }}"
+                                 style="width:56px;height:56px;object-fit:cover;border-radius:8px;">
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <p class="fw-semibold mb-0 text-capitalize">{{ re.exercise.name }}</p>
+                                <small class="text-muted">
+                                    {% if re.sets and re.reps %}
+                                        {{ re.sets }} sets × {{ re.reps }} reps
+                                    {% elif re.duration_seconds %}
+                                        {{ re.duration_seconds }}s
+                                    {% endif %}
+                                    {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
+                                </small>
+                                {% if re.notes %}
+                                <br><small class="text-muted fst-italic">{{ re.notes }}</small>
+                                {% endif %}
+                            </div>
+                            {% if routine.owner_id == user.id %}
+                            <form method="POST" action="/api/routines/exercises/{{ re.id }}/remove">
+                                <button type="submit" class="btn btn-link text-danger p-0">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <span class="material-symbols-outlined" style="font-size:2.5rem">add_circle</span>
+                        <p class="mt-2 mb-0">No exercises yet. Search and add from the panel!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Add exercise panel -->
+        {% if routine.owner_id == user.id %}
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-semibold">Add Exercise</div>
+                <div class="card-body">
+
+                    <!-- Search -->
+                    <div class="input-group mb-2">
+                        <input type="text" id="exSearch" class="form-control form-control-sm"
+                               placeholder="Search exercises...">
+                        <button class="btn btn-sm btn-primary" onclick="searchExercises()">Search</button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <select id="exEquipFilter" class="form-select form-select-sm"
+                                    onchange="applyLocalFilters()">
+                                <option value="">All Equipment</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select id="exMuscleFilter" class="form-select form-select-sm"
+                                    onchange="applyLocalFilters()">
+                                <option value="">All Muscles</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <small class="text-muted" id="exResultCount"></small>
+
+                    <!-- Results -->
+                    <div id="exResults" style="max-height:420px;overflow-y:auto;margin-top:0.5rem;"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Edit Routine</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/api/routines/{{ routine.id }}/edit">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control"
+                               value="{{ routine.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3">{{ routine.description or '' }}</textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="is_public" value="true"
+                               class="form-check-input" id="isPublic"
+                               {% if routine.is_public %}checked{% endif %}>
+                        <label class="form-check-label" for="isPublic">Make this routine public</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Exercise Config Modal -->
+<div class="modal fade" id="addExModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-capitalize" id="addExName"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/api/routines/{{ routine.id }}/exercises">
+                <input type="hidden" name="exercise_id" id="addExId">
+                <input type="hidden" name="exercise_name" id="addExNameHidden">
+                <input type="hidden" name="exercise_body_parts" id="addExBodyParts">
+                <input type="hidden" name="exercise_equipments" id="addExEquipments">
+                <input type="hidden" name="exercise_target_muscles" id="addExTargetMuscles">
+                <input type="hidden" name="exercise_gif_url" id="addExGifUrl">
+                <div class="modal-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label">Sets</label>
+                            <input type="number" name="sets" class="form-control" min="1" placeholder="e.g. 3">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Reps</label>
+                            <input type="number" name="reps" class="form-control" min="1" placeholder="e.g. 10">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label">Duration (s)</label>
+                            <input type="number" name="duration_seconds" class="form-control" placeholder="e.g. 60">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Rest (s)</label>
+                            <input type="number" name="rest_seconds" class="form-control" value="60" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Notes</label>
+                        <input type="text" name="notes" class="form-control" placeholder="e.g. slow eccentric">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add to Routine</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+    let allFetched = [];       // full exercise list from API
+    let localFiltered = [];    // after client-side filters applied
+
+    // ── Bootstrap dropdowns from hardcoded lists ───────────────────────────
+
+    async function initFilters() {
+        const [musclesRes, equipmentsRes] = await Promise.all([
+            fetch('/api/exercises/muscles'),
+            fetch('/api/exercises/equipments'),
+        ]);
+        populateSelect('exMuscleFilter', await musclesRes.json());
+        populateSelect('exEquipFilter', await equipmentsRes.json());
+    }
+
+    function populateSelect(id, values) {
+        const sel = document.getElementById(id);
+        values.forEach(v => {
+            const o = document.createElement('option');
+            o.value = v; o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+            sel.appendChild(o);
+        });
+    }
+
+    // ── Search (hits API for fuzzy match) ────────────────────────────────────
+
+    async function searchExercises() {
+        const q = document.getElementById('exSearch').value.trim();
+        const spinner = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+        document.getElementById('exResults').innerHTML = spinner;
+
+        const params = new URLSearchParams();
+        if (q) params.set('search', q);
+
+        const res = await fetch(`/api/exercises?${params}`);
+        const json = await res.json();
+        allFetched = json.data || [];
+        applyLocalFilters();
+    }
+
+    // ── Client-side filter on top of fetched results ──────────────────────
+
+    function applyLocalFilters() {
+        const equipment = document.getElementById('exEquipFilter').value.toLowerCase();
+        const muscle = document.getElementById('exMuscleFilter').value.toLowerCase();
+
+        localFiltered = allFetched.filter(ex => {
+            const eq = !equipment || ex.equipments.some(e => e.toLowerCase() === equipment);
+            const mu = !muscle ||
+                ex.targetMuscles.some(m => m.toLowerCase() === muscle) ||
+                ex.secondaryMuscles.some(m => m.toLowerCase() === muscle);
+            return eq && mu;
+        });
+
+        renderResults();
+    }
+
+    function renderResults() {
+        const container = document.getElementById('exResults');
+        document.getElementById('exResultCount').textContent =
+            localFiltered.length ? `${localFiltered.length} results` : '';
+
+        if (!localFiltered.length) {
+            container.innerHTML = '<p class="text-muted text-center small mt-2">No exercises found.</p>';
+            return;
+        }
+
+        container.innerHTML = localFiltered.slice(0, 30).map(ex => `
+            <div class="d-flex align-items-center gap-2 py-2 border-bottom"
+                 role="button" onclick='selectExercise(${JSON.stringify(ex)})'>
+                <img src="${ex.gifUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;">
+                <div class="flex-grow-1 overflow-hidden">
+                    <p class="mb-0 fw-semibold text-capitalize text-truncate" style="font-size:0.82rem">${ex.name}</p>
+                    <small class="text-muted">${ex.equipments.join(', ')} · ${ex.targetMuscles.join(', ')}</small>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function selectExercise(ex) {
+        document.getElementById('addExId').value = ex.exerciseId;
+        document.getElementById('addExNameHidden').value = ex.name;
+        document.getElementById('addExName').textContent = ex.name;
+        document.getElementById('addExBodyParts').value = ex.bodyParts.join(',');
+        document.getElementById('addExEquipments').value = ex.equipments.join(',');
+        document.getElementById('addExTargetMuscles').value = ex.targetMuscles.join(',');
+        document.getElementById('addExGifUrl').value = ex.gifUrl;
+        new bootstrap.Modal(document.getElementById('addExModal')).show();
+    }
+
+    document.getElementById('exSearch')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') searchExercises();
+    });
+
+    initFilters();
+</script>
+{% endblock %}

@@ -20,10 +20,6 @@ class Exercise(SQLModel, table=True):
     session_exercises: list['SessionExercise'] = Relationship(back_populates="exercise")
 
 
-# ---------------------------------------------------------------------------
-# Routine
-# ---------------------------------------------------------------------------
-
 class Routine(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
@@ -42,10 +38,6 @@ class Routine(SQLModel, table=True):
     invites: list['WorkoutInvite'] = Relationship(back_populates="routine")
 
 
-# ---------------------------------------------------------------------------
-# RoutineExercise  (join: Routine <-> Exercise, with sets/reps/order)
-# ---------------------------------------------------------------------------
-
 class RoutineExercise(SQLModel, table=True):
     __tablename__ = "routineexercise"
 
@@ -62,10 +54,6 @@ class RoutineExercise(SQLModel, table=True):
     routine: Optional['Routine'] = Relationship(back_populates="exercises")
     exercise: Optional['Exercise'] = Relationship(back_populates="routine_exercises")
 
-
-# ---------------------------------------------------------------------------
-# WorkoutSession  (a logged completion of a routine)
-# ---------------------------------------------------------------------------
 
 class WorkoutSession(SQLModel, table=True):
     __tablename__ = "workoutsession"
@@ -84,10 +72,6 @@ class WorkoutSession(SQLModel, table=True):
     exercises: list['SessionExercise'] = Relationship(back_populates="session")
 
 
-# ---------------------------------------------------------------------------
-# SessionExercise  (actual reps/weight logged per exercise in a session)
-# ---------------------------------------------------------------------------
-
 class SessionExercise(SQLModel, table=True):
     __tablename__ = "sessionexercise"
 
@@ -104,10 +88,6 @@ class SessionExercise(SQLModel, table=True):
     exercise: Optional['Exercise'] = Relationship(back_populates="session_exercises")
 
 
-# ---------------------------------------------------------------------------
-# RoutineLike
-# ---------------------------------------------------------------------------
-
 class RoutineLike(SQLModel, table=True):
     __tablename__ = "routinelike"
 
@@ -119,10 +99,6 @@ class RoutineLike(SQLModel, table=True):
     user: Optional['User'] = Relationship(back_populates="likes")
     routine: Optional['Routine'] = Relationship(back_populates="likes")
 
-
-# ---------------------------------------------------------------------------
-# WorkoutInvite  (duo workout)
-# ---------------------------------------------------------------------------
 
 class WorkoutInvite(SQLModel, table=True):
     __tablename__ = "workoutinvite"
@@ -136,3 +112,17 @@ class WorkoutInvite(SQLModel, table=True):
     responded_at: Optional[datetime] = None
 
     routine: Optional['Routine'] = Relationship(back_populates="invites")
+
+
+class ExerciseFavourite(SQLModel, table=True):
+    __tablename__ = "exercisefavourite"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    exercise_id: str = Field(index=True)  # ExerciseDB string ID
+    name: str
+    gif_url: Optional[str] = None
+    body_part: Optional[str] = None
+    target: Optional[str] = None
+    equipment: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -79,6 +79,34 @@
                 </a>
             </li>
             
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/exercises' }}" href="/exercises">
+                    <span class="material-symbols-outlined me-2">fitness_center</span>
+                    Exercises
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/routines' }}" href="/routines">
+                    <span class="material-symbols-outlined me-2">event_note</span>
+                    Routines
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/favourites' }}" href="/favourites">
+                    <span class="material-symbols-outlined me-2">star</span>
+                    Favourites
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/explore' }}" href="/explore">
+                    <span class="material-symbols-outlined me-2">explore</span>
+                    Explore
+                </a>
+            </li>
+
             <li class="nav-item mt-auto">
                 <a class="nav-link d-flex align-items-center text-danger" href="/logout">
                     <span class="material-symbols-outlined me-2">logout</span>
@@ -86,13 +114,6 @@
                 </a>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/exercises' }}" href="/exercises">
-                    <span class="material-symbols-outlined me-2">fitness_center</span>
-                    Exercises
-                </a>
-            </li>
-            
         </ul>
     </nav>
 

@@ -1,0 +1,149 @@
+{% extends "authenticated-base.html" %}
+{% block title %}Workout in Progress{% endblock %}
+
+{% block subpage_content %}
+<div class="container-fluid">
+
+    <!-- Header -->
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h4 class="fw-bold mb-0">{{ routine.name }}</h4>
+            <small class="text-muted">Started {{ session.started_at.strftime('%I:%M %p') }}</small>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#completeModal">
+                <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:middle">check_circle</span>
+                Finish Workout
+            </button>
+        </div>
+    </div>
+
+    {% for message in get_flashed_messages(request) %}
+    <div class="alert alert-{{ message.type }}">{{ message.message }}</div>
+    {% endfor %}
+
+    <!-- Progress bar -->
+    <div class="mb-4">
+        {% set done_count = logged_ids|length %}
+        {% set total_count = exercises|length %}
+        {% set pct = ((done_count / total_count) * 100)|int if total_count > 0 else 0 %}
+        <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Progress</small>
+            <small class="text-muted">{{ done_count }} / {{ total_count }} exercises</small>
+        </div>
+        <div class="progress" style="height:8px;">
+            <div class="progress-bar bg-success" style="width:{{ pct }}%"></div>
+        </div>
+    </div>
+
+    <!-- Exercise list -->
+    <div class="row g-3">
+        {% for re in exercises %}
+        {% set is_done = re.exercise_id in logged_ids %}
+        <div class="col-12">
+            <div class="card shadow-sm {% if is_done %}border-success{% endif %}">
+                <div class="card-body">
+                    <div class="row align-items-center g-3">
+
+                        <!-- GIF + name -->
+                        <div class="col-auto">
+                            {% if re.exercise.gif_url %}
+                            <img src="{{ re.exercise.gif_url }}" alt="{{ re.exercise.name }}"
+                                 style="width:64px;height:64px;object-fit:cover;border-radius:8px;">
+                            {% endif %}
+                        </div>
+                        <div class="col">
+                            <h6 class="fw-bold mb-0 text-capitalize">{{ re.exercise.name }}</h6>
+                            <small class="text-muted">
+                                Target:
+                                {% if re.sets and re.reps %}{{ re.sets }} × {{ re.reps }}{% endif %}
+                                {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            {% if is_done %}
+                            <span class="badge bg-success">
+                                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">check</span>
+                                Done
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Log form -->
+                        <div class="col-12">
+                            <form method="POST" action="/api/sessions/{{ session.id }}/log"
+                                  class="row g-2 align-items-end">
+                                <input type="hidden" name="exercise_id" value="{{ re.exercise_id }}">
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label form-label-sm mb-1">Sets</label>
+                                    <input type="number" name="sets_completed" class="form-control form-control-sm"
+                                           min="1" placeholder="{{ re.sets or '' }}"
+                                           value="{{ re.sets or '' }}">
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label form-label-sm mb-1">Reps</label>
+                                    <input type="number" name="reps_completed" class="form-control form-control-sm"
+                                           min="1" placeholder="{{ re.reps or '' }}"
+                                           value="{{ re.reps or '' }}">
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label form-label-sm mb-1">Weight (kg)</label>
+                                    <input type="number" name="weight_kg" class="form-control form-control-sm"
+                                           min="0" step="0.5" placeholder="0">
+                                </div>
+                                <div class="col-6 col-md-2">
+                                    <label class="form-label form-label-sm mb-1">Duration (s)</label>
+                                    <input type="number" name="duration_seconds" class="form-control form-control-sm"
+                                           min="0" placeholder="{{ re.duration_seconds or '' }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label form-label-sm mb-1">Notes</label>
+                                    <input type="text" name="notes" class="form-control form-control-sm"
+                                           placeholder="e.g. felt strong">
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                        <span class="material-symbols-outlined" style="font-size:1rem">check</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4 d-flex justify-content-end">
+        <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#completeModal">
+            Finish Workout
+        </button>
+    </div>
+
+</div>
+
+<!-- Complete Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Finish Workout</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/api/sessions/{{ session.id }}/complete">
+                <div class="modal-body">
+                    <p class="text-muted">Any final notes for this session?</p>
+                    <textarea name="notes" class="form-control" rows="3"
+                              placeholder="e.g. great session, increased bench weight"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Going</button>
+                    <button type="submit" class="btn btn-success">Complete Workout</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "authenticated-base.html" %}
+{% block title %}Favourite Exercises{% endblock %}
+
+{% block subpage_content %}
+<div class="container-fluid">
+
+    <div class="row mb-4">
+        <div class="col">
+            <h4 class="fw-bold mb-0">Favourite Exercises</h4>
+            <p class="text-muted small mb-0">Your saved exercises for quick access</p>
+        </div>
+    </div>
+
+    {% if favourites %}
+    <div class="row g-3">
+        {% for fav in favourites %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 shadow-sm" role="button"
+                 onclick="openExercise('{{ fav.exercise_id }}')">
+                {% if fav.gif_url %}
+                <img src="{{ fav.gif_url }}" class="card-img-top" alt="{{ fav.name }}"
+                     style="height:180px; object-fit:cover;" loading="lazy">
+                {% endif %}
+                <div class="card-body p-2">
+                    <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.85rem;">
+                        {{ fav.name }}
+                    </p>
+                    <div>
+                        {% if fav.equipment %}
+                        <span class="badge bg-secondary me-1" style="font-size:0.7rem">{{ fav.equipment }}</span>
+                        {% endif %}
+                        {% if fav.target %}
+                        <span class="badge bg-success" style="font-size:0.7rem">{{ fav.target }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <span class="material-symbols-outlined" style="font-size:3rem">favorite</span>
+        <p class="mt-2">No favourites yet.<br>
+            <a href="/exercises">Browse exercises</a> and star the ones you love.
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

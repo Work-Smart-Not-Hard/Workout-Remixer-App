@@ -6,5 +6,6 @@ from app.models.models import (
     SessionExercise,
     RoutineLike,
     WorkoutInvite,
+    ExerciseFavourite,
 )
 from app.models.user import (User, UserBase)
