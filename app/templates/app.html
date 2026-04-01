@@ -1,30 +1,142 @@
 {% extends "authenticated-base.html" %}
+{% from "heatmap_component.html" import muscle_heatmap %}
+{% block title %}Home{% endblock %}
 
 {% block external_js %}
 <script src="{{ url_for('static', path='js/app.js')}}"></script>
 {% endblock %}
 
-
 {% block subpage_content %}
+<div class="container-fluid">
 
-    <div class="container" id="content">
-        <div class="row">
-            <p>
-                This is table is rendered on the Client. JavaScript code requests the data from <a href="/api/users">/api/users</a> and writes it to this page.
-            </p>
+    <div class="row mb-4">
+        <div class="col">
+            <h4 class="fw-bold mb-0">Welcome back, {{ user.username }}</h4>
+            <p class="text-muted small mb-0">Here's your recent activity</p>
         </div>
-        <div class="row">
-            <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>Id</th><th>Username</th>
-                  </tr>
-                </thead>
-                <tbody id="result">
-                
-                <tbody>
-            </table>
+        <div class="col-auto">
+            <a href="/dashboard" class="btn btn-outline-primary btn-sm">Full Dashboard</a>
         </div>
     </div>
 
+    <div class="row g-4">
+
+        <!-- Heatmap -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-semibold mb-0">This Week's Muscle Activity</h6>
+                    <select id="hmPeriod" class="form-select form-select-sm" style="width:auto;" onchange="reloadHeatmap()">
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+                {{ muscle_heatmap(mode="stats", height="340px") }}
+            </div>
+        </div>
+
+        <!-- Quick stats + recent workouts -->
+        <div class="col-lg-7">
+            <div class="row g-3 mb-3">
+                <div class="col-sm-4">
+                    <div class="card shadow-sm text-center p-3">
+                        <h2 class="fw-bold mb-0" id="quickSessions">—</h2>
+                        <small class="text-muted">Workouts this week</small>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card shadow-sm text-center p-3">
+                        <h2 class="fw-bold mb-0" id="quickSets">—</h2>
+                        <small class="text-muted">Sets this week</small>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="card shadow-sm text-center p-3">
+                        <h2 class="fw-bold mb-0" id="quickMinutes">—</h2>
+                        <small class="text-muted">Minutes trained</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick actions -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-3">Quick Actions</h6>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="/routines" class="btn btn-primary btn-sm">
+                            <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">event_note</span>
+                            My Routines
+                        </a>
+                        <a href="/exercises" class="btn btn-outline-primary btn-sm">
+                            <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">fitness_center</span>
+                            Browse Exercises
+                        </a>
+                        <a href="/explore" class="btn btn-outline-secondary btn-sm">
+                            <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">explore</span>
+                            Explore
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent workouts -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white fw-semibold">Recent Workouts</div>
+                <div id="recentWorkouts" class="card-body p-0">
+                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+    async function reloadHeatmap() {
+        const period = document.getElementById('hmPeriod').value;
+        const res = await fetch(`/api/dashboard/heatmap?period=${period}`);
+        const data = await res.json();
+        initHeatmap(data);
+    }
+
+    function onMuscleClick(muscleName) {
+        window.location.href = `/dashboard/muscle/${encodeURIComponent(muscleName)}`;
+    }
+
+    async function loadQuickStats() {
+        const res = await fetch('/api/dashboard/stats?period=week');
+        const data = await res.json();
+        document.getElementById('quickSessions').textContent = data.total_sessions;
+        document.getElementById('quickSets').textContent = data.total_sets;
+        document.getElementById('quickMinutes').textContent = data.total_duration;
+    }
+
+    async function loadRecentWorkouts() {
+        const res = await fetch('/api/dashboard/stats?period=month');
+        const data = await res.json();
+        const el = document.getElementById('recentWorkouts');
+        if (!data.sessions_over_time.length) {
+            el.innerHTML = `<div class="text-center py-4 text-muted small">No workouts yet. <a href="/routines">Start one!</a></div>`;
+            return;
+        }
+        // Group by date and show last 5 unique days
+        const days = [...new Set(data.sessions_over_time.map(s => s.date))].reverse().slice(0, 5);
+        el.innerHTML = `<ul class="list-group list-group-flush">` +
+            days.map(d => `
+                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <span class="small fw-semibold">${d}</span>
+                    <span class="badge bg-primary rounded-pill">
+                        ${data.sessions_over_time.filter(s => s.date === d).reduce((a,s) => a + s.duration, 0)} min
+                    </span>
+                </li>
+            `).join('') + `</ul>`;
+    }
+
+    reloadHeatmap();
+    loadQuickStats();
+    loadRecentWorkouts();
+</script>
 {% endblock %}

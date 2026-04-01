@@ -1,67 +1,81 @@
 {% extends "authenticated-base.html" %}
+{% from "heatmap_component.html" import muscle_heatmap %}
 {% block title %}Browse Exercises{% endblock %}
 
 {% block subpage_content %}
 <div class="container-fluid" id="content">
 
-    <div class="row mb-4">
+    <div class="row mb-3">
         <div class="col-12">
             <h4 class="fw-bold">Browse Exercises</h4>
         </div>
     </div>
 
-    <!-- Search + Filters -->
-    <div class="row mb-3 g-2">
-        <div class="col-md-4">
-            <div class="input-group">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search exercises...">
-                <button class="btn btn-primary" onclick="doSearch()">Search</button>
+    <div class="row g-4">
+
+        <!-- Left sidebar: filters -->
+        <div class="col-lg-3">
+
+            <!-- Search -->
+            <div class="input-group mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search...">
+                <button class="btn btn-primary" onclick="doSearch()">
+                    <span class="material-symbols-outlined" style="font-size:1rem">search</span>
+                </button>
             </div>
-        </div>
-        <div class="col-md-3">
-            <select id="equipmentFilter" class="form-select" onchange="applyLocalFilters()">
-                <option value="">All Equipment</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <select id="muscleFilter" class="form-select" onchange="applyLocalFilters()">
-                <option value="">All Muscles</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">Clear</button>
-        </div>
-    </div>
 
-    <div class="row mb-2">
-        <div class="col-12">
-            <small class="text-muted" id="resultCount"></small>
+            <!-- Equipment pills -->
+            <div class="mb-3">
+                <p class="fw-semibold small mb-2">Equipment</p>
+                <div id="equipmentPills" class="d-flex flex-wrap gap-1">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+
+            <!-- Muscle body map -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <p class="fw-semibold small mb-0">Muscle Group</p>
+                    <button class="btn btn-link btn-sm p-0 text-muted" onclick="clearMuscle()" id="clearMuscleBtn" style="display:none;">Clear</button>
+                </div>
+                <p class="text-muted" style="font-size:0.75rem;" id="selectedMuscleLabel">Click a muscle to filter</p>
+                {{ muscle_heatmap(mode="filter", height="320px") }}
+            </div>
+
+            <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearAllFilters()">Clear All Filters</button>
         </div>
-    </div>
 
-    <!-- Favourites strip -->
-    <div id="favsSection" class="mb-4" style="display:none;">
-        <h6 class="fw-semibold text-warning mb-2">
-            <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
-            Favourites
-        </h6>
-        <div class="row g-2" id="favsGrid"></div>
-        <hr>
-    </div>
+        <!-- Right: results -->
+        <div class="col-lg-9">
 
-    <div class="row g-3" id="exerciseGrid">
-        <div class="col-12 text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Loading exercises...</p>
-        </div>
-    </div>
+            <!-- Favourites strip -->
+            <div id="favsSection" class="mb-3" style="display:none;">
+                <h6 class="fw-semibold text-warning mb-2">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
+                    Favourites
+                </h6>
+                <div class="row g-2" id="favsGrid"></div>
+                <hr>
+            </div>
 
-    <!-- Pagination -->
-    <div class="row mt-4 mb-4">
-        <div class="col-12 d-flex justify-content-center gap-2">
-            <button class="btn btn-outline-primary" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
-            <span class="btn btn-light disabled" id="pageIndicator"></span>
-            <button class="btn btn-outline-primary" id="nextBtn" onclick="nextPage()" disabled>Next</button>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <small class="text-muted" id="resultCount"></small>
+            </div>
+
+            <div class="row g-3" id="exerciseGrid">
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Loading exercises...</p>
+                </div>
+            </div>
+
+            <div class="row mt-4 mb-4">
+                <div class="col-12 d-flex justify-content-center gap-2">
+                    <button class="btn btn-outline-primary" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
+                    <span class="btn btn-light disabled" id="pageIndicator"></span>
+                    <button class="btn btn-outline-primary" id="nextBtn" onclick="nextPage()" disabled>Next</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -122,41 +136,23 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Select Routine</label>
-                    <select id="routinePicker" class="form-select">
-                        <option value="">Loading routines...</option>
-                    </select>
+                    <select id="routinePicker" class="form-select"></select>
                 </div>
                 <div class="text-center text-muted small mb-3">— or —</div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Create New Routine</label>
-                    <input type="text" id="newRoutineName" class="form-control"
-                           placeholder="New routine name (leave blank to use existing)">
+                    <input type="text" id="newRoutineName" class="form-control" placeholder="New routine name">
                 </div>
                 <hr>
                 <div class="row g-2 mb-2">
-                    <div class="col-6">
-                        <label class="form-label">Sets</label>
-                        <input type="number" id="atrSets" class="form-control" min="1" placeholder="e.g. 3">
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Reps</label>
-                        <input type="number" id="atrReps" class="form-control" min="1" placeholder="e.g. 10">
-                    </div>
+                    <div class="col-6"><label class="form-label">Sets</label><input type="number" id="atrSets" class="form-control" min="1" placeholder="3"></div>
+                    <div class="col-6"><label class="form-label">Reps</label><input type="number" id="atrReps" class="form-control" min="1" placeholder="10"></div>
                 </div>
                 <div class="row g-2 mb-2">
-                    <div class="col-6">
-                        <label class="form-label">Duration (s)</label>
-                        <input type="number" id="atrDuration" class="form-control" placeholder="e.g. 60">
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Rest (s)</label>
-                        <input type="number" id="atrRest" class="form-control" value="60" min="0">
-                    </div>
+                    <div class="col-6"><label class="form-label">Duration (s)</label><input type="number" id="atrDuration" class="form-control" placeholder="60"></div>
+                    <div class="col-6"><label class="form-label">Rest (s)</label><input type="number" id="atrRest" class="form-control" value="60"></div>
                 </div>
-                <div class="mb-2">
-                    <label class="form-label">Notes</label>
-                    <input type="text" id="atrNotes" class="form-control" placeholder="e.g. slow eccentric">
-                </div>
+                <div><label class="form-label">Notes</label><input type="text" id="atrNotes" class="form-control" placeholder="e.g. slow eccentric"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -170,45 +166,56 @@
 {% block subpage_scripts %}
 <script>
     // ── State ─────────────────────────────────────────────────────────────────
-    let currentPage = [];       // exercises visible right now (filtered from currentBatch)
-    let currentBatch = [];      // raw 100 exercises fetched from API
+    let currentBatch = [];
     let totalExercises = 0;
     let currentOffset = 0;
     let currentSearch = "";
+    let selectedEquipment = "";
+    let selectedMuscle = "";
     let favouriteIds = new Set();
     let currentExercise = null;
     let userRoutines = [];
     const PAGE_SIZE = 100;
 
+    // Priority equipment items to show as pills
+    const EQUIPMENT_PILLS = [
+        "barbell", "dumbbell", "kettlebell", "cable", "body weight",
+        "machine", "resistance band", "ez barbell", "smith machine"
+    ];
+
     // ── Bootstrap ─────────────────────────────────────────────────────────────
 
     async function init() {
-        const [musclesRes, equipmentsRes, favsRes, routinesRes] = await Promise.all([
-            fetch('/api/exercises/muscles'),
-            fetch('/api/exercises/equipments'),
+        const [favsRes, routinesRes] = await Promise.all([
             fetch('/api/favourites'),
             fetch('/api/routines'),
         ]);
-
-        populateSelect('muscleFilter', await musclesRes.json());
-        populateSelect('equipmentFilter', await equipmentsRes.json());
-
         const favs = await favsRes.json();
         favouriteIds = new Set(favs.map(f => f.exercise_id));
         userRoutines = await routinesRes.json();
         populateRoutinePicker();
-
+        renderEquipmentPills();
         await fetchAndRender(0, "");
     }
 
-    function populateSelect(id, values) {
-        const sel = document.getElementById(id);
-        values.forEach(v => {
-            const o = document.createElement('option');
-            o.value = v;
-            o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
-            sel.appendChild(o);
+    function renderEquipmentPills() {
+        const container = document.getElementById('equipmentPills');
+        container.innerHTML = EQUIPMENT_PILLS.map(eq => `
+            <button class="btn btn-sm btn-outline-secondary equip-pill" data-equipment="${eq}"
+                    onclick="selectEquipment('${eq}')" style="font-size:0.75rem;text-transform:capitalize;">
+                ${eq}
+            </button>
+        `).join('');
+    }
+
+    function selectEquipment(eq) {
+        selectedEquipment = selectedEquipment === eq ? "" : eq;
+        document.querySelectorAll('.equip-pill').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.equipment === selectedEquipment);
+            btn.classList.toggle('btn-primary', btn.dataset.equipment === selectedEquipment);
+            btn.classList.toggle('btn-outline-secondary', btn.dataset.equipment !== selectedEquipment);
         });
+        applyLocalFilters();
     }
 
     function populateRoutinePicker() {
@@ -216,10 +223,29 @@
         picker.innerHTML = userRoutines.length
             ? '<option value="">— pick a routine —</option>' +
               userRoutines.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
-            : '<option value="">No routines yet — create one below</option>';
+            : '<option value="">No routines yet</option>';
     }
 
-    // ── Fetch one page from API ───────────────────────────────────────────────
+    // ── Muscle click (from heatmap) ───────────────────────────────────────────
+
+    function onMuscleClick(muscleName) {
+        selectedMuscle = selectedMuscle === muscleName ? "" : muscleName;
+        setActiveMuscle(selectedMuscle || null);
+        document.getElementById('selectedMuscleLabel').textContent =
+            selectedMuscle ? `Filtered: ${selectedMuscle}` : 'Click a muscle to filter';
+        document.getElementById('clearMuscleBtn').style.display = selectedMuscle ? '' : 'none';
+        applyLocalFilters();
+    }
+
+    function clearMuscle() {
+        selectedMuscle = "";
+        setActiveMuscle(null);
+        document.getElementById('selectedMuscleLabel').textContent = 'Click a muscle to filter';
+        document.getElementById('clearMuscleBtn').style.display = 'none';
+        applyLocalFilters();
+    }
+
+    // ── Fetch ─────────────────────────────────────────────────────────────────
 
     async function fetchAndRender(offset, search, attempt = 1) {
         showSpinner(attempt > 1 ? `Waking up exercise server — attempt ${attempt}...` : "Loading exercises...");
@@ -229,51 +255,56 @@
             const res = await fetch(`/api/exercises?${params}`);
             if (!res.ok) throw new Error(res.status);
             const json = await res.json();
-
             currentBatch = json.data || [];
             totalExercises = json.metadata?.totalExercises || currentBatch.length;
             currentOffset = offset;
             currentSearch = search;
-
             applyLocalFilters();
             renderFavsStrip();
         } catch (err) {
             if (attempt < 6) {
                 const wait = attempt * 5;
                 for (let i = wait; i > 0; i--) {
-                    showSpinner(`Exercise server is waking up — retrying in ${i}s...`);
+                    showSpinner(`Exercise server waking up — retrying in ${i}s...`);
                     await new Promise(r => setTimeout(r, 1000));
                 }
                 await fetchAndRender(offset, search, attempt + 1);
             } else {
-                document.getElementById('exerciseGrid').innerHTML = `
-                    <div class="col-12 text-center py-5">
-                        <p class="text-danger fw-semibold">Could not load exercises.</p>
+                document.getElementById('exerciseGrid').innerHTML =
+                    `<div class="col-12 text-center py-5">
+                        <p class="text-danger">Could not load exercises.</p>
                         <button class="btn btn-primary" onclick="fetchAndRender(0,'')">Retry</button>
                     </div>`;
             }
         }
     }
 
-    // ── Client-side filter on current batch ───────────────────────────────────
+    // ── Client-side filtering ─────────────────────────────────────────────────
 
     function applyLocalFilters() {
-        const equipment = document.getElementById('equipmentFilter').value.toLowerCase();
-        const muscle = document.getElementById('muscleFilter').value.toLowerCase();
-        const filtersActive = equipment || muscle;
+        const filtered = currentBatch.filter(ex => {
+            const eqMatch = !selectedEquipment ||
+                ex.equipments.some(e => e.toLowerCase() === selectedEquipment.toLowerCase());
 
+            // Muscle filter — check targetMuscles, secondaryMuscles, bodyParts
+            const muMatch = !selectedMuscle || (() => {
+                const m = selectedMuscle.toLowerCase();
+                return ex.targetMuscles.some(t => t.toLowerCase().includes(m) || m.includes(t.toLowerCase())) ||
+                       ex.secondaryMuscles.some(t => t.toLowerCase().includes(m) || m.includes(t.toLowerCase())) ||
+                       ex.bodyParts.some(b => b.toLowerCase().includes(m) || m.includes(b.toLowerCase()));
+            })();
+
+            return eqMatch && muMatch;
+        });
+
+        const filtersActive = selectedEquipment || selectedMuscle || currentSearch;
         document.getElementById('favsSection').style.display =
             !filtersActive && favouriteIds.size > 0 ? '' : 'none';
 
-        currentPage = currentBatch.filter(ex => {
-            const eq = !equipment || ex.equipments.some(e => e.toLowerCase() === equipment);
-            const mu = !muscle ||
-                ex.targetMuscles.some(m => m.toLowerCase() === muscle) ||
-                ex.secondaryMuscles.some(m => m.toLowerCase() === muscle);
-            return eq && mu;
-        });
+        document.getElementById('resultCount').textContent =
+            `${filtered.length} exercises on this page · ${totalExercises.toLocaleString()} total`;
 
-        renderGrid();
+        renderGrid(filtered);
         updatePagination();
     }
 
@@ -284,61 +315,56 @@
         await fetchAndRender(0, q);
     }
 
-    async function clearFilters() {
+    async function clearAllFilters() {
+        selectedEquipment = "";
+        selectedMuscle = "";
         document.getElementById('searchInput').value = '';
-        document.getElementById('equipmentFilter').value = '';
-        document.getElementById('muscleFilter').value = '';
+        document.getElementById('selectedMuscleLabel').textContent = 'Click a muscle to filter';
+        document.getElementById('clearMuscleBtn').style.display = 'none';
+        setActiveMuscle(null);
+        document.querySelectorAll('.equip-pill').forEach(btn => {
+            btn.classList.remove('active', 'btn-primary');
+            btn.classList.add('btn-outline-secondary');
+        });
         await fetchAndRender(0, '');
     }
 
     // ── Pagination ────────────────────────────────────────────────────────────
 
     async function prevPage() {
-        const newOffset = Math.max(0, currentOffset - PAGE_SIZE);
-        await fetchAndRender(newOffset, currentSearch);
+        await fetchAndRender(Math.max(0, currentOffset - PAGE_SIZE), currentSearch);
         window.scrollTo(0, 0);
     }
-
     async function nextPage() {
-        const newOffset = currentOffset + PAGE_SIZE;
-        await fetchAndRender(newOffset, currentSearch);
+        await fetchAndRender(currentOffset + PAGE_SIZE, currentSearch);
         window.scrollTo(0, 0);
     }
-
     function updatePagination() {
-        const currentPageNum = Math.floor(currentOffset / PAGE_SIZE) + 1;
-        const totalPages = Math.ceil(totalExercises / PAGE_SIZE);
-        document.getElementById('pageIndicator').textContent =
-            totalPages > 0 ? `Page ${currentPageNum} of ${totalPages}` : '';
+        const cur = Math.floor(currentOffset / PAGE_SIZE) + 1;
+        const total = Math.ceil(totalExercises / PAGE_SIZE);
+        document.getElementById('pageIndicator').textContent = total > 0 ? `Page ${cur} of ${total}` : '';
         document.getElementById('prevBtn').disabled = currentOffset === 0;
         document.getElementById('nextBtn').disabled = currentOffset + PAGE_SIZE >= totalExercises;
-        document.getElementById('resultCount').textContent =
-            `${totalExercises.toLocaleString()} exercises total · showing ${currentPage.length} on this page`;
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
 
-    function renderGrid() {
+    function renderGrid(exercises) {
         const grid = document.getElementById('exerciseGrid');
-        if (!currentPage.length) {
-            grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">No exercises match your filters on this page.</div>`;
+        if (!exercises.length) {
+            grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">No exercises match your filters.</div>`;
             return;
         }
-        grid.innerHTML = currentPage.map(ex => `
-            <div class="col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 shadow-sm position-relative" role="button"
-                     onclick='openExercise(${JSON.stringify(ex)})'>
-                    ${favouriteIds.has(ex.exerciseId)
-                        ? `<span class="position-absolute top-0 end-0 m-1 badge bg-warning text-dark">
-                               <span class="material-symbols-outlined" style="font-size:0.8rem">star</span>
-                           </span>` : ''}
-                    <img src="${ex.gifUrl}" class="card-img-top" alt="${ex.name}"
-                         style="height:180px;object-fit:cover;" loading="lazy">
+        grid.innerHTML = exercises.map(ex => `
+            <div class="col-sm-6 col-md-4">
+                <div class="card h-100 shadow-sm position-relative" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
+                    ${favouriteIds.has(ex.exerciseId) ? `<span class="position-absolute top-0 end-0 m-1 badge bg-warning text-dark"><span class="material-symbols-outlined" style="font-size:0.8rem">star</span></span>` : ''}
+                    <img src="${ex.gifUrl}" class="card-img-top" style="height:160px;object-fit:cover;" loading="lazy">
                     <div class="card-body p-2">
-                        <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.85rem;">${ex.name}</p>
+                        <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.82rem;">${ex.name}</p>
                         <div>
-                            ${ex.equipments.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.7rem">${e}</span>`).join('')}
-                            ${ex.targetMuscles.map(m => `<span class="badge bg-success me-1" style="font-size:0.7rem">${m}</span>`).join('')}
+                            ${ex.equipments.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.68rem">${e}</span>`).join('')}
+                            ${ex.targetMuscles.map(m => `<span class="badge bg-success me-1" style="font-size:0.68rem">${m}</span>`).join('')}
                         </div>
                     </div>
                 </div>
@@ -349,16 +375,14 @@
     function renderFavsStrip() {
         const section = document.getElementById('favsSection');
         const grid = document.getElementById('favsGrid');
-        const favExercises = currentBatch.filter(ex => favouriteIds.has(ex.exerciseId));
-        if (!favExercises.length) { section.style.display = 'none'; return; }
+        const favs = currentBatch.filter(ex => favouriteIds.has(ex.exerciseId));
+        if (!favs.length) { section.style.display = 'none'; return; }
         section.style.display = '';
-        grid.innerHTML = favExercises.map(ex => `
+        grid.innerHTML = favs.map(ex => `
             <div class="col-6 col-md-3 col-lg-2">
                 <div class="card shadow-sm" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
-                    <img src="${ex.gifUrl}" class="card-img-top" style="height:100px;object-fit:cover;" loading="lazy">
-                    <div class="card-body p-1">
-                        <p class="mb-0 text-capitalize" style="font-size:0.75rem;font-weight:600;">${ex.name}</p>
-                    </div>
+                    <img src="${ex.gifUrl}" class="card-img-top" style="height:90px;object-fit:cover;" loading="lazy">
+                    <div class="card-body p-1"><p class="mb-0 text-capitalize" style="font-size:0.72rem;font-weight:600;">${ex.name}</p></div>
                 </div>
             </div>
         `).join('');
@@ -367,12 +391,12 @@
     function showSpinner(msg = "Loading...") {
         document.getElementById('exerciseGrid').innerHTML = `
             <div class="col-12 text-center py-5">
-                <div class="spinner-border text-primary" role="status"></div>
+                <div class="spinner-border text-primary"></div>
                 <p class="mt-2 text-muted">${msg}</p>
             </div>`;
     }
 
-    // ── Exercise modal ────────────────────────────────────────────────────────
+    // ── Modal ─────────────────────────────────────────────────────────────────
 
     function openExercise(ex) {
         currentExercise = ex;
@@ -394,8 +418,7 @@
     async function toggleFavourite() {
         if (!currentExercise) return;
         const res = await fetch('/api/favourites/toggle', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(currentExercise),
         });
         const data = await res.json();
@@ -408,7 +431,6 @@
             document.getElementById('favBtn').className = 'btn btn-outline-warning';
             document.getElementById('favBtnText').textContent = 'Favourite';
         }
-        renderGrid();
         renderFavsStrip();
     }
 
@@ -421,48 +443,33 @@
         if (!currentExercise) return;
         const newName = document.getElementById('newRoutineName').value.trim();
         let routineId = document.getElementById('routinePicker').value;
-
         if (newName) {
-            const fd = new FormData();
-            fd.append('name', newName);
+            const fd = new FormData(); fd.append('name', newName);
             const res = await fetch('/api/routines', { method: 'POST', body: fd });
-            if (res.redirected) {
-                const match = res.url.match(/\/routines\/(\d+)/);
-                routineId = match ? match[1] : null;
-            }
+            if (res.redirected) { const m = res.url.match(/\/routines\/(\d+)/); routineId = m ? m[1] : null; }
         }
-
         if (!routineId) { alert('Please select or create a routine.'); return; }
-
         const ex = currentExercise;
         const fd = new FormData();
-        fd.append('exercise_id', ex.exerciseId);
-        fd.append('exercise_name', ex.name);
-        fd.append('exercise_body_parts', (ex.bodyParts || []).join(','));
-        fd.append('exercise_equipments', (ex.equipments || []).join(','));
-        fd.append('exercise_target_muscles', (ex.targetMuscles || []).join(','));
+        fd.append('exercise_id', ex.exerciseId); fd.append('exercise_name', ex.name);
+        fd.append('exercise_body_parts', (ex.bodyParts||[]).join(','));
+        fd.append('exercise_equipments', (ex.equipments||[]).join(','));
+        fd.append('exercise_target_muscles', (ex.targetMuscles||[]).join(','));
         fd.append('exercise_gif_url', ex.gifUrl || '');
         fd.append('sets', document.getElementById('atrSets').value || '');
         fd.append('reps', document.getElementById('atrReps').value || '');
         fd.append('duration_seconds', document.getElementById('atrDuration').value || '');
         fd.append('rest_seconds', document.getElementById('atrRest').value || '60');
         fd.append('notes', document.getElementById('atrNotes').value || '');
-
         await fetch(`/api/routines/${routineId}/exercises`, { method: 'POST', body: fd });
         bootstrap.Modal.getInstance(document.getElementById('addToRoutineModal'))?.hide();
-
         document.getElementById('toastTitle').textContent = 'Success';
         document.getElementById('toastContent').textContent = 'Added to routine!';
         new bootstrap.Toast(document.getElementById('appToast')).show();
-
-        const rRes = await fetch('/api/routines');
-        userRoutines = await rRes.json();
-        populateRoutinePicker();
+        const rRes = await fetch('/api/routines'); userRoutines = await rRes.json(); populateRoutinePicker();
     }
 
-    document.getElementById('searchInput').addEventListener('keydown', e => {
-        if (e.key === 'Enter') doSearch();
-    });
+    document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 
     init();
 </script>
