@@ -29,31 +29,42 @@ EQUIPMENTS = sorted([
 class ExerciseDBService:
 
     async def get_exercises_page(self, search: str = "", offset: int = 0) -> dict:
-        """
-        Fetch a single page of 100 exercises.
-        Returns the full API response including metadata so the frontend
-        can handle pagination itself.
-        """
         params: dict = {"offset": offset, "limit": PAGE_SIZE}
         if search:
             params["search"] = search
 
+        max_retries = 5 # Try a few times while the server wakes up
+        
         async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.get(f"{EXERCISEDB_BASE}/exercises", params=params)
+            for attempt in range(max_retries):
+                response = await client.get(f"{EXERCISEDB_BASE}/exercises", params=params)
+                
+                # If we hit Render's 429 wake-up rate limit, sleep and try again
+                if response.status_code == 429:
+                    wait_time = (attempt + 1) * 5
+                    await asyncio.sleep(wait_time)
+                    continue
+                    
+                response.raise_for_status()
+                return response.json()
+            
+            # If all retries fail, raise the last exception
             response.raise_for_status()
-            return response.json()
 
     async def get_exercise_by_id(self, exercise_id: str) -> dict | None:
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.get(f"{EXERCISEDB_BASE}/exercises/{exercise_id}")
-            if response.status_code == 404:
-                return None
+        async with httpx.AsyncClient(timeout=60) as client:
+            for attempt in range(5):
+                response = await client.get(f"{EXERCISEDB_BASE}/exercises/{exercise_id}")
+                
+                if response.status_code == 404:
+                    return None
+                
+                # Handle 429 here as well
+                if response.status_code == 429:
+                    await asyncio.sleep((attempt + 1) * 5)
+                    continue
+                    
+                response.raise_for_status()
+                return response.json().get("data")
+                
             response.raise_for_status()
-            data = response.json()
-            return data.get("data")
-
-    def get_muscles(self) -> list:
-        return MUSCLES
-
-    def get_equipments(self) -> list:
-        return EQUIPMENTS
