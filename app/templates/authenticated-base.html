@@ -156,6 +156,12 @@
     document.getElementById("menu-toggle").addEventListener("click", function () {
         document.getElementById("sidebar").classList.toggle("collapsed");
     });
+    
+    setInterval(() => {
+        fetch('/api/exercises?limit=1')
+            .then(res => console.log("Keep-alive ping sent"))
+            .catch(err => console.error("Keep-alive failed", err));
+    }, 600000); 
 </script>
 
 {% block subpage_scripts %}{% endblock %}

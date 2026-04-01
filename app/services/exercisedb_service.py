@@ -33,9 +33,10 @@ class ExerciseDBService:
         if search:
             params["search"] = search
 
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"}
         max_retries = 5 # Try a few times while the server wakes up
         
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=60, headers=headers) as client:
             for attempt in range(max_retries):
                 response = await client.get(f"{EXERCISEDB_BASE}/exercises", params=params)
                 

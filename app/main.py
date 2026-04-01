@@ -15,17 +15,15 @@ EXERCISEDB_BASE = "https://exercisedb-api-oe62.onrender.com/api/v1"
 
 
 async def warmup_exercisedb():
-    """Ping the ExerciseDB server on startup so it wakes up before users need it."""
+    """Ping the ExerciseDB server on startup so it wakes up."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            logger.info("Warming up ExerciseDB API...")
-            response = await client.get(f"{EXERCISEDB_BASE}/exercises", params={"offset": 0, "limit": 1})
-            if response.status_code == 200:
-                logger.info("ExerciseDB API is ready.")
-            else:
-                logger.warning(f"ExerciseDB warmup got status {response.status_code}")
-    except Exception as e:
-        logger.warning(f"ExerciseDB warmup failed (will retry on first user request): {e}")
+        async with httpx.AsyncClient(timeout=60, headers=headers) as client:
+            await client.get(f"{EXERCISEDB_BASE}/exercises", params={"limit": 1})
+    except Exception:
+        pass
 
 
 @asynccontextmanager
