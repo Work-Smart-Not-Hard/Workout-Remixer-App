@@ -125,7 +125,7 @@
     </div>
 </div>
 
-<!-- Add to Routine Modal -->
+
 <div class="modal fade" id="addToRoutineModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -165,57 +165,73 @@
 
 {% block subpage_scripts %}
 <script>
-    // ── State ─────────────────────────────────────────────────────────────────
-    let currentBatch = [];
+    //State
+    let currentPage = [];       
+    let currentBatch = [];      
     let totalExercises = 0;
     let currentOffset = 0;
     let currentSearch = "";
-    let selectedEquipment = "";
-    let selectedMuscle = "";
     let favouriteIds = new Set();
     let currentExercise = null;
     let userRoutines = [];
     const PAGE_SIZE = 100;
 
-    // Priority equipment items to show as pills
-    const EQUIPMENT_PILLS = [
-        "barbell", "dumbbell", "kettlebell", "cable", "body weight",
-        "machine", "resistance band", "ez barbell", "smith machine"
-    ];
+    //SVG Muscle to API Muscle mapping
+    const MUSCLE_MAP = {
+        "chest": ["chest", "pectorals", "upper chest"],
+        "abs": ["abs", "abdominals", "core", "lower abs"],
+        "obliques": ["obliques"],
+        "biceps": ["biceps", "brachialis"],
+        "triceps": ["triceps"],
+        "forearm": ["forearms", "wrist flexors", "wrist extensors", "wrists"],
+        "quadriceps": ["quads", "quadriceps"],
+        "hamstring": ["hamstrings"],
+        "calves": ["calves", "soleus"],
+        "shoulders": ["shoulders", "delts", "deltoids", "rear deltoids"],
+        "trapezius": ["traps", "trapezius"],
+        "upper-back": ["upper back", "rhomboids", "levator scapulae"],
+        "lats": ["lats", "latissimus dorsi"],
+        "lower-back": ["lower back", "spine"],
+        "gluteal": ["glutes"],
+        "neck": ["neck", "sternocleidomastoid"]
+    };
 
-    // ── Bootstrap ─────────────────────────────────────────────────────────────
+    //Bootstrap
 
     async function init() {
-        const [favsRes, routinesRes] = await Promise.all([
+        const [musclesRes, equipmentsRes, favsRes, routinesRes] = await Promise.all([
+            fetch('/api/exercises/muscles'),
+            fetch('/api/exercises/equipments'),
             fetch('/api/favourites'),
             fetch('/api/routines'),
         ]);
+
+        populateSelect('muscleFilter', await musclesRes.json());
+        populateSelect('equipmentFilter', await equipmentsRes.json());
+        
+        //Inject the Calisthenics Option Manually 
+        const eqFilter = document.getElementById('equipmentFilter');
+        const calOption = document.createElement('option');
+        calOption.value = 'calisthenics';
+        calOption.textContent = 'Calisthenics (Body Weight)';
+        eqFilter.appendChild(calOption);
+
         const favs = await favsRes.json();
         favouriteIds = new Set(favs.map(f => f.exercise_id));
         userRoutines = await routinesRes.json();
         populateRoutinePicker();
-        renderEquipmentPills();
+
         await fetchAndRender(0, "");
     }
 
-    function renderEquipmentPills() {
-        const container = document.getElementById('equipmentPills');
-        container.innerHTML = EQUIPMENT_PILLS.map(eq => `
-            <button class="btn btn-sm btn-outline-secondary equip-pill" data-equipment="${eq}"
-                    onclick="selectEquipment('${eq}')" style="font-size:0.75rem;text-transform:capitalize;">
-                ${eq}
-            </button>
-        `).join('');
-    }
-
-    function selectEquipment(eq) {
-        selectedEquipment = selectedEquipment === eq ? "" : eq;
-        document.querySelectorAll('.equip-pill').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.equipment === selectedEquipment);
-            btn.classList.toggle('btn-primary', btn.dataset.equipment === selectedEquipment);
-            btn.classList.toggle('btn-outline-secondary', btn.dataset.equipment !== selectedEquipment);
+    function populateSelect(id, values) {
+        const sel = document.getElementById(id);
+        values.forEach(v => {
+            const o = document.createElement('option');
+            o.value = v;
+            o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+            sel.appendChild(o);
         });
-        applyLocalFilters();
     }
 
     function populateRoutinePicker() {
@@ -223,254 +239,176 @@
         picker.innerHTML = userRoutines.length
             ? '<option value="">— pick a routine —</option>' +
               userRoutines.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
-            : '<option value="">No routines yet</option>';
+            : '<option value="">No routines yet — create one below</option>';
     }
 
-    // ── Muscle click (from heatmap) ───────────────────────────────────────────
-
-    function onMuscleClick(muscleName) {
-        selectedMuscle = selectedMuscle === muscleName ? "" : muscleName;
-        setActiveMuscle(selectedMuscle || null);
-        document.getElementById('selectedMuscleLabel').textContent =
-            selectedMuscle ? `Filtered: ${selectedMuscle}` : 'Click a muscle to filter';
-        document.getElementById('clearMuscleBtn').style.display = selectedMuscle ? '' : 'none';
-        applyLocalFilters();
+    //SVG Muscle Click Handler
+    function onMuscleClick(svgMuscleName) {
+        const mappedMuscles = MUSCLE_MAP[svgMuscleName.toLowerCase()];
+        if (mappedMuscles && mappedMuscles.length > 0) {
+            document.getElementById('muscleFilter').value = mappedMuscles[0]; 
+            applyLocalFilters();
+        }
     }
 
-    function clearMuscle() {
-        selectedMuscle = "";
-        setActiveMuscle(null);
-        document.getElementById('selectedMuscleLabel').textContent = 'Click a muscle to filter';
-        document.getElementById('clearMuscleBtn').style.display = 'none';
-        applyLocalFilters();
-    }
-
-    // ── Fetch ─────────────────────────────────────────────────────────────────
+    //Fetch one page from API with Browser Cache
 
     async function fetchAndRender(offset, search, attempt = 1) {
         showSpinner(attempt > 1 ? `Waking up exercise server — attempt ${attempt}...` : "Loading exercises...");
         try {
-            const params = new URLSearchParams({ offset });
-            if (search) params.set('search', search);
-            const res = await fetch(`/api/exercises?${params}`);
-            if (!res.ok) throw new Error(res.status);
-            const json = await res.json();
+            const cacheKey = `exercises_page_${offset}_${search}`;
+            const cachedData = sessionStorage.getItem(cacheKey);
+            let json;
+
+            if (cachedData) {
+                console.log("Loaded exercises from browser cache!");
+                json = JSON.parse(cachedData);
+            } else {
+                const params = new URLSearchParams({ offset });
+                if (search) params.set('search', search);
+                const res = await fetch(`/api/exercises?${params}`);
+                if (!res.ok) throw new Error(res.status);
+                json = await res.json();
+                sessionStorage.setItem(cacheKey, JSON.stringify(json));
+            }
+
             currentBatch = json.data || [];
-            totalExercises = json.metadata?.totalExercises || currentBatch.length;
+            totalExercises = json.total || (currentBatch.length === PAGE_SIZE ? offset + PAGE_SIZE + 1 : offset + currentBatch.length);
+            
             currentOffset = offset;
             currentSearch = search;
             applyLocalFilters();
-            renderFavsStrip();
-        } catch (err) {
-            if (attempt < 6) {
-                const wait = attempt * 5;
-                for (let i = wait; i > 0; i--) {
-                    showSpinner(`Exercise server waking up — retrying in ${i}s...`);
-                    await new Promise(r => setTimeout(r, 1000));
-                }
-                await fetchAndRender(offset, search, attempt + 1);
+
+        } catch (e) {
+            if (e.message == 429 && attempt < 6) {
+                setTimeout(() => fetchAndRender(offset, search, attempt + 1), attempt * 5000);
             } else {
-                document.getElementById('exerciseGrid').innerHTML =
-                    `<div class="col-12 text-center py-5">
-                        <p class="text-danger">Could not load exercises.</p>
-                        <button class="btn btn-primary" onclick="fetchAndRender(0,'')">Retry</button>
+                document.getElementById('exerciseGrid').innerHTML = 
+                    `<div class="col-12 text-center text-danger py-5">
+                        <span class="material-symbols-outlined d-block mb-2" style="font-size:3rem">error</span>
+                        Failed to load exercises. Please refresh and try again.
                     </div>`;
             }
         }
     }
 
-    // ── Client-side filtering ─────────────────────────────────────────────────
-
     function applyLocalFilters() {
-        const filtered = currentBatch.filter(ex => {
-            const eqMatch = !selectedEquipment ||
-                ex.equipments.some(e => e.toLowerCase() === selectedEquipment.toLowerCase());
+        const m = document.getElementById('muscleFilter').value.toLowerCase();
+        const e = document.getElementById('equipmentFilter').value.toLowerCase();
 
-            // Muscle filter — check targetMuscles, secondaryMuscles, bodyParts
-            const muMatch = !selectedMuscle || (() => {
-                const m = selectedMuscle.toLowerCase();
-                return ex.targetMuscles.some(t => t.toLowerCase().includes(m) || m.includes(t.toLowerCase())) ||
-                       ex.secondaryMuscles.some(t => t.toLowerCase().includes(m) || m.includes(t.toLowerCase())) ||
-                       ex.bodyParts.some(b => b.toLowerCase().includes(m) || m.includes(b.toLowerCase()));
-            })();
+        //Map chosen muscle to its aliases
+        let acceptableMuscles = [m];
+        for (const [key, equivalents] of Object.entries(MUSCLE_MAP)) {
+            if (equivalents.includes(m)) {
+                acceptableMuscles = equivalents;
+                break;
+            }
+        }
+        
+        //Map Calisthenics to Body Weight
+        let acceptableEquipments = [e];
+        if (e === 'calisthenics') {
+            acceptableEquipments = ['body weight', 'assisted'];
+        }
+
+        currentPage = currentBatch.filter(ex => {
+            const eqList = ex.equipments || (ex.equipment ? [ex.equipment] : []);
+            const eqMatch = !e || eqList.some(eq => acceptableEquipments.includes(eq.toLowerCase()));
+            
+            const muMatch = !m || 
+                (ex.targetMuscles && ex.targetMuscles.some(mu => acceptableMuscles.includes(mu.toLowerCase()))) || 
+                (ex.secondaryMuscles && ex.secondaryMuscles.some(mu => acceptableMuscles.includes(mu.toLowerCase()))) ||
+                (ex.target && acceptableMuscles.includes(ex.target.toLowerCase()));
 
             return eqMatch && muMatch;
         });
 
-        const filtersActive = selectedEquipment || selectedMuscle || currentSearch;
-        document.getElementById('favsSection').style.display =
-            !filtersActive && favouriteIds.size > 0 ? '' : 'none';
-
-        document.getElementById('resultCount').textContent =
-            `${filtered.length} exercises on this page · ${totalExercises.toLocaleString()} total`;
-
-        renderGrid(filtered);
+        renderGrid(currentPage);
         updatePagination();
     }
 
-    // ── Search ────────────────────────────────────────────────────────────────
-
-    async function doSearch() {
-        const q = document.getElementById('searchInput').value.trim();
-        await fetchAndRender(0, q);
-    }
-
-    async function clearAllFilters() {
-        selectedEquipment = "";
-        selectedMuscle = "";
-        document.getElementById('searchInput').value = '';
-        document.getElementById('selectedMuscleLabel').textContent = 'Click a muscle to filter';
-        document.getElementById('clearMuscleBtn').style.display = 'none';
-        setActiveMuscle(null);
-        document.querySelectorAll('.equip-pill').forEach(btn => {
-            btn.classList.remove('active', 'btn-primary');
-            btn.classList.add('btn-outline-secondary');
-        });
-        await fetchAndRender(0, '');
-    }
-
-    // ── Pagination ────────────────────────────────────────────────────────────
-
-    async function prevPage() {
-        await fetchAndRender(Math.max(0, currentOffset - PAGE_SIZE), currentSearch);
-        window.scrollTo(0, 0);
-    }
-    async function nextPage() {
-        await fetchAndRender(currentOffset + PAGE_SIZE, currentSearch);
-        window.scrollTo(0, 0);
-    }
     function updatePagination() {
-        const cur = Math.floor(currentOffset / PAGE_SIZE) + 1;
-        const total = Math.ceil(totalExercises / PAGE_SIZE);
-        document.getElementById('pageIndicator').textContent = total > 0 ? `Page ${cur} of ${total}` : '';
-        document.getElementById('prevBtn').disabled = currentOffset === 0;
-        document.getElementById('nextBtn').disabled = currentOffset + PAGE_SIZE >= totalExercises;
+        const isFiltered = document.getElementById('muscleFilter').value || document.getElementById('equipmentFilter').value;
+        const pageNum = Math.floor(currentOffset / PAGE_SIZE) + 1;
+        let totalPages = Math.ceil(totalExercises / PAGE_SIZE);
+        
+        const countText = isFiltered 
+            ? `Showing ${currentPage.length} matching exercises (from page ${pageNum})`
+            : `Showing ${currentBatch.length} exercises (Page ${pageNum} of ${totalPages || '?'})`;
+            
+        document.getElementById('pageInfo').textContent = countText;
+
+        document.getElementById('prevBtn').disabled = (currentOffset === 0);
+        document.getElementById('nextBtn').disabled = currentBatch.length < PAGE_SIZE || (isFiltered && currentPage.length === 0);
     }
 
-    // ── Render ────────────────────────────────────────────────────────────────
-
-    function renderGrid(exercises) {
-        const grid = document.getElementById('exerciseGrid');
-        if (!exercises.length) {
-            grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">No exercises match your filters.</div>`;
-            return;
-        }
-        grid.innerHTML = exercises.map(ex => `
-            <div class="col-sm-6 col-md-4">
-                <div class="card h-100 shadow-sm position-relative" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
-                    ${favouriteIds.has(ex.exerciseId) ? `<span class="position-absolute top-0 end-0 m-1 badge bg-warning text-dark"><span class="material-symbols-outlined" style="font-size:0.8rem">star</span></span>` : ''}
-                    <img src="${ex.gifUrl}" class="card-img-top" style="height:160px;object-fit:cover;" loading="lazy">
-                    <div class="card-body p-2">
-                        <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.82rem;">${ex.name}</p>
-                        <div>
-                            ${ex.equipments.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.68rem">${e}</span>`).join('')}
-                            ${ex.targetMuscles.map(m => `<span class="badge bg-success me-1" style="font-size:0.68rem">${m}</span>`).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function renderFavsStrip() {
-        const section = document.getElementById('favsSection');
-        const grid = document.getElementById('favsGrid');
-        const favs = currentBatch.filter(ex => favouriteIds.has(ex.exerciseId));
-        if (!favs.length) { section.style.display = 'none'; return; }
-        section.style.display = '';
-        grid.innerHTML = favs.map(ex => `
-            <div class="col-6 col-md-3 col-lg-2">
-                <div class="card shadow-sm" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
-                    <img src="${ex.gifUrl}" class="card-img-top" style="height:90px;object-fit:cover;" loading="lazy">
-                    <div class="card-body p-1"><p class="mb-0 text-capitalize" style="font-size:0.72rem;font-weight:600;">${ex.name}</p></div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function showSpinner(msg = "Loading...") {
-        document.getElementById('exerciseGrid').innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="spinner-border text-primary"></div>
-                <p class="mt-2 text-muted">${msg}</p>
-            </div>`;
-    }
-
-    // ── Modal ─────────────────────────────────────────────────────────────────
-
-    function openExercise(ex) {
-        currentExercise = ex;
-        const isFav = favouriteIds.has(ex.exerciseId);
-        document.getElementById('modalExerciseName').textContent = ex.name;
-        document.getElementById('modalGif').src = ex.gifUrl;
-        document.getElementById('modalBodyPart').textContent = ex.bodyParts?.join(', ') || '';
-        document.getElementById('modalTarget').textContent = ex.targetMuscles?.join(', ') || '';
-        document.getElementById('modalEquipment').textContent = ex.equipments?.join(', ') || '';
-        document.getElementById('modalSecondary').textContent = ex.secondaryMuscles?.join(', ') || 'None';
-        document.getElementById('modalInstructions').innerHTML = (ex.instructions || [])
-            .map(i => `<li class="mb-1">${i.replace(/^Step:\d+\s*/, '')}</li>`).join('');
-        document.getElementById('favBtn').className = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
-        document.getElementById('favBtnText').textContent = isFav ? 'Favourited' : 'Favourite';
-        document.getElementById('viewExBtn').href = `/exercises/${ex.exerciseId}`;
-        new bootstrap.Modal(document.getElementById('exerciseModal')).show();
-    }
-
-    async function toggleFavourite() {
-        if (!currentExercise) return;
-        const res = await fetch('/api/favourites/toggle', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(currentExercise),
-        });
-        const data = await res.json();
-        if (data.favourited) {
-            favouriteIds.add(currentExercise.exerciseId);
-            document.getElementById('favBtn').className = 'btn btn-warning';
-            document.getElementById('favBtnText').textContent = 'Favourited';
-        } else {
-            favouriteIds.delete(currentExercise.exerciseId);
-            document.getElementById('favBtn').className = 'btn btn-outline-warning';
-            document.getElementById('favBtnText').textContent = 'Favourite';
-        }
-        renderFavsStrip();
-    }
-
-    function showAddToRoutine() {
-        bootstrap.Modal.getInstance(document.getElementById('exerciseModal'))?.hide();
-        setTimeout(() => new bootstrap.Modal(document.getElementById('addToRoutineModal')).show(), 300);
-    }
+    //Prevent Double Click / Add to Routine
 
     async function submitAddToRoutine() {
-        if (!currentExercise) return;
-        const newName = document.getElementById('newRoutineName').value.trim();
-        let routineId = document.getElementById('routinePicker').value;
-        if (newName) {
-            const fd = new FormData(); fd.append('name', newName);
-            const res = await fetch('/api/routines', { method: 'POST', body: fd });
-            if (res.redirected) { const m = res.url.match(/\/routines\/(\d+)/); routineId = m ? m[1] : null; }
+        const btn = document.querySelector('button[onclick="submitAddToRoutine()"]');
+        btn.disabled = true; // Disable to prevent double clicks creating duplicates
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
+        const rId = document.getElementById('routinePicker').value;
+        if (!rId) {
+            alert('Please select a routine first.');
+            btn.disabled = false;
+            btn.innerHTML = 'Add';
+            return;
         }
-        if (!routineId) { alert('Please select or create a routine.'); return; }
-        const ex = currentExercise;
+        
         const fd = new FormData();
-        fd.append('exercise_id', ex.exerciseId); fd.append('exercise_name', ex.name);
-        fd.append('exercise_body_parts', (ex.bodyParts||[]).join(','));
-        fd.append('exercise_equipments', (ex.equipments||[]).join(','));
-        fd.append('exercise_target_muscles', (ex.targetMuscles||[]).join(','));
-        fd.append('exercise_gif_url', ex.gifUrl || '');
-        fd.append('sets', document.getElementById('atrSets').value || '');
-        fd.append('reps', document.getElementById('atrReps').value || '');
-        fd.append('duration_seconds', document.getElementById('atrDuration').value || '');
-        fd.append('rest_seconds', document.getElementById('atrRest').value || '60');
-        fd.append('notes', document.getElementById('atrNotes').value || '');
-        await fetch(`/api/routines/${routineId}/exercises`, { method: 'POST', body: fd });
-        bootstrap.Modal.getInstance(document.getElementById('addToRoutineModal'))?.hide();
-        document.getElementById('toastTitle').textContent = 'Success';
-        document.getElementById('toastContent').textContent = 'Added to routine!';
-        new bootstrap.Toast(document.getElementById('appToast')).show();
-        const rRes = await fetch('/api/routines'); userRoutines = await rRes.json(); populateRoutinePicker();
+        fd.append('exercise_id', currentExercise.exerciseId || currentExercise.id);
+        fd.append('exercise_name', currentExercise.name);
+        fd.append('exercise_gif_url', currentExercise.gifUrl || "");
+        fd.append('exercise_body_parts', (currentExercise.bodyParts || [currentExercise.bodyPart || ""]).join(','));
+        fd.append('exercise_equipments', (currentExercise.equipments || [currentExercise.equipment || ""]).join(','));
+        fd.append('exercise_target_muscles', (currentExercise.targetMuscles || [currentExercise.target || ""]).join(','));
+
+        const sets = document.getElementById('atrSets').value;
+        const reps = document.getElementById('atrReps').value;
+        const dur = document.getElementById('atrDuration').value;
+        const rest = document.getElementById('atrRest').value;
+        const notes = document.getElementById('atrNotes').value;
+
+        if (sets) fd.append('sets', sets);
+        if (reps) fd.append('reps', reps);
+        if (dur) fd.append('duration_seconds', dur);
+        if (rest) fd.append('rest_seconds', rest);
+        if (notes) fd.append('notes', notes);
+
+        try {
+            const res = await fetch(`/api/routines/${rId}/exercises`, { method: 'POST', body: fd });
+            if (res.ok) {
+                const modalEl = document.getElementById('addToRoutineModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                
+                const toastDiv = document.createElement('div');
+                toastDiv.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3 z-3 shadow';
+                toastDiv.textContent = 'Exercise added to routine!';
+                document.body.appendChild(toastDiv);
+                setTimeout(() => toastDiv.remove(), 3000);
+            } else {
+                const text = await res.text();
+                alert('Failed to add exercise: ' + text);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error adding to routine');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Add';
+        }
     }
 
-    document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    //Initialize
+    document.addEventListener('DOMContentLoaded', init);
+    document.getElementById('searchBtn').addEventListener('click', () => fetchAndRender(0, document.getElementById('searchInput').value.trim()));
+    document.getElementById('muscleFilter').addEventListener('change', applyLocalFilters);
+    document.getElementById('equipmentFilter').addEventListener('change', applyLocalFilters);
+    document.getElementById('prevBtn').addEventListener('click', () => fetchAndRender(currentOffset - PAGE_SIZE, currentSearch));
+    document.getElementById('nextBtn').addEventListener('click', () => fetchAndRender(currentOffset + PAGE_SIZE, currentSearch));
 
-    init();
 </script>
 {% endblock %}

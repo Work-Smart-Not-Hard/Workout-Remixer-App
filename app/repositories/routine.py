@@ -47,9 +47,23 @@ class RoutineRepository:
 
     def delete(self, routine: Routine):
         try:
+            for re in routine.exercises:
+                self.db.delete(re)
+            
+            for like in routine.likes:
+                self.db.delete(like)
+            for invite in routine.invites:
+                self.db.delete(invite)
+
+            for session in routine.sessions:
+                for se in session.exercises:
+                    self.db.delete(se)
+                self.db.delete(session)
+
             self.db.delete(routine)
             self.db.commit()
         except Exception as e:
+            logger.error(f"Error deleting routine: {e}")
             self.db.rollback()
             raise
 

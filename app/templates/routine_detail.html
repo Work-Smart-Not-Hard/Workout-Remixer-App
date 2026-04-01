@@ -237,7 +237,7 @@
     let allFetched = [];       // full exercise list from API
     let localFiltered = [];    // after client-side filters applied
 
-    // ── Bootstrap dropdowns from hardcoded lists ───────────────────────────
+    //Bootstrap dropdowns from hardcoded lists
 
     async function initFilters() {
         const [musclesRes, equipmentsRes] = await Promise.all([
@@ -257,23 +257,39 @@
         });
     }
 
-    // ── Search (hits API for fuzzy match) ────────────────────────────────────
+    //Search (hits API for fuzzy match)
 
     async function searchExercises() {
         const q = document.getElementById('exSearch').value.trim();
         const spinner = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
         document.getElementById('exResults').innerHTML = spinner;
 
-        const params = new URLSearchParams();
-        if (q) params.set('search', q);
+        // 1. Create a unique key for this search query
+        const cacheKey = `routine_search_${q}`;
+        const cachedData = sessionStorage.getItem(cacheKey);
+        let json;
 
-        const res = await fetch(`/api/exercises?${params}`);
-        const json = await res.json();
+        if (cachedData) {
+            // 2. Load from cache if it exists
+            console.log("Loaded routine search from browser cache!");
+            json = JSON.parse(cachedData);
+        } else {
+            // 3. Otherwise, fetch from the API
+            const params = new URLSearchParams();
+            if (q) params.set('search', q);
+
+            const res = await fetch(`/api/exercises?${params}`);
+            json = await res.json();
+            
+            // 4. Save to browser cache for next time
+            sessionStorage.setItem(cacheKey, JSON.stringify(json));
+        }
+
         allFetched = json.data || [];
         applyLocalFilters();
     }
 
-    // ── Client-side filter on top of fetched results ──────────────────────
+    //Client-side filter on top of fetched results
 
     function applyLocalFilters() {
         const equipment = document.getElementById('exEquipFilter').value.toLowerCase();
