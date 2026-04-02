@@ -185,40 +185,29 @@
 
 {% block subpage_scripts %}
 <script>
-//MUSCLE MAPPING
+// MUSCLE MAPPING
 const SVG_TO_API = {
-    // SVG group       : [exact API muscle names that belong to it]
-    "chest"          : ["chest", "pectorals", "upper chest", "serratus anterior"],
-    "abs"            : ["abs", "abdominals", "core", "lower abs"],
-    "obliques"       : ["obliques"],
-    "biceps"         : ["biceps", "brachialis"],
-    "triceps"        : ["triceps"],
-    "forearms"       : ["forearms", "wrist flexors", "wrist extensors", "wrists",
-                        "grip muscles", "hands"],
-    "shoulders"      : ["shoulders", "delts", "deltoids", "rear deltoids",
-                        "rotator cuff"],
-    "traps"          : ["traps", "trapezius", "levator scapulae"],
-    "neck"           : ["neck", "sternocleidomastoid"],
-    "upper back"     : ["upper back", "rhomboids"],
-    "lats"           : ["lats", "latissimus dorsi", "back"],
-    "lower back"     : ["lower back", "spine"],
-    "glutes"         : ["glutes"],
-    "hamstrings"     : ["hamstrings"],
-    "adductors"      : ["adductors", "inner thighs", "groin", "hip flexors",
-                        "abductors"],
-    "quads"          : ["quads", "quadriceps"],
-    "calves"         : ["calves", "soleus"],
-    "tibialis"       : ["shins"],
+    "chest": ["chest", "pectorals", "upper chest", "serratus anterior"],
+    "abs": ["abs", "abdominals", "core", "lower abs", "waist"],
+    "obliques": ["obliques", "waist", "abs"],
+    "biceps": ["biceps", "brachialis", "upper arms"],
+    "triceps": ["triceps", "upper arms"],
+    "forearms": ["forearms", "wrist flexors", "wrist extensors", "wrists", "lower arms"],
+    "shoulders": ["shoulders", "delts", "deltoids"],
+    "traps": ["traps", "trapezius", "back"],
+    "neck": ["neck", "levator scapulae"],
+    "upper back": ["upper back", "rhomboids", "back"],
+    "lats": ["lats", "latissimus dorsi", "back"],
+    "lower back": ["lower back", "spine", "back"],
+    "glutes": ["glutes", "upper legs"],
+    "hamstrings": ["hamstrings", "upper legs"],
+    "adductors": ["adductors", "abductors", "inner thighs", "groin", "upper legs"],
+    "quads": ["quads", "quadriceps", "upper legs"],
+    "calves": ["calves", "soleus", "lower legs"],
+    "tibialis": ["shins", "lower legs"]
 };
 
-// Reverse map: API name → SVG group name (built once, used in applyLocalFilters)
-const API_TO_SVG = {};
-for (const [svg, apiNames] of Object.entries(SVG_TO_API)) {
-    for (const n of apiNames) API_TO_SVG[n.toLowerCase()] = svg;
-}
-
-// EQUIPMENT — organised groups matching what ExerciseDB v1 actually returns.
-// Displayed as labelled pill groups in the sidebar
+// EQUIPMENT — organised groups matching ExerciseDB
 const EQUIPMENT_GROUPS = [
     {
         label: "Free Weights",
@@ -243,9 +232,9 @@ const EQUIPMENT_GROUPS = [
     },
 ];
 
-//State
-let currentBatch    = [];
-let totalExercises  = 0;
+// State
+let allFetched      = [];
+let currentFiltered = [];
 let currentOffset   = 0;
 let currentSearch   = "";
 let selectedEquip   = "";
@@ -253,29 +242,28 @@ let selectedSvgGrp  = "";
 let favouriteIds    = new Set();
 let currentExercise = null;
 let userRoutines    = [];
-const PAGE_SIZE     = 100;
+const PAGE_SIZE     = 30; // Optimized for client-side display
 
-//Init
+// Init
 async function init() {
     const [favsRes, routinesRes] = await Promise.all([
         fetch('/api/favourites'),
         fetch('/api/routines'),
     ]);
     const favs   = await favsRes.json();
-    favouriteIds = new Set(favs.map(f => f.exercise_id));
+    favouriteIds = new Set(favs.map(f => f.exercise_id || f.exerciseId));
     userRoutines = await routinesRes.json();
     populateRoutinePicker();
     renderEquipmentPills();
-    await fetchAndRender(0, "");
+    await fetchAndRender("");
 }
 
-//Equipment pills
+// Equipment pills
 function renderEquipmentPills() {
     const container = document.getElementById('equipmentPills');
     container.innerHTML = "";
 
     for (const group of EQUIPMENT_GROUPS) {
-        // Group label
         const label = document.createElement('div');
         label.className = "w-100 text-muted mt-2 mb-1";
         label.style.fontSize = "0.7rem";
@@ -298,186 +286,193 @@ function renderEquipmentPills() {
 }
 
 function selectEquipment(eq) {
-    if (selectedEquip === eq) {
-        // Toggle off
-        selectedEquip = "";
-    } else {
-        selectedEquip = eq;
-    }
-    // Sync pill active states
+    selectedEquip = (selectedEquip === eq) ? "" : eq;
     document.querySelectorAll('.equip-pill').forEach(b => {
         const active = b.dataset.equip === selectedEquip;
-        b.classList.toggle('btn-primary',          active);
+        b.classList.toggle('btn-primary', active);
         b.classList.toggle('btn-outline-secondary', !active);
     });
-    document.getElementById('clearEquipBtn').style.display = selectedEquip ? '' : 'none';
+    const clearBtn = document.getElementById('clearEquipBtn');
+    if (clearBtn) clearBtn.style.display = selectedEquip ? '' : 'none';
     applyLocalFilters();
 }
 
 function clearEquipment() {
-    selectEquipment(selectedEquip); // toggle off current
+    selectEquipment(selectedEquip); 
 }
 
-//SVG muscle click (called by heatmap_component.html)
+// SVG muscle click
 function onMuscleClick(svgMuscle) {
     if (selectedSvgGrp === svgMuscle) {
-        // Toggle off
         selectedSvgGrp = "";
-        setActiveMuscle(null);
+        if (typeof setActiveMuscle === "function") setActiveMuscle(null);
         document.getElementById('selectedMuscleLabel').textContent = "Click a muscle to filter";
-        document.getElementById('clearMuscleBtn').style.display = 'none';
+        const clearBtn = document.getElementById('clearMuscleBtn');
+        if (clearBtn) clearBtn.style.display = 'none';
     } else {
         selectedSvgGrp = svgMuscle;
-        setActiveMuscle(svgMuscle);
-        // Pretty label: use the first API name for that group
+        if (typeof setActiveMuscle === "function") setActiveMuscle(svgMuscle);
         const label = (SVG_TO_API[svgMuscle] || [svgMuscle])[0];
         document.getElementById('selectedMuscleLabel').textContent =
             "Filtering: " + label.charAt(0).toUpperCase() + label.slice(1);
-        document.getElementById('clearMuscleBtn').style.display = '';
+        const clearBtn = document.getElementById('clearMuscleBtn');
+        if (clearBtn) clearBtn.style.display = '';
     }
     applyLocalFilters();
 }
 
 function clearMuscle() {
-    onMuscleClick(selectedSvgGrp); // toggle off
+    onMuscleClick(selectedSvgGrp); 
 }
 
-//Fetch from API
-async function fetchAndRender(offset, search, attempt = 1) {
+// Fetch all from API (or limit=9999) to allow strict client-side filtering + pagination
+async function fetchAndRender(search, attempt = 1) {
     showSpinner(attempt > 1
         ? `Waking up exercise server — attempt ${attempt}...`
         : "Loading exercises...");
 
     try {
-        const cacheKey = `ex_${offset}_${search}`;
+        const cacheKey = `ex_all_${search}`;
         let json = sessionStorage.getItem(cacheKey);
         if (json) {
             json = JSON.parse(json);
         } else {
-            const params = new URLSearchParams({ offset, limit: PAGE_SIZE });
+            const params = new URLSearchParams();
             if (search) params.set('search', search);
+            params.set('limit', 9999); 
             const res = await fetch(`/api/exercises?${params}`);
-            if (res.status === 429) throw new Error('429');
-            if (!res.ok)           throw new Error(res.status);
+            if (!res.ok) throw new Error(res.status);
             json = await res.json();
             sessionStorage.setItem(cacheKey, JSON.stringify(json));
         }
 
-        currentBatch   = json.data || [];
-        // ExerciseDB returns metadata.totalExercises
-        totalExercises = json.metadata?.totalExercises ?? json.total ?? currentBatch.length;
-        currentOffset  = offset;
-        currentSearch  = search;
+        allFetched = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+        currentSearch = search;
         applyLocalFilters();
 
     } catch (err) {
-        if (attempt < 6) {
-            const wait = attempt * 5;
-            for (let i = wait; i > 0; i--) {
-                showSpinner(`Exercise server waking up — retrying in ${i}s...`);
-                await new Promise(r => setTimeout(r, 1000));
-            }
-            await fetchAndRender(offset, search, attempt + 1);
+        if (attempt < 5) {
+            setTimeout(() => fetchAndRender(search, attempt + 1), 2000);
         } else {
             document.getElementById('exerciseGrid').innerHTML = `
                 <div class="col-12 text-center py-5">
                     <p class="text-danger">Could not load exercises. Server may be busy.</p>
-                    <button class="btn btn-primary" onclick="fetchAndRender(0,'')">Retry</button>
+                    <button class="btn btn-primary" onclick="fetchAndRender('')">Retry</button>
                 </div>`;
         }
     }
 }
 
 // Client-side filtering
-// Equipment: exact match against ex.equipments array
-// Muscle:    check if any of the SVG group's API aliases appear in ex.targetMuscles OR ex.secondaryMuscles OR ex.bodyParts
 function applyLocalFilters() {
     const acceptableApiMuscles = selectedSvgGrp
         ? (SVG_TO_API[selectedSvgGrp] || []).map(s => s.toLowerCase())
         : [];
 
-    const filtered = currentBatch.filter(ex => {
-        //Equipment check
+    currentFiltered = allFetched.filter(ex => {
+        // Robust property extraction handling both ExerciseDB direct shape & internal schema shape
+        const equipments = Array.isArray(ex.equipments) ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
+        const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
+        const secondary = Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles : [];
+        const bodyParts = Array.isArray(ex.bodyParts) ? ex.bodyParts : (ex.bodyPart ? [ex.bodyPart] : []);
+
+        // Equipment check
         if (selectedEquip) {
-            const exEquips = (ex.equipments || []).map(e => e.toLowerCase());
+            const exEquips = equipments.map(e => String(e).toLowerCase());
             if (!exEquips.includes(selectedEquip.toLowerCase())) return false;
         }
 
-        //Muscle check
+        // Muscle check
         if (acceptableApiMuscles.length > 0) {
-            const targets   = (ex.targetMuscles   || []).map(m => m.toLowerCase());
-            const secondary = (ex.secondaryMuscles || []).map(m => m.toLowerCase());
-            const bodyParts = (ex.bodyParts        || []).map(m => m.toLowerCase());
-            const all = [...targets, ...secondary, ...bodyParts];
-            // Accept exercise if ANY of its muscles match ANY of the group's aliases
+            const all = [...targets, ...secondary, ...bodyParts].map(m => String(m).toLowerCase());
             if (!acceptableApiMuscles.some(alias => all.includes(alias))) return false;
         }
 
         return true;
     });
 
-    //Only show favs strip when no filters active
+    currentOffset = 0; // Reset pagination when filters change
+    renderCurrentPage();
+}
+
+function renderCurrentPage() {
+    const pageExercises = currentFiltered.slice(currentOffset, currentOffset + PAGE_SIZE);
+
     const anyFilter = selectedEquip || selectedSvgGrp || currentSearch;
-    renderFavsStrip(anyFilter ? [] : currentBatch.filter(ex => favouriteIds.has(ex.exerciseId)));
+    renderFavsStrip(anyFilter ? [] : allFetched.filter(ex => favouriteIds.has(ex.exerciseId || ex.id)));
 
     document.getElementById('resultCount').textContent =
-        `${filtered.length.toLocaleString()} exercises on this page · ` +
-        `${totalExercises.toLocaleString()} total`;
+        `${currentFiltered.length.toLocaleString()} exercises found`;
 
-    renderGrid(filtered);
+    renderGrid(pageExercises);
     updatePagination();
 }
 
-//Search & clear
+// Search & clear
 async function doSearch() {
-    const q = document.getElementById('searchInput').value.trim();
-    await fetchAndRender(0, q);
+    const searchEl = document.getElementById('searchInput');
+    if (!searchEl) return;
+    const q = searchEl.value.trim();
+    await fetchAndRender(q);
 }
 
 async function clearAllFilters() {
     selectedEquip  = "";
     selectedSvgGrp = "";
-    document.getElementById('searchInput').value = '';
+    const searchEl = document.getElementById('searchInput');
+    if (searchEl) searchEl.value = '';
     document.getElementById('selectedMuscleLabel').textContent = 'Click a muscle to filter';
-    document.getElementById('clearMuscleBtn').style.display    = 'none';
-    document.getElementById('clearEquipBtn').style.display     = 'none';
-    setActiveMuscle(null);
+    const clearMuscleBtn = document.getElementById('clearMuscleBtn');
+    if (clearMuscleBtn) clearMuscleBtn.style.display = 'none';
+    const clearEquipBtn = document.getElementById('clearEquipBtn');
+    if (clearEquipBtn) clearEquipBtn.style.display = 'none';
+    
+    if (typeof setActiveMuscle === "function") setActiveMuscle(null);
     document.querySelectorAll('.equip-pill').forEach(b => {
         b.classList.remove('btn-primary');
         b.classList.add('btn-outline-secondary');
     });
-    await fetchAndRender(0, '');
+    await fetchAndRender('');
 }
 
-//Pagination
-async function prevPage() {
+// Pagination
+function prevPage() {
     if (currentOffset <= 0) return;
-    await fetchAndRender(currentOffset - PAGE_SIZE, currentSearch);
+    currentOffset -= PAGE_SIZE;
+    renderCurrentPage();
     window.scrollTo(0, 0);
 }
-async function nextPage() {
-    await fetchAndRender(currentOffset + PAGE_SIZE, currentSearch);
+
+function nextPage() {
+    if (currentOffset + PAGE_SIZE >= currentFiltered.length) return;
+    currentOffset += PAGE_SIZE;
+    renderCurrentPage();
     window.scrollTo(0, 0);
 }
+
 function updatePagination() {
     const cur   = Math.floor(currentOffset / PAGE_SIZE) + 1;
-    const total = Math.ceil(totalExercises / PAGE_SIZE) || 1;
+    const total = Math.ceil(currentFiltered.length / PAGE_SIZE) || 1;
     document.getElementById('pageIndicator').textContent = `Page ${cur} of ${total}`;
     document.getElementById('prevBtn').disabled = currentOffset <= 0;
-    document.getElementById('nextBtn').disabled = currentOffset + PAGE_SIZE >= totalExercises;
+    document.getElementById('nextBtn').disabled = currentOffset + PAGE_SIZE >= currentFiltered.length;
 }
 
-//Render
+// Render
 function renderGrid(exercises) {
     const grid = document.getElementById('exerciseGrid');
     if (!exercises.length) {
         grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">
-            No exercises match your filters on this page.
-            <br><small>Try clearing a filter or paging to another page.</small></div>`;
+            No exercises match your filters.
+            <br><small>Try clearing a filter or searching for something else.</small></div>`;
         return;
     }
     grid.innerHTML = exercises.map(ex => {
-        const isFav = favouriteIds.has(ex.exerciseId);
+        const exId = ex.exerciseId || ex.id;
+        const isFav = favouriteIds.has(exId);
+        const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
+        const equips = Array.isArray(ex.equipments) ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
+        
         return `
         <div class="col-sm-6 col-md-4">
             <div class="card h-100 shadow-sm border-0 position-relative"
@@ -485,17 +480,13 @@ function renderGrid(exercises) {
                 ${isFav ? `<span class="position-absolute top-0 end-0 m-1">
                     <span class="material-symbols-outlined text-warning" style="font-size:1.1rem;font-variation-settings:'FILL' 1">star</span>
                 </span>` : ''}
-                <img src="${ex.gifUrl}" class="card-img-top"
+                <img src="${ex.gifUrl || ''}" class="card-img-top"
                      style="height:160px;object-fit:cover;" loading="lazy" alt="${ex.name}">
                 <div class="card-body p-2">
                     <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.82rem;">${ex.name}</p>
                     <div>
-                        ${(ex.targetMuscles||[]).map(m =>
-                            `<span class="badge bg-success me-1" style="font-size:0.68rem">${m}</span>`
-                        ).join('')}
-                        ${(ex.equipments||[]).map(e =>
-                            `<span class="badge bg-secondary me-1" style="font-size:0.68rem">${e}</span>`
-                        ).join('')}
+                        ${targets.map(m => `<span class="badge bg-success me-1" style="font-size:0.68rem">${m}</span>`).join('')}
+                        ${equips.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.68rem">${e}</span>`).join('')}
                     </div>
                 </div>
             </div>
@@ -511,7 +502,7 @@ function renderFavsStrip(favExercises) {
     grid.innerHTML = favExercises.map(ex => `
         <div class="col-6 col-md-3 col-lg-2">
             <div class="card shadow-sm" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
-                <img src="${ex.gifUrl}" class="card-img-top"
+                <img src="${ex.gifUrl || ''}" class="card-img-top"
                      style="height:90px;object-fit:cover;" loading="lazy">
                 <div class="card-body p-1">
                     <p class="mb-0 text-capitalize fw-semibold" style="font-size:0.72rem;">${ex.name}</p>
@@ -529,47 +520,58 @@ function showSpinner(msg) {
         </div>`;
 }
 
-//Exercise modal
+// Exercise modal
 function openExercise(ex) {
     currentExercise = ex;
-    const isFav = favouriteIds.has(ex.exerciseId);
-    document.getElementById('modalExerciseName').textContent = ex.name;
+    const exId = ex.exerciseId || ex.id;
+    const isFav = favouriteIds.has(exId);
+    
+    const bodyParts = Array.isArray(ex.bodyParts) ? ex.bodyParts : (ex.bodyPart ? [ex.bodyPart] : []);
+    const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
+    const equips = Array.isArray(ex.equipments) ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
+    const secondary = Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles : [];
+    const instructions = Array.isArray(ex.instructions) ? ex.instructions : [];
+
+    document.getElementById('modalExerciseName').textContent = ex.name || '';
     document.getElementById('modalGif').src                  = ex.gifUrl || '';
-    document.getElementById('modalBodyPart').textContent     = (ex.bodyParts    ||[]).join(', ');
-    document.getElementById('modalTarget').textContent       = (ex.targetMuscles||[]).join(', ');
-    document.getElementById('modalEquipment').textContent    = (ex.equipments   ||[]).join(', ');
-    document.getElementById('modalSecondary').textContent    =
-        (ex.secondaryMuscles||[]).join(', ') || 'None';
+    document.getElementById('modalBodyPart').textContent     = bodyParts.join(', ');
+    document.getElementById('modalTarget').textContent       = targets.join(', ');
+    document.getElementById('modalEquipment').textContent    = equips.join(', ');
+    document.getElementById('modalSecondary').textContent    = secondary.join(', ') || 'None';
     document.getElementById('modalInstructions').innerHTML   =
-        (ex.instructions||[]).map(i => `<li>${i.replace(/^Step:\d+\s*/,'')}</li>`).join('') ||
+        instructions.map(i => `<li>${i.replace(/^Step:\d+\s*/,'')}</li>`).join('') ||
         '<li>No instructions available.</li>';
-    document.getElementById('favBtn').className    = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
+        
+    document.getElementById('favBtn').className       = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
     document.getElementById('favBtnText').textContent = isFav ? 'Favourited' : 'Favourite';
-    document.getElementById('viewExBtn').href      = `/exercises/${ex.exerciseId}`;
+    document.getElementById('viewExBtn').href         = `/exercises/${exId}`;
+    
     new bootstrap.Modal(document.getElementById('exerciseModal')).show();
 }
 
 async function toggleFavourite() {
     if (!currentExercise) return;
+    const exId = currentExercise.exerciseId || currentExercise.id;
     const res  = await fetch('/api/favourites/toggle', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify(currentExercise),
     });
     const data = await res.json();
     if (data.favourited) {
-        favouriteIds.add(currentExercise.exerciseId);
+        favouriteIds.add(exId);
         document.getElementById('favBtn').className       = 'btn btn-warning';
         document.getElementById('favBtnText').textContent = 'Favourited';
     } else {
-        favouriteIds.delete(currentExercise.exerciseId);
+        favouriteIds.delete(exId);
         document.getElementById('favBtn').className       = 'btn btn-outline-warning';
         document.getElementById('favBtnText').textContent = 'Favourite';
     }
-    applyLocalFilters(); // re-render grid to update star badge
+    renderCurrentPage(); 
 }
 
 function showAddToRoutine() {
-    bootstrap.Modal.getInstance(document.getElementById('exerciseModal'))?.hide();
+    const exModal = bootstrap.Modal.getInstance(document.getElementById('exerciseModal'));
+    if (exModal) exModal.hide();
     setTimeout(() => new bootstrap.Modal(document.getElementById('addToRoutineModal')).show(), 300);
 }
 
@@ -582,13 +584,14 @@ function populateRoutinePicker() {
 }
 
 async function submitAddToRoutine() {
-    const newName  = document.getElementById('newRoutineName').value.trim();
-    let routineId  = document.getElementById('routinePicker').value;
+    const newNameEl = document.getElementById('newRoutineName');
+    const pickerEl  = document.getElementById('routinePicker');
+    const newName   = newNameEl ? newNameEl.value.trim() : '';
+    let routineId   = pickerEl ? pickerEl.value : null;
 
     if (newName) {
         const fd = new FormData(); fd.append('name', newName);
         const res = await fetch('/api/routines', { method:'POST', body:fd });
-        // Server redirects to /routines/{id} — grab id from URL
         if (res.redirected) {
             const m = res.url.match(/\/routines\/(\d+)/);
             routineId = m ? m[1] : null;
@@ -597,21 +600,37 @@ async function submitAddToRoutine() {
     if (!routineId) { alert('Please select or create a routine.'); return; }
 
     const ex = currentExercise;
+    const exId = ex.exerciseId || ex.id;
+    
+    const bodyParts = Array.isArray(ex.bodyParts) ? ex.bodyParts : (ex.bodyPart ? [ex.bodyPart] : []);
+    const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
+    const equips = Array.isArray(ex.equipments) ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
+
     const fd = new FormData();
-    fd.append('exercise_id',             ex.exerciseId);
+    fd.append('exercise_id',             exId);
     fd.append('exercise_name',           ex.name);
-    fd.append('exercise_body_parts',     (ex.bodyParts    ||[]).join(','));
-    fd.append('exercise_equipments',     (ex.equipments   ||[]).join(','));
-    fd.append('exercise_target_muscles', (ex.targetMuscles||[]).join(','));
+    fd.append('exercise_body_parts',     bodyParts.join(','));
+    fd.append('exercise_equipments',     equips.join(','));
+    fd.append('exercise_target_muscles', targets.join(','));
     fd.append('exercise_gif_url',        ex.gifUrl || '');
-    fd.append('sets',             document.getElementById('atrSets').value     || '');
-    fd.append('reps',             document.getElementById('atrReps').value     || '');
-    fd.append('duration_seconds', document.getElementById('atrDuration').value || '');
-    fd.append('rest_seconds',     document.getElementById('atrRest').value     || '60');
-    fd.append('notes',            document.getElementById('atrNotes').value    || '');
+    
+    const sets = document.getElementById('atrSets');
+    const reps = document.getElementById('atrReps');
+    const duration = document.getElementById('atrDuration');
+    const rest = document.getElementById('atrRest');
+    const notes = document.getElementById('atrNotes');
+    
+    fd.append('sets',             sets ? sets.value : '');
+    fd.append('reps',             reps ? reps.value : '');
+    fd.append('duration_seconds', duration ? duration.value : '');
+    fd.append('rest_seconds',     rest ? rest.value : '60');
+    fd.append('notes',            notes ? notes.value : '');
 
     await fetch(`/api/routines/${routineId}/exercises`, { method:'POST', body:fd });
-    bootstrap.Modal.getInstance(document.getElementById('addToRoutineModal'))?.hide();
+    
+    const atrModal = bootstrap.Modal.getInstance(document.getElementById('addToRoutineModal'));
+    if (atrModal) atrModal.hide();
+    
     document.getElementById('toastTitle').textContent   = 'Done!';
     document.getElementById('toastContent').textContent = 'Exercise added to routine.';
     new bootstrap.Toast(document.getElementById('appToast')).show();
@@ -621,9 +640,12 @@ async function submitAddToRoutine() {
     populateRoutinePicker();
 }
 
-document.getElementById('searchInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doSearch();
-});
+const searchInputEl = document.getElementById('searchInput');
+if (searchInputEl) {
+    searchInputEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter') doSearch();
+    });
+}
 
 init();
 </script>

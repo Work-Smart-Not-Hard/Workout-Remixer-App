@@ -39,6 +39,7 @@ async def list_exercises(
     user: AuthDep,
     search: str = "",
     offset: int = 0,
+    limit: int = 100,
 ):
     """
     Returns one page of 100 exercises from ExerciseDB.
@@ -46,7 +47,7 @@ async def list_exercises(
     with a new offset when the user pages forward.
     """
     service = ExerciseDBService()
-    return await service.get_exercises_page(search=search, offset=offset)
+    return await service.get_exercises_page(search=search, offset=offset, limit=limit)
 
 
 @api_router.get("/exercises/{exercise_id}")
