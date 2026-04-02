@@ -16,10 +16,14 @@
         {% for fav in favourites %}
         <div class="col-sm-6 col-md-4 col-lg-3">
             <div class="card h-100 shadow-sm" role="button"
-                 onclick="openExercise('{{ fav.exercise_id }}')">
+                 onclick="openExercise('{{ fav.exercise_id }}', '{{ fav.name }}', '{{ fav.gif_url or '' }}', '{{ fav.body_part or '' }}', '{{ fav.target or '' }}', '{{ fav.equipment or '' }}')">
                 {% if fav.gif_url %}
                 <img src="{{ fav.gif_url }}" class="card-img-top" alt="{{ fav.name }}"
                      style="height:180px; object-fit:cover;" loading="lazy">
+                {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height:180px;">
+                    <span class="material-symbols-outlined text-muted" style="font-size:3rem">fitness_center</span>
+                </div>
                 {% endif %}
                 <div class="card-body p-2">
                     <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.85rem;">
@@ -48,4 +52,71 @@
     {% endif %}
 
 </div>
+
+<!-- Exercise Detail Modal -->
+<div class="modal fade" id="exerciseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-capitalize" id="modalExerciseName"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-5 text-center">
+                        <img id="modalGif" src="" alt="" class="img-fluid rounded" style="max-height:260px;">
+                        <div class="mt-2">
+                            <span class="badge bg-primary me-1" id="modalBodyPart"></span>
+                            <span class="badge bg-success me-1" id="modalTarget"></span>
+                            <span class="badge bg-secondary" id="modalEquipment"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-7 d-flex flex-column justify-content-center">
+                        <p class="text-muted small">Open the full stats page to see your logged history for this exercise.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex-wrap gap-2">
+                <button id="unfavBtn" class="btn btn-warning">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star_off</span>
+                    Remove Favourite
+                </button>
+                <a id="viewStatsBtn" href="#" class="btn btn-outline-info">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span>
+                    View Stats
+                </a>
+                <a href="/exercises" class="btn btn-outline-primary">Browse More</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+    let currentExId = null;
+
+    function openExercise(exerciseId, name, gifUrl, bodyPart, target, equipment) {
+        currentExId = exerciseId;
+        document.getElementById('modalExerciseName').textContent = name;
+        document.getElementById('modalGif').src = gifUrl || '';
+        document.getElementById('modalBodyPart').textContent = bodyPart || '';
+        document.getElementById('modalTarget').textContent = target || '';
+        document.getElementById('modalEquipment').textContent = equipment || '';
+        document.getElementById('viewStatsBtn').href = `/exercises/${exerciseId}`;
+        new bootstrap.Modal(document.getElementById('exerciseModal')).show();
+    }
+
+    document.getElementById('unfavBtn').addEventListener('click', async () => {
+        if (!currentExId) return;
+        await fetch('/api/favourites/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exerciseId: currentExId }),
+        });
+        // Remove the card from the DOM and close modal
+        bootstrap.Modal.getInstance(document.getElementById('exerciseModal')).hide();
+        window.location.reload();
+    });
+</script>
 {% endblock %}

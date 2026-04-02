@@ -13,46 +13,53 @@
 
     <div class="row g-4">
 
-        <!-- Left sidebar: filters -->
+        <!-- Left sidebar -->
         <div class="col-lg-3">
 
             <!-- Search -->
             <div class="input-group mb-3">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search...">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search exercises...">
                 <button class="btn btn-primary" onclick="doSearch()">
                     <span class="material-symbols-outlined" style="font-size:1rem">search</span>
                 </button>
             </div>
 
-            <!-- Equipment pills -->
-            <div class="mb-3">
-                <p class="fw-semibold small mb-2">Equipment</p>
-                <div id="equipmentPills" class="d-flex flex-wrap gap-1">
-                    <!-- populated by JS -->
+            <!-- Equipment filter -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <p class="fw-semibold small mb-0">Equipment</p>
+                    <button class="btn btn-link btn-sm p-0 text-muted" id="clearEquipBtn"
+                            onclick="clearEquipment()" style="display:none;">Clear</button>
                 </div>
+                <div id="equipmentPills" class="d-flex flex-wrap gap-1"></div>
             </div>
 
-            <!-- Muscle body map -->
+            <!-- Muscle filter via SVG -->
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <p class="fw-semibold small mb-0">Muscle Group</p>
-                    <button class="btn btn-link btn-sm p-0 text-muted" onclick="clearMuscle()" id="clearMuscleBtn" style="display:none;">Clear</button>
+                    <button class="btn btn-link btn-sm p-0 text-muted" onclick="clearMuscle()"
+                            id="clearMuscleBtn" style="display:none;">Clear</button>
                 </div>
-                <p class="text-muted" style="font-size:0.75rem;" id="selectedMuscleLabel">Click a muscle to filter</p>
+                <p class="text-muted mb-1" style="font-size:0.75rem;" id="selectedMuscleLabel">
+                    Click a muscle to filter
+                </p>
                 {{ muscle_heatmap(mode="filter", height="320px") }}
             </div>
 
-            <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearAllFilters()">Clear All Filters</button>
+            <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="clearAllFilters()">
+                Clear All Filters
+            </button>
         </div>
 
-        <!-- Right: results -->
+        <!-- ── Right: results ────────────────────────────────── -->
         <div class="col-lg-9">
 
             <!-- Favourites strip -->
             <div id="favsSection" class="mb-3" style="display:none;">
                 <h6 class="fw-semibold text-warning mb-2">
                     <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
-                    Favourites
+                    Favourites on this page
                 </h6>
                 <div class="row g-2" id="favsGrid"></div>
                 <hr>
@@ -69,19 +76,17 @@
                 </div>
             </div>
 
-            <div class="row mt-4 mb-4">
-                <div class="col-12 d-flex justify-content-center gap-2">
-                    <button class="btn btn-outline-primary" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
-                    <span class="btn btn-light disabled" id="pageIndicator"></span>
-                    <button class="btn btn-outline-primary" id="nextBtn" onclick="nextPage()" disabled>Next</button>
-                </div>
+            <!-- Pagination -->
+            <div class="d-flex justify-content-center gap-2 mt-4 mb-4">
+                <button class="btn btn-outline-primary" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
+                <span class="btn btn-light disabled" id="pageIndicator"></span>
+                <button class="btn btn-outline-primary" id="nextBtn" onclick="nextPage()" disabled>Next</button>
             </div>
         </div>
     </div>
-
 </div>
 
-<!-- Exercise Action Modal -->
+<!-- Exercise Detail Modal -->
 <div class="modal fade" id="exerciseModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -103,7 +108,7 @@
                         <h6 class="fw-bold">Secondary Muscles</h6>
                         <p id="modalSecondary" class="text-muted small mb-3"></p>
                         <h6 class="fw-bold">Instructions</h6>
-                        <ol id="modalInstructions" class="ps-3 small"></ol>
+                        <ol id="modalInstructions" class="ps-3 small" style="max-height:200px;overflow-y:auto;"></ol>
                     </div>
                 </div>
             </div>
@@ -125,7 +130,7 @@
     </div>
 </div>
 
-
+<!-- Add to Routine Modal -->
 <div class="modal fade" id="addToRoutineModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -138,21 +143,36 @@
                     <label class="form-label fw-semibold">Select Routine</label>
                     <select id="routinePicker" class="form-select"></select>
                 </div>
-                <div class="text-center text-muted small mb-3">— or —</div>
+                <div class="text-center text-muted small mb-3">— or create a new one —</div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Create New Routine</label>
-                    <input type="text" id="newRoutineName" class="form-control" placeholder="New routine name">
+                    <input type="text" id="newRoutineName" class="form-control"
+                           placeholder="New routine name (optional)">
                 </div>
                 <hr>
                 <div class="row g-2 mb-2">
-                    <div class="col-6"><label class="form-label">Sets</label><input type="number" id="atrSets" class="form-control" min="1" placeholder="3"></div>
-                    <div class="col-6"><label class="form-label">Reps</label><input type="number" id="atrReps" class="form-control" min="1" placeholder="10"></div>
+                    <div class="col-6">
+                        <label class="form-label">Sets</label>
+                        <input type="number" id="atrSets" class="form-control" min="1" placeholder="3">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Reps</label>
+                        <input type="number" id="atrReps" class="form-control" min="1" placeholder="10">
+                    </div>
                 </div>
                 <div class="row g-2 mb-2">
-                    <div class="col-6"><label class="form-label">Duration (s)</label><input type="number" id="atrDuration" class="form-control" placeholder="60"></div>
-                    <div class="col-6"><label class="form-label">Rest (s)</label><input type="number" id="atrRest" class="form-control" value="60"></div>
+                    <div class="col-6">
+                        <label class="form-label">Duration (s)</label>
+                        <input type="number" id="atrDuration" class="form-control" placeholder="e.g. 60">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Rest (s)</label>
+                        <input type="number" id="atrRest" class="form-control" value="60">
+                    </div>
                 </div>
-                <div><label class="form-label">Notes</label><input type="text" id="atrNotes" class="form-control" placeholder="e.g. slow eccentric"></div>
+                <div>
+                    <label class="form-label">Notes</label>
+                    <input type="text" id="atrNotes" class="form-control" placeholder="e.g. slow eccentric">
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -165,431 +185,446 @@
 
 {% block subpage_scripts %}
 <script>
-    // --- State ---
-    let currentPage = [];       
-    let currentBatch = [];      
-    let totalExercises = 0;
-    let currentOffset = 0;
-    let currentSearch = "";
-    let favouriteIds = new Set();
-    let currentExercise = null;
-    let userRoutines = [];
-    const PAGE_SIZE = 100;
+//MUSCLE MAPPING
+const SVG_TO_API = {
+    // SVG group       : [exact API muscle names that belong to it]
+    "chest"          : ["chest", "pectorals", "upper chest", "serratus anterior"],
+    "abs"            : ["abs", "abdominals", "core", "lower abs"],
+    "obliques"       : ["obliques"],
+    "biceps"         : ["biceps", "brachialis"],
+    "triceps"        : ["triceps"],
+    "forearms"       : ["forearms", "wrist flexors", "wrist extensors", "wrists",
+                        "grip muscles", "hands"],
+    "shoulders"      : ["shoulders", "delts", "deltoids", "rear deltoids",
+                        "rotator cuff"],
+    "traps"          : ["traps", "trapezius", "levator scapulae"],
+    "neck"           : ["neck", "sternocleidomastoid"],
+    "upper back"     : ["upper back", "rhomboids"],
+    "lats"           : ["lats", "latissimus dorsi", "back"],
+    "lower back"     : ["lower back", "spine"],
+    "glutes"         : ["glutes"],
+    "hamstrings"     : ["hamstrings"],
+    "adductors"      : ["adductors", "inner thighs", "groin", "hip flexors",
+                        "abductors"],
+    "quads"          : ["quads", "quadriceps"],
+    "calves"         : ["calves", "soleus"],
+    "tibialis"       : ["shins"],
+};
 
-    // Filter states
-    let currentMuscleFilter = "";
-    let currentEquipmentFilter = "";
+// Reverse map: API name → SVG group name (built once, used in applyLocalFilters)
+const API_TO_SVG = {};
+for (const [svg, apiNames] of Object.entries(SVG_TO_API)) {
+    for (const n of apiNames) API_TO_SVG[n.toLowerCase()] = svg;
+}
 
-    // Use a different name to avoid duplicate declaration with heatmap's MUSCLE_MAP
-    const API_MUSCLE_MAP = {
-        "chest": ["chest", "pectorals", "upper chest"],
-        "abs": ["abs", "abdominals", "core", "lower abs"],
-        "obliques": ["obliques"],
-        "biceps": ["biceps", "brachialis"],
-        "triceps": ["triceps"],
-        "forearm": ["forearms", "wrist flexors", "wrist extensors", "wrists"],
-        "quadriceps": ["quads", "quadriceps"],
-        "hamstring": ["hamstrings"],
-        "calves": ["calves", "soleus"],
-        "shoulders": ["shoulders", "delts", "deltoids", "rear deltoids"],
-        "trapezius": ["traps", "trapezius"],
-        "upper-back": ["upper back", "rhomboids", "levator scapulae"],
-        "lats": ["lats", "latissimus dorsi"],
-        "lower-back": ["lower back", "spine"],
-        "gluteal": ["glutes"],
-        "neck": ["neck", "sternocleidomastoid"]
-    };
+// EQUIPMENT — organised groups matching what ExerciseDB v1 actually returns.
+// Displayed as labelled pill groups in the sidebar
+const EQUIPMENT_GROUPS = [
+    {
+        label: "Free Weights",
+        items: ["barbell", "dumbbell", "ez barbell", "olympic barbell",
+                "kettlebell", "trap bar", "hammer", "weighted"]
+    },
+    {
+        label: "Machines & Cables",
+        items: ["cable", "leverage machine", "smith machine",
+                "sled machine", "skierg machine"]
+    },
+    {
+        label: "Cardio",
+        items: ["stationary bike", "elliptical machine", "stepmill machine",
+                "upper body ergometer"]
+    },
+    {
+        label: "Bodyweight & Bands",
+        items: ["body weight", "assisted", "resistance band", "band",
+                "bosu ball", "stability ball", "medicine ball",
+                "roller", "wheel roller", "rope", "tire"]
+    },
+];
 
-    // --- Core Data Fetching ---
+//State
+let currentBatch    = [];
+let totalExercises  = 0;
+let currentOffset   = 0;
+let currentSearch   = "";
+let selectedEquip   = "";
+let selectedSvgGrp  = "";
+let favouriteIds    = new Set();
+let currentExercise = null;
+let userRoutines    = [];
+const PAGE_SIZE     = 100;
 
-    async function init() {
-        const [equipmentsRes, favsRes, routinesRes] = await Promise.all([
-            fetch('/api/exercises/equipments'),
-            fetch('/api/favourites'),
-            fetch('/api/routines'),
-        ]);
+//Init
+async function init() {
+    const [favsRes, routinesRes] = await Promise.all([
+        fetch('/api/favourites'),
+        fetch('/api/routines'),
+    ]);
+    const favs   = await favsRes.json();
+    favouriteIds = new Set(favs.map(f => f.exercise_id));
+    userRoutines = await routinesRes.json();
+    populateRoutinePicker();
+    renderEquipmentPills();
+    await fetchAndRender(0, "");
+}
 
-        // Equipment pills
-        const equipments = await equipmentsRes.json();
-        equipments.push("calisthenics"); // Inject Calisthenics
-        populateEquipmentPills(equipments);
+//Equipment pills
+function renderEquipmentPills() {
+    const container = document.getElementById('equipmentPills');
+    container.innerHTML = "";
 
-        const favs = await favsRes.json();
-        favouriteIds = new Set(favs.map(f => f.exercise_id));
-        userRoutines = await routinesRes.json();
-        populateRoutinePicker();
+    for (const group of EQUIPMENT_GROUPS) {
+        // Group label
+        const label = document.createElement('div');
+        label.className = "w-100 text-muted mt-2 mb-1";
+        label.style.fontSize = "0.7rem";
+        label.style.textTransform = "uppercase";
+        label.style.letterSpacing = "0.05em";
+        label.textContent = group.label;
+        container.appendChild(label);
 
-        await fetchAndRender(0, "");
-    }
-
-    function populateEquipmentPills(equipments) {
-        const container = document.getElementById('equipmentPills');
-        container.innerHTML = "";
-        
-        equipments.forEach(eq => {
+        for (const eq of group.items) {
             const btn = document.createElement('button');
-            btn.className = "btn btn-sm btn-outline-secondary rounded-pill equipment-pill";
-            btn.textContent = eq === 'calisthenics' ? 'Calisthenics (Body Weight)' : eq.charAt(0).toUpperCase() + eq.slice(1);
-            btn.dataset.value = eq;
-            
-            btn.onclick = () => {
-                const isActive = btn.classList.contains('btn-secondary');
-                // Clear active state from all pills
-                document.querySelectorAll('.equipment-pill').forEach(p => {
-                    p.classList.remove('btn-secondary', 'text-white');
-                    p.classList.add('btn-outline-secondary');
-                });
-                
-                if (!isActive) {
-                    btn.classList.remove('btn-outline-secondary');
-                    btn.classList.add('btn-secondary', 'text-white');
-                    currentEquipmentFilter = eq;
-                } else {
-                    currentEquipmentFilter = "";
-                }
-                applyLocalFilters();
-            };
+            btn.className = "btn btn-sm btn-outline-secondary equip-pill";
+            btn.style.fontSize   = "0.72rem";
+            btn.style.padding    = "2px 8px";
+            btn.dataset.equip    = eq;
+            btn.textContent      = eq.charAt(0).toUpperCase() + eq.slice(1);
+            btn.addEventListener('click', () => selectEquipment(eq));
             container.appendChild(btn);
-        });
-    }
-
-    function populateRoutinePicker() {
-        const picker = document.getElementById('routinePicker');
-        picker.innerHTML = userRoutines.length
-            ? '<option value="">— pick a routine —</option>' +
-              userRoutines.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
-            : '<option value="">No routines yet — create one below</option>';
-    }
-
-    // --- Filtering, Searching, Heatmap Integration ---
-
-    window.doSearch = function() {
-        const q = document.getElementById('searchInput').value.trim();
-        fetchAndRender(0, q);
-    };
-
-    window.onMuscleClick = function(svgMuscleName) {
-        const mappedMuscles = API_MUSCLE_MAP[svgMuscleName.toLowerCase()];
-        if (mappedMuscles && mappedMuscles.length > 0) {
-            currentMuscleFilter = mappedMuscles[0]; 
-            document.getElementById('selectedMuscleLabel').textContent = "Filtering by: " + mappedMuscles[0].charAt(0).toUpperCase() + mappedMuscles[0].slice(1);
-            document.getElementById('clearMuscleBtn').style.display = 'inline-block';
-            applyLocalFilters();
         }
-    };
+    }
+}
 
-    window.clearMuscle = function() {
-        currentMuscleFilter = "";
+function selectEquipment(eq) {
+    if (selectedEquip === eq) {
+        // Toggle off
+        selectedEquip = "";
+    } else {
+        selectedEquip = eq;
+    }
+    // Sync pill active states
+    document.querySelectorAll('.equip-pill').forEach(b => {
+        const active = b.dataset.equip === selectedEquip;
+        b.classList.toggle('btn-primary',          active);
+        b.classList.toggle('btn-outline-secondary', !active);
+    });
+    document.getElementById('clearEquipBtn').style.display = selectedEquip ? '' : 'none';
+    applyLocalFilters();
+}
+
+function clearEquipment() {
+    selectEquipment(selectedEquip); // toggle off current
+}
+
+//SVG muscle click (called by heatmap_component.html)
+function onMuscleClick(svgMuscle) {
+    if (selectedSvgGrp === svgMuscle) {
+        // Toggle off
+        selectedSvgGrp = "";
+        setActiveMuscle(null);
         document.getElementById('selectedMuscleLabel').textContent = "Click a muscle to filter";
         document.getElementById('clearMuscleBtn').style.display = 'none';
-        
-        if(typeof setActiveMuscle === 'function') setActiveMuscle(null);
+    } else {
+        selectedSvgGrp = svgMuscle;
+        setActiveMuscle(svgMuscle);
+        // Pretty label: use the first API name for that group
+        const label = (SVG_TO_API[svgMuscle] || [svgMuscle])[0];
+        document.getElementById('selectedMuscleLabel').textContent =
+            "Filtering: " + label.charAt(0).toUpperCase() + label.slice(1);
+        document.getElementById('clearMuscleBtn').style.display = '';
+    }
+    applyLocalFilters();
+}
+
+function clearMuscle() {
+    onMuscleClick(selectedSvgGrp); // toggle off
+}
+
+//Fetch from API
+async function fetchAndRender(offset, search, attempt = 1) {
+    showSpinner(attempt > 1
+        ? `Waking up exercise server — attempt ${attempt}...`
+        : "Loading exercises...");
+
+    try {
+        const cacheKey = `ex_${offset}_${search}`;
+        let json = sessionStorage.getItem(cacheKey);
+        if (json) {
+            json = JSON.parse(json);
+        } else {
+            const params = new URLSearchParams({ offset, limit: PAGE_SIZE });
+            if (search) params.set('search', search);
+            const res = await fetch(`/api/exercises?${params}`);
+            if (res.status === 429) throw new Error('429');
+            if (!res.ok)           throw new Error(res.status);
+            json = await res.json();
+            sessionStorage.setItem(cacheKey, JSON.stringify(json));
+        }
+
+        currentBatch   = json.data || [];
+        // ExerciseDB returns metadata.totalExercises
+        totalExercises = json.metadata?.totalExercises ?? json.total ?? currentBatch.length;
+        currentOffset  = offset;
+        currentSearch  = search;
         applyLocalFilters();
-    };
 
-    window.clearAllFilters = function() {
-        document.getElementById('searchInput').value = "";
-        currentEquipmentFilter = "";
-        document.querySelectorAll('.equipment-pill').forEach(p => {
-            p.classList.remove('btn-secondary', 'text-white');
-            p.classList.add('btn-outline-secondary');
-        });
-        clearMuscle();
-        fetchAndRender(0, "");
-    };
-
-    function applyLocalFilters() {
-        const m = currentMuscleFilter.toLowerCase();
-        const e = currentEquipmentFilter.toLowerCase();
-
-        // Update heatmap active state
-        if (m && typeof setActiveMuscle === 'function') {
-            let foundSvgGroup = null;
-            for (const [svgGrp, aliases] of Object.entries(API_MUSCLE_MAP)) {
-                if (aliases.includes(m)) {
-                    foundSvgGroup = svgGrp;
-                    break;
-                }
+    } catch (err) {
+        if (attempt < 6) {
+            const wait = attempt * 5;
+            for (let i = wait; i > 0; i--) {
+                showSpinner(`Exercise server waking up — retrying in ${i}s...`);
+                await new Promise(r => setTimeout(r, 1000));
             }
-            setActiveMuscle(foundSvgGroup);
-        } else if (!m && typeof setActiveMuscle === 'function') {
-            setActiveMuscle(null);
-        }
-
-        // Map chosen muscle to its aliases
-        let acceptableMuscles = [m];
-        if (m) {
-            for (const [key, equivalents] of Object.entries(API_MUSCLE_MAP)) {
-                if (equivalents.includes(m)) {
-                    acceptableMuscles = equivalents;
-                    break;
-                }
-            }
-        }
-        
-        // Map Calisthenics to Body Weight
-        let acceptableEquipments = [e];
-        if (e === 'calisthenics') {
-            acceptableEquipments = ['body weight', 'assisted'];
-        }
-
-        currentPage = currentBatch.filter(ex => {
-            const eqList = ex.equipments || (ex.equipment ? [ex.equipment] : []);
-            const eqMatch = !e || eqList.some(eq => acceptableEquipments.includes(eq.toLowerCase()));
-            
-            const muMatch = !m || 
-                (ex.targetMuscles && ex.targetMuscles.some(mu => acceptableMuscles.includes(mu.toLowerCase()))) || 
-                (ex.secondaryMuscles && ex.secondaryMuscles.some(mu => acceptableMuscles.includes(mu.toLowerCase()))) ||
-                (ex.target && acceptableMuscles.includes(ex.target.toLowerCase()));
-
-            return eqMatch && muMatch;
-        });
-
-        renderGrid(currentPage);
-        updatePagination();
-    }
-
-    // --- Loading & Rendering ---
-
-    function showSpinner(msg) {
-        document.getElementById('exerciseGrid').innerHTML = `
-            <div class="col-12 text-center py-5">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted">${msg}</p>
-            </div>
-        `;
-    }
-
-    async function fetchAndRender(offset, search, attempt = 1) {
-        showSpinner(attempt > 1 ? `Waking up exercise server — attempt ${attempt}...` : "Loading exercises...");
-        try {
-            const cacheKey = `exercises_page_${offset}_${search}`;
-            const cachedData = sessionStorage.getItem(cacheKey);
-            let json;
-
-            if (cachedData) {
-                console.log("Loaded exercises from browser cache!");
-                json = JSON.parse(cachedData);
-            } else {
-                const params = new URLSearchParams({ offset, limit: PAGE_SIZE });
-                if (search) params.set('search', search);
-                const res = await fetch(`/api/exercises?${params}`);
-                if (!res.ok) throw new Error(res.status);
-                json = await res.json();
-                sessionStorage.setItem(cacheKey, JSON.stringify(json));
-            }
-
-            currentBatch = json.data || [];
-            totalExercises = json.total || (currentBatch.length === PAGE_SIZE ? offset + PAGE_SIZE + 1 : offset + currentBatch.length);
-            
-            currentOffset = offset;
-            currentSearch = search;
-            applyLocalFilters();
-
-        } catch (e) {
-            if (e.message == 429 && attempt < 6) {
-                setTimeout(() => fetchAndRender(offset, search, attempt + 1), attempt * 5000);
-            } else {
-                document.getElementById('exerciseGrid').innerHTML = 
-                    `<div class="col-12 text-center text-danger py-5">
-                        <span class="material-symbols-outlined d-block mb-2" style="font-size:3rem">error</span>
-                        Failed to load exercises. Please refresh and try again.
-                    </div>`;
-            }
+            await fetchAndRender(offset, search, attempt + 1);
+        } else {
+            document.getElementById('exerciseGrid').innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <p class="text-danger">Could not load exercises. Server may be busy.</p>
+                    <button class="btn btn-primary" onclick="fetchAndRender(0,'')">Retry</button>
+                </div>`;
         }
     }
+}
 
-    function renderGrid(exercises) {
-        const grid = document.getElementById('exerciseGrid');
-        if (!exercises || exercises.length === 0) {
-            grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">No exercises found for these filters.</div>';
-            return;
+// Client-side filtering
+// Equipment: exact match against ex.equipments array
+// Muscle:    check if any of the SVG group's API aliases appear in ex.targetMuscles OR ex.secondaryMuscles OR ex.bodyParts
+function applyLocalFilters() {
+    const acceptableApiMuscles = selectedSvgGrp
+        ? (SVG_TO_API[selectedSvgGrp] || []).map(s => s.toLowerCase())
+        : [];
+
+    const filtered = currentBatch.filter(ex => {
+        //Equipment check
+        if (selectedEquip) {
+            const exEquips = (ex.equipments || []).map(e => e.toLowerCase());
+            if (!exEquips.includes(selectedEquip.toLowerCase())) return false;
         }
 
-        grid.innerHTML = exercises.map(ex => {
-            const isFav = favouriteIds.has(ex.exerciseId || ex.id);
-            const eqList = ex.equipments ? ex.equipments.join(', ') : (ex.equipment || '');
-            const bodyParts = ex.bodyParts ? ex.bodyParts.join(', ') : (ex.bodyPart || '');
-            
-            return `
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 shadow-sm border-0 exercise-card" onclick='openModal(${JSON.stringify(ex).replace(/'/g, "&apos;")})'>
-                    <div class="card-body d-flex gap-3 align-items-center">
-                        <img src="${ex.gifUrl || ''}" alt="${ex.name}" class="rounded" style="width:70px; height:70px; object-fit:cover; background:#f8f9fa;">
-                        <div>
-                            <h6 class="fw-bold mb-1 text-capitalize text-truncate" style="max-width:200px;" title="${ex.name}">
-                                ${ex.name}
-                            </h6>
-                            <div class="d-flex flex-wrap gap-1 mt-1">
-                                <span class="badge bg-light text-dark border">${bodyParts}</span>
-                                <span class="badge bg-light text-dark border">${eqList}</span>
-                            </div>
-                        </div>
-                        ${isFav ? '<span class="material-symbols-outlined text-warning ms-auto" style="font-variation-settings:\'FILL\' 1">star</span>' : ''}
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
-    }
-
-    function updatePagination() {
-        const isFiltered = currentMuscleFilter || currentEquipmentFilter;
-        const pageNum = Math.floor(currentOffset / PAGE_SIZE) + 1;
-        let totalPages = Math.ceil(totalExercises / PAGE_SIZE);
-        
-        const countText = isFiltered 
-            ? `Showing ${currentPage.length} matching exercises (from page ${pageNum})`
-            : `Showing ${currentBatch.length} exercises (Page ${pageNum} of ${totalPages || '?'})`;
-            
-        document.getElementById('pageIndicator').textContent = countText;
-
-        document.getElementById('prevBtn').disabled = (currentOffset === 0);
-        document.getElementById('nextBtn').disabled = currentBatch.length < PAGE_SIZE || (isFiltered && currentPage.length === 0);
-    }
-
-    window.prevPage = function() {
-        if (currentOffset > 0) fetchAndRender(currentOffset - PAGE_SIZE, currentSearch);
-    };
-
-    window.nextPage = function() {
-        fetchAndRender(currentOffset + PAGE_SIZE, currentSearch);
-    };
-
-    // --- Modal & Actions ---
-
-    window.openModal = function(ex) {
-        currentExercise = ex;
-        document.getElementById('modalExerciseName').textContent = ex.name;
-        document.getElementById('modalGif').src = ex.gifUrl || '';
-        document.getElementById('modalBodyPart').textContent = ex.bodyParts ? ex.bodyParts.join(', ') : (ex.bodyPart || '');
-        document.getElementById('modalTarget').textContent = ex.targetMuscles ? ex.targetMuscles.join(', ') : (ex.target || '');
-        document.getElementById('modalEquipment').textContent = ex.equipments ? ex.equipments.join(', ') : (ex.equipment || '');
-        document.getElementById('modalSecondary').textContent = ex.secondaryMuscles && ex.secondaryMuscles.length ? ex.secondaryMuscles.join(', ') : 'None';
-        
-        const ins = ex.instructions || [];
-        document.getElementById('modalInstructions').innerHTML = ins.length ? ins.map(i => `<li>${i}</li>`).join('') : '<li>No instructions available.</li>';
-
-        const isFav = favouriteIds.has(ex.exerciseId || ex.id);
-        const fb = document.getElementById('favBtn');
-        fb.className = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
-        document.getElementById('favBtnText').textContent = isFav ? 'Favourited' : 'Favourite';
-        
-        const icon = fb.querySelector('.material-symbols-outlined');
-        icon.style.fontVariationSettings = isFav ? "'FILL' 1" : "'FILL' 0";
-
-        document.getElementById('viewExBtn').href = `/exercises/${ex.exerciseId || ex.id}`;
-        
-        const m = new bootstrap.Modal(document.getElementById('exerciseModal'));
-        m.show();
-    };
-
-    window.showAddToRoutine = function() {
-        const exModal = bootstrap.Modal.getInstance(document.getElementById('exerciseModal'));
-        exModal.hide();
-        const addModal = new bootstrap.Modal(document.getElementById('addToRoutineModal'));
-        addModal.show();
-    };
-
-    window.toggleFavourite = async function() {
-        if (!currentExercise) return;
-        const btn = document.getElementById('favBtn');
-        const icon = btn.querySelector('.material-symbols-outlined');
-        btn.disabled = true;
-
-        try {
-            const exId = currentExercise.exerciseId || currentExercise.id;
-            const res = await fetch('/api/favourites/toggle', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(currentExercise)
-            });
-            const data = await res.json();
-            
-            if (data.favourited) {
-                favouriteIds.add(exId);
-                btn.className = 'btn btn-warning';
-                document.getElementById('favBtnText').textContent = 'Favourited';
-                icon.style.fontVariationSettings = "'FILL' 1";
-            } else {
-                favouriteIds.delete(exId);
-                btn.className = 'btn btn-outline-warning';
-                document.getElementById('favBtnText').textContent = 'Favourite';
-                icon.style.fontVariationSettings = "'FILL' 0";
-            }
-            renderGrid(currentPage);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            btn.disabled = false;
+        //Muscle check
+        if (acceptableApiMuscles.length > 0) {
+            const targets   = (ex.targetMuscles   || []).map(m => m.toLowerCase());
+            const secondary = (ex.secondaryMuscles || []).map(m => m.toLowerCase());
+            const bodyParts = (ex.bodyParts        || []).map(m => m.toLowerCase());
+            const all = [...targets, ...secondary, ...bodyParts];
+            // Accept exercise if ANY of its muscles match ANY of the group's aliases
+            if (!acceptableApiMuscles.some(alias => all.includes(alias))) return false;
         }
-    };
 
-    window.submitAddToRoutine = async function() {
-        const btn = document.querySelector('button[onclick="submitAddToRoutine()"]');
-        btn.disabled = true; // Disable to prevent double clicks creating duplicates
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
-
-        const rId = document.getElementById('routinePicker').value;
-        if (!rId) {
-            alert('Please select a routine first.');
-            btn.disabled = false;
-            btn.innerHTML = 'Add';
-            return;
-        }
-        
-        const fd = new FormData();
-        fd.append('exercise_id', currentExercise.exerciseId || currentExercise.id);
-        fd.append('exercise_name', currentExercise.name);
-        fd.append('exercise_gif_url', currentExercise.gifUrl || "");
-        fd.append('exercise_body_parts', (currentExercise.bodyParts || [currentExercise.bodyPart || ""]).join(','));
-        fd.append('exercise_equipments', (currentExercise.equipments || [currentExercise.equipment || ""]).join(','));
-        fd.append('exercise_target_muscles', (currentExercise.targetMuscles || [currentExercise.target || ""]).join(','));
-
-        const sets = document.getElementById('atrSets').value;
-        const reps = document.getElementById('atrReps').value;
-        const dur = document.getElementById('atrDuration').value;
-        const rest = document.getElementById('atrRest').value;
-        const notes = document.getElementById('atrNotes').value;
-
-        if (sets) fd.append('sets', sets);
-        if (reps) fd.append('reps', reps);
-        if (dur) fd.append('duration_seconds', dur);
-        if (rest) fd.append('rest_seconds', rest);
-        if (notes) fd.append('notes', notes);
-
-        try {
-            const res = await fetch(`/api/routines/${rId}/exercises`, { method: 'POST', body: fd });
-            if (res.ok) {
-                const modalEl = document.getElementById('addToRoutineModal');
-                const modal = bootstrap.Modal.getInstance(modalEl);
-                modal.hide();
-                
-                const toastDiv = document.createElement('div');
-                toastDiv.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-3 z-3 shadow';
-                toastDiv.textContent = 'Exercise added to routine!';
-                document.body.appendChild(toastDiv);
-                setTimeout(() => toastDiv.remove(), 3000);
-            } else {
-                const text = await res.text();
-                alert('Failed to add exercise: ' + text);
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Error adding to routine');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = 'Add';
-        }
-    };
-
-    // --- Initialization ---
-
-    document.addEventListener('DOMContentLoaded', init);
-    document.getElementById('searchInput').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            fetchAndRender(0, document.getElementById('searchInput').value.trim());
-        }
+        return true;
     });
 
+    //Only show favs strip when no filters active
+    const anyFilter = selectedEquip || selectedSvgGrp || currentSearch;
+    renderFavsStrip(anyFilter ? [] : currentBatch.filter(ex => favouriteIds.has(ex.exerciseId)));
+
+    document.getElementById('resultCount').textContent =
+        `${filtered.length.toLocaleString()} exercises on this page · ` +
+        `${totalExercises.toLocaleString()} total`;
+
+    renderGrid(filtered);
+    updatePagination();
+}
+
+//Search & clear
+async function doSearch() {
+    const q = document.getElementById('searchInput').value.trim();
+    await fetchAndRender(0, q);
+}
+
+async function clearAllFilters() {
+    selectedEquip  = "";
+    selectedSvgGrp = "";
+    document.getElementById('searchInput').value = '';
+    document.getElementById('selectedMuscleLabel').textContent = 'Click a muscle to filter';
+    document.getElementById('clearMuscleBtn').style.display    = 'none';
+    document.getElementById('clearEquipBtn').style.display     = 'none';
+    setActiveMuscle(null);
+    document.querySelectorAll('.equip-pill').forEach(b => {
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-outline-secondary');
+    });
+    await fetchAndRender(0, '');
+}
+
+//Pagination
+async function prevPage() {
+    if (currentOffset <= 0) return;
+    await fetchAndRender(currentOffset - PAGE_SIZE, currentSearch);
+    window.scrollTo(0, 0);
+}
+async function nextPage() {
+    await fetchAndRender(currentOffset + PAGE_SIZE, currentSearch);
+    window.scrollTo(0, 0);
+}
+function updatePagination() {
+    const cur   = Math.floor(currentOffset / PAGE_SIZE) + 1;
+    const total = Math.ceil(totalExercises / PAGE_SIZE) || 1;
+    document.getElementById('pageIndicator').textContent = `Page ${cur} of ${total}`;
+    document.getElementById('prevBtn').disabled = currentOffset <= 0;
+    document.getElementById('nextBtn').disabled = currentOffset + PAGE_SIZE >= totalExercises;
+}
+
+//Render
+function renderGrid(exercises) {
+    const grid = document.getElementById('exerciseGrid');
+    if (!exercises.length) {
+        grid.innerHTML = `<div class="col-12 text-center py-5 text-muted">
+            No exercises match your filters on this page.
+            <br><small>Try clearing a filter or paging to another page.</small></div>`;
+        return;
+    }
+    grid.innerHTML = exercises.map(ex => {
+        const isFav = favouriteIds.has(ex.exerciseId);
+        return `
+        <div class="col-sm-6 col-md-4">
+            <div class="card h-100 shadow-sm border-0 position-relative"
+                 role="button" onclick='openExercise(${JSON.stringify(ex)})'>
+                ${isFav ? `<span class="position-absolute top-0 end-0 m-1">
+                    <span class="material-symbols-outlined text-warning" style="font-size:1.1rem;font-variation-settings:'FILL' 1">star</span>
+                </span>` : ''}
+                <img src="${ex.gifUrl}" class="card-img-top"
+                     style="height:160px;object-fit:cover;" loading="lazy" alt="${ex.name}">
+                <div class="card-body p-2">
+                    <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.82rem;">${ex.name}</p>
+                    <div>
+                        ${(ex.targetMuscles||[]).map(m =>
+                            `<span class="badge bg-success me-1" style="font-size:0.68rem">${m}</span>`
+                        ).join('')}
+                        ${(ex.equipments||[]).map(e =>
+                            `<span class="badge bg-secondary me-1" style="font-size:0.68rem">${e}</span>`
+                        ).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderFavsStrip(favExercises) {
+    const section = document.getElementById('favsSection');
+    const grid    = document.getElementById('favsGrid');
+    if (!favExercises.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    grid.innerHTML = favExercises.map(ex => `
+        <div class="col-6 col-md-3 col-lg-2">
+            <div class="card shadow-sm" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
+                <img src="${ex.gifUrl}" class="card-img-top"
+                     style="height:90px;object-fit:cover;" loading="lazy">
+                <div class="card-body p-1">
+                    <p class="mb-0 text-capitalize fw-semibold" style="font-size:0.72rem;">${ex.name}</p>
+                </div>
+            </div>
+        </div>`
+    ).join('');
+}
+
+function showSpinner(msg) {
+    document.getElementById('exerciseGrid').innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">${msg}</p>
+        </div>`;
+}
+
+//Exercise modal
+function openExercise(ex) {
+    currentExercise = ex;
+    const isFav = favouriteIds.has(ex.exerciseId);
+    document.getElementById('modalExerciseName').textContent = ex.name;
+    document.getElementById('modalGif').src                  = ex.gifUrl || '';
+    document.getElementById('modalBodyPart').textContent     = (ex.bodyParts    ||[]).join(', ');
+    document.getElementById('modalTarget').textContent       = (ex.targetMuscles||[]).join(', ');
+    document.getElementById('modalEquipment').textContent    = (ex.equipments   ||[]).join(', ');
+    document.getElementById('modalSecondary').textContent    =
+        (ex.secondaryMuscles||[]).join(', ') || 'None';
+    document.getElementById('modalInstructions').innerHTML   =
+        (ex.instructions||[]).map(i => `<li>${i.replace(/^Step:\d+\s*/,'')}</li>`).join('') ||
+        '<li>No instructions available.</li>';
+    document.getElementById('favBtn').className    = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
+    document.getElementById('favBtnText').textContent = isFav ? 'Favourited' : 'Favourite';
+    document.getElementById('viewExBtn').href      = `/exercises/${ex.exerciseId}`;
+    new bootstrap.Modal(document.getElementById('exerciseModal')).show();
+}
+
+async function toggleFavourite() {
+    if (!currentExercise) return;
+    const res  = await fetch('/api/favourites/toggle', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(currentExercise),
+    });
+    const data = await res.json();
+    if (data.favourited) {
+        favouriteIds.add(currentExercise.exerciseId);
+        document.getElementById('favBtn').className       = 'btn btn-warning';
+        document.getElementById('favBtnText').textContent = 'Favourited';
+    } else {
+        favouriteIds.delete(currentExercise.exerciseId);
+        document.getElementById('favBtn').className       = 'btn btn-outline-warning';
+        document.getElementById('favBtnText').textContent = 'Favourite';
+    }
+    applyLocalFilters(); // re-render grid to update star badge
+}
+
+function showAddToRoutine() {
+    bootstrap.Modal.getInstance(document.getElementById('exerciseModal'))?.hide();
+    setTimeout(() => new bootstrap.Modal(document.getElementById('addToRoutineModal')).show(), 300);
+}
+
+function populateRoutinePicker() {
+    const picker = document.getElementById('routinePicker');
+    picker.innerHTML = userRoutines.length
+        ? '<option value="">— select a routine —</option>' +
+          userRoutines.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
+        : '<option value="">No routines yet</option>';
+}
+
+async function submitAddToRoutine() {
+    const newName  = document.getElementById('newRoutineName').value.trim();
+    let routineId  = document.getElementById('routinePicker').value;
+
+    if (newName) {
+        const fd = new FormData(); fd.append('name', newName);
+        const res = await fetch('/api/routines', { method:'POST', body:fd });
+        // Server redirects to /routines/{id} — grab id from URL
+        if (res.redirected) {
+            const m = res.url.match(/\/routines\/(\d+)/);
+            routineId = m ? m[1] : null;
+        }
+    }
+    if (!routineId) { alert('Please select or create a routine.'); return; }
+
+    const ex = currentExercise;
+    const fd = new FormData();
+    fd.append('exercise_id',             ex.exerciseId);
+    fd.append('exercise_name',           ex.name);
+    fd.append('exercise_body_parts',     (ex.bodyParts    ||[]).join(','));
+    fd.append('exercise_equipments',     (ex.equipments   ||[]).join(','));
+    fd.append('exercise_target_muscles', (ex.targetMuscles||[]).join(','));
+    fd.append('exercise_gif_url',        ex.gifUrl || '');
+    fd.append('sets',             document.getElementById('atrSets').value     || '');
+    fd.append('reps',             document.getElementById('atrReps').value     || '');
+    fd.append('duration_seconds', document.getElementById('atrDuration').value || '');
+    fd.append('rest_seconds',     document.getElementById('atrRest').value     || '60');
+    fd.append('notes',            document.getElementById('atrNotes').value    || '');
+
+    await fetch(`/api/routines/${routineId}/exercises`, { method:'POST', body:fd });
+    bootstrap.Modal.getInstance(document.getElementById('addToRoutineModal'))?.hide();
+    document.getElementById('toastTitle').textContent   = 'Done!';
+    document.getElementById('toastContent').textContent = 'Exercise added to routine.';
+    new bootstrap.Toast(document.getElementById('appToast')).show();
+
+    const rRes   = await fetch('/api/routines');
+    userRoutines = await rRes.json();
+    populateRoutinePicker();
+}
+
+document.getElementById('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+});
+
+init();
 </script>
 {% endblock %}
