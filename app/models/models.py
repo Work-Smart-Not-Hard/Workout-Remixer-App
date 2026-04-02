@@ -3,10 +3,6 @@ from datetime import datetime, timezone
 from sqlmodel import Field, SQLModel, Relationship
 from app.models.user import (User, UserBase)
 
-# ---------------------------------------------------------------------------
-# Exercise  (local cache of ExerciseDB API data)
-# ---------------------------------------------------------------------------
-
 class Exercise(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     exercise_id: str = Field(index=True, unique=True)
@@ -19,6 +15,20 @@ class Exercise(SQLModel, table=True):
     routine_exercises: list['RoutineExercise'] = Relationship(back_populates="exercise")
     session_exercises: list['SessionExercise'] = Relationship(back_populates="exercise")
 
+class CustomExercise(SQLModel, table=True):
+    __tablename__ = "custom_exercise"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", ondelete="CASCADE")
+    name: str = Field(index=True)
+    description: Optional[str] = None
+    body_part: str
+    equipment: str
+    media_url: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    owner: Optional['User'] = Relationship(back_populates="custom_exercises")
+    routine_exercises: list['RoutineExercise'] = Relationship(back_populates="custom_exercise")
 
 class Routine(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -36,6 +46,7 @@ class Routine(SQLModel, table=True):
     sessions: list['WorkoutSession'] = Relationship(back_populates="routine")
     likes: list['RoutineLike'] = Relationship(back_populates="routine")
     invites: list['WorkoutInvite'] = Relationship(back_populates="routine")
+    posts: list['Post'] = Relationship(back_populates="routine")
 
 
 class RoutineExercise(SQLModel, table=True):
@@ -43,7 +54,11 @@ class RoutineExercise(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     routine_id: int = Field(foreign_key="routine.id")
-    exercise_id: int = Field(foreign_key="exercise.id")
+    
+    is_custom: bool = Field(default=False)
+    exercise_id: Optional[int] = Field(default=None, foreign_key="exercise.id")
+    custom_exercise_id: Optional[int] = Field(default=None, foreign_key="custom_exercise.id")
+    
     position: int = Field(default=0)
     sets: Optional[int] = None
     reps: Optional[int] = None
@@ -53,6 +68,7 @@ class RoutineExercise(SQLModel, table=True):
 
     routine: Optional['Routine'] = Relationship(back_populates="exercises")
     exercise: Optional['Exercise'] = Relationship(back_populates="routine_exercises")
+    custom_exercise: Optional['CustomExercise'] = Relationship(back_populates="routine_exercises")
 
 
 class WorkoutSession(SQLModel, table=True):
@@ -77,7 +93,11 @@ class SessionExercise(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     session_id: int = Field(foreign_key="workoutsession.id")
-    exercise_id: int = Field(foreign_key="exercise.id")
+    
+    is_custom: bool = Field(default=False)
+    exercise_id: Optional[int] = Field(default=None, foreign_key="exercise.id")
+    custom_exercise_id: Optional[int] = Field(default=None, foreign_key="custom_exercise.id")
+    
     sets_completed: Optional[int] = None
     reps_completed: Optional[int] = None
     weight_kg: Optional[float] = None
@@ -125,4 +145,40 @@ class ExerciseFavourite(SQLModel, table=True):
     body_part: Optional[str] = None
     target: Optional[str] = None
     equipment: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Post(SQLModel, table=True):
+    """Timeline posts for the Explore page"""
+    __tablename__ = "post"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", ondelete="CASCADE")
+    routine_id: Optional[int] = Field(default=None, foreign_key="routine.id", ondelete="SET NULL")
+    content: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    author: Optional['User'] = Relationship(back_populates="posts")
+    routine: Optional['Routine'] = Relationship(back_populates="posts")
+    reactions: list['PostReaction'] = Relationship(back_populates="post", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+
+
+class PostReaction(SQLModel, table=True):
+    """Likes and Dislikes for timeline posts"""
+    __tablename__ = "post_reaction"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    post_id: int = Field(foreign_key="post.id", ondelete="CASCADE")
+    user_id: int = Field(foreign_key="user.id", ondelete="CASCADE")
+    is_like: bool  # True = Like, False = Dislike
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    post: Optional['Post'] = Relationship(back_populates="reactions")
+
+
+class UserMute(SQLModel, table=True):
+    """Tracks which users have muted other users"""
+    __tablename__ = "user_mute"
+    
+    muter_id: int = Field(foreign_key="user.id", ondelete="CASCADE", primary_key=True)
+    muted_id: int = Field(foreign_key="user.id", ondelete="CASCADE", primary_key=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

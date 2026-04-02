@@ -108,7 +108,12 @@
         {% if routine.owner_id == user.id %}
         <div class="col-lg-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-white fw-semibold">Add Exercise</div>
+                <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+                    <span>Add Exercise</span>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createCustomExModal">
+                        + Create Custom
+                    </button>
+                </div>
                 <div class="card-body">
 
                     <!-- Search -->
@@ -181,6 +186,46 @@
     </div>
 </div>
 
+<!-- Create Custom Exercise Modal -->
+<div class="modal fade" id="createCustomExModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Create Custom Exercise</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/api/custom_exercises">
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g. Weighted Pull-up">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Body Part</label>
+                        <input type="text" name="body_part" class="form-control" required placeholder="e.g. Back">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Equipment</label>
+                        <input type="text" name="equipment" class="form-control" required placeholder="e.g. Bodyweight">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Description / Steps</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Form cues, tempo, etc."></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Media URL (optional)</label>
+                        <input type="url" name="media_url" class="form-control" placeholder="https://example.com/gif.gif">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Custom Exercise</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Add Exercise Config Modal -->
 <div class="modal fade" id="addExModal" tabindex="-1">
     <div class="modal-dialog">
@@ -234,127 +279,93 @@
 
 {% block subpage_scripts %}
 <script>
-    let allFetched = [];       //full exercise list from API
-    let localFiltered = [];    //after client-side filters applied
+    let allFetched = [];
+    let localFiltered = [];
 
-    //MUSCLE MAPPING
-    const SVG_TO_API = {
-        "chest": ["chest", "pectorals", "upper chest", "serratus anterior"],
-        "abs": ["abs", "abdominals", "core", "lower abs", "waist"],
-        "obliques": ["obliques", "waist", "abs"],
-        "biceps": ["biceps", "brachialis", "upper arms"],
-        "triceps": ["triceps", "upper arms"],
-        "forearms": ["forearms", "wrist flexors", "wrist extensors", "wrists", "lower arms"],
-        "shoulders": ["shoulders", "delts", "deltoids"],
-        "traps": ["traps", "trapezius", "back"],
-        "neck": ["neck", "levator scapulae"],
-        "upper back": ["upper back", "rhomboids", "back"],
-        "lats": ["lats", "latissimus dorsi", "back"],
-        "lower back": ["lower back", "spine", "back"],
-        "glutes": ["glutes", "upper legs"],
-        "hamstrings": ["hamstrings", "upper legs"],
-        "adductors": ["adductors", "abductors", "inner thighs", "groin", "upper legs"],
-        "quads": ["quads", "quadriceps", "upper legs"],
-        "calves": ["calves", "soleus", "lower legs"],
-        "tibialis": ["shins", "lower legs"]
-    };
-
-    //EQUIPMENT — organised groups matching ExerciseDB
-    const EQUIPMENT_GROUPS = [
-        {
-            label: "Free Weights",
-            items: ["barbell", "dumbbell", "ez barbell", "olympic barbell",
-                    "kettlebell", "trap bar", "hammer", "weighted"]
-        },
-        {
-            label: "Machines & Cables",
-            items: ["cable", "leverage machine", "smith machine",
-                    "sled machine", "skierg machine"]
-        },
-        {
-            label: "Cardio",
-            items: ["stationary bike", "elliptical machine", "stepmill machine",
-                    "upper body ergometer"]
-        },
-        {
-            label: "Bodyweight & Bands",
-            items: ["body weight", "assisted", "resistance band", "band",
-                    "bosu ball", "stability ball", "medicine ball",
-                    "roller", "wheel roller", "rope", "tire"]
+    async function initFilters() {
+        try {
+            const [musclesRes, equipmentsRes] = await Promise.all([
+                fetch('/api/exercises/muscles'),
+                fetch('/api/exercises/equipments'),
+            ]);
+            
+            if(musclesRes.ok) populateSelect('exMuscleFilter', await musclesRes.json());
+            if(equipmentsRes.ok) populateSelect('exEquipFilter', await equipmentsRes.json());
+        } catch(err) {
+            console.error("Failed to fetch filters", err);
         }
-    ];
+    }
 
-    //Bootstrap dropdowns using the mappings instead of raw API lists
-    function initFilters() {
-        const equipSelect = document.getElementById('exEquipFilter');
-        EQUIPMENT_GROUPS.forEach(group => {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = group.label;
-            group.items.forEach(eq => {
-                const o = document.createElement('option');
-                o.value = eq;
-                o.textContent = eq.charAt(0).toUpperCase() + eq.slice(1);
-                optgroup.appendChild(o);
-            });
-            equipSelect.appendChild(optgroup);
-        });
-
-        const muscleSelect = document.getElementById('exMuscleFilter');
-        Object.keys(SVG_TO_API).forEach(muscle => {
+    function populateSelect(id, values) {
+        const sel = document.getElementById(id);
+        if(!sel) return;
+        values.forEach(v => {
             const o = document.createElement('option');
-            o.value = muscle;
-            o.textContent = muscle.charAt(0).toUpperCase() + muscle.slice(1);
-            muscleSelect.appendChild(o);
+            o.value = v; o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+            sel.appendChild(o);
         });
     }
 
-    //Search
     async function searchExercises() {
         const q = document.getElementById('exSearch').value.trim();
-        const spinner = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
-        document.getElementById('exResults').innerHTML = spinner;
+        const container = document.getElementById('exResults');
+        container.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
 
-        const cacheKey = `routine_search_${q}`;
-        const cachedData = sessionStorage.getItem(cacheKey);
-        let json;
-
-        if (cachedData) {
-            console.log("Loaded routine search from browser cache!");
-            json = JSON.parse(cachedData);
-        } else {
+        try {
             const params = new URLSearchParams();
             if (q) params.set('search', q);
+            params.set('limit', 100);
 
             const res = await fetch(`/api/exercises?${params}`);
-            json = await res.json();
+            if(!res.ok) throw new Error("Network response was not ok");
             
-            sessionStorage.setItem(cacheKey, JSON.stringify(json));
+            const json = await res.json();
+            allFetched = json.data || [];
+            
+            {% if custom_exercises %}
+            const customExs = [
+                {% for cx in custom_exercises %}
+                {
+                    exerciseId: "custom_{{ cx.id }}",
+                    name: "{{ cx.name }}",
+                    equipments: ["{{ cx.equipment }}"],
+                    targetMuscles: ["{{ cx.body_part }}"],
+                    secondaryMuscles: [],
+                    bodyParts: ["{{ cx.body_part }}"],
+                    gifUrl: "{{ cx.media_url or '' }}",
+                    isCustom: true
+                },
+                {% endfor %}
+            ];
+            
+            const matchedCustoms = customExs.filter(c => !q || c.name.toLowerCase().includes(q.toLowerCase()));
+            allFetched = [...matchedCustoms, ...allFetched];
+            {% endif %}
+            
+            applyLocalFilters();
+        } catch (err) {
+            console.error("Search failed:", err);
+            container.innerHTML = '<p class="text-danger text-center small mt-2">Failed to load exercises. Please try again.</p>';
         }
-
-        allFetched = json.data || [];
-        applyLocalFilters();
     }
 
-    //Client-side filter on top of fetched results using correct mappings
     function applyLocalFilters() {
-        const equipment = document.getElementById('exEquipFilter').value.toLowerCase();
-        const muscleKey = document.getElementById('exMuscleFilter').value.toLowerCase();
+        const equipmentSelect = document.getElementById('exEquipFilter');
+        const muscleSelect = document.getElementById('exMuscleFilter');
+        
+        const equipment = equipmentSelect ? equipmentSelect.value.toLowerCase() : "";
+        const muscle = muscleSelect ? muscleSelect.value.toLowerCase() : "";
 
         localFiltered = allFetched.filter(ex => {
-            const eqMatch = !equipment || (ex.equipments && ex.equipments.some(e => e.toLowerCase() === equipment));
-            
-            let muMatch = true;
-            if (muscleKey) {
-                const apiMuscles = SVG_TO_API[muscleKey] || [muscleKey];
-                const exMuscles = [
-                    ...(ex.targetMuscles || []),
-                    ...(ex.secondaryMuscles || []),
-                    ...(ex.bodyParts || [])
-                ].map(m => m.toLowerCase());
-                
-                muMatch = exMuscles.some(m => apiMuscles.includes(m));
-            }
+            const hasEq = ex.equipments && Array.isArray(ex.equipments);
+            const hasMu = ex.targetMuscles && Array.isArray(ex.targetMuscles);
+            const hasSecMu = ex.secondaryMuscles && Array.isArray(ex.secondaryMuscles);
 
+            const eqMatch = !equipment || (hasEq && ex.equipments.some(e => e && e.toLowerCase() === equipment));
+            const muMatch = !muscle || 
+                            (hasMu && ex.targetMuscles.some(m => m && m.toLowerCase() === muscle)) ||
+                            (hasSecMu && ex.secondaryMuscles.some(m => m && m.toLowerCase() === muscle));
+            
             return eqMatch && muMatch;
         });
 
@@ -363,34 +374,46 @@
 
     function renderResults() {
         const container = document.getElementById('exResults');
-        document.getElementById('exResultCount').textContent =
-            localFiltered.length ? `${localFiltered.length} results` : '';
+        const counter = document.getElementById('exResultCount');
+        
+        if (counter) {
+            counter.textContent = localFiltered.length ? `${localFiltered.length} results` : '';
+        }
 
         if (!localFiltered.length) {
             container.innerHTML = '<p class="text-muted text-center small mt-2">No exercises found.</p>';
             return;
         }
 
-        container.innerHTML = localFiltered.slice(0, 30).map(ex => `
+        container.innerHTML = localFiltered.slice(0, 50).map(ex => {
+            const badge = ex.isCustom ? `<span class="badge bg-warning ms-1" style="font-size:0.6rem">Custom</span>` : "";
+            const eqText = ex.equipments ? ex.equipments.join(', ') : '';
+            const muText = ex.targetMuscles ? ex.targetMuscles.join(', ') : '';
+            const imgSrc = ex.gifUrl || "https://via.placeholder.com/48?text=No+Img";
+            
+            return `
             <div class="d-flex align-items-center gap-2 py-2 border-bottom"
-                 role="button" onclick='selectExercise(${JSON.stringify(ex)})'>
-                <img src="${ex.gifUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;">
+                 role="button" onclick='selectExercise(${JSON.stringify(ex).replace(/'/g, "&#39;")})'>
+                <img src="${imgSrc}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;">
                 <div class="flex-grow-1 overflow-hidden">
-                    <p class="mb-0 fw-semibold text-capitalize text-truncate" style="font-size:0.82rem">${ex.name}</p>
-                    <small class="text-muted">${ex.equipments.join(', ')} · ${ex.targetMuscles.join(', ')}</small>
+                    <p class="mb-0 fw-semibold text-capitalize text-truncate" style="font-size:0.82rem">
+                        ${ex.name} ${badge}
+                    </p>
+                    <small class="text-muted">${eqText} · ${muText}</small>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function selectExercise(ex) {
         document.getElementById('addExId').value = ex.exerciseId;
         document.getElementById('addExNameHidden').value = ex.name;
         document.getElementById('addExName').textContent = ex.name;
-        document.getElementById('addExBodyParts').value = ex.bodyParts.join(',');
-        document.getElementById('addExEquipments').value = ex.equipments.join(',');
-        document.getElementById('addExTargetMuscles').value = ex.targetMuscles.join(',');
-        document.getElementById('addExGifUrl').value = ex.gifUrl;
+        document.getElementById('addExBodyParts').value = ex.bodyParts ? ex.bodyParts.join(',') : "";
+        document.getElementById('addExEquipments').value = ex.equipments ? ex.equipments.join(',') : "";
+        document.getElementById('addExTargetMuscles').value = ex.targetMuscles ? ex.targetMuscles.join(',') : "";
+        document.getElementById('addExGifUrl').value = ex.gifUrl || "";
         new bootstrap.Modal(document.getElementById('addExModal')).show();
     }
 
@@ -399,5 +422,6 @@
     });
 
     initFilters();
+    searchExercises(); 
 </script>
 {% endblock %}
