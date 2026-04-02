@@ -27,7 +27,13 @@ EQUIPMENTS = sorted([
 
 
 class ExerciseDBService:
-
+    
+    def get_muscles(self) -> list[str]:
+        return MUSCLES
+        
+    def get_equipments(self) -> list[str]:
+        return EQUIPMENTS
+    
     async def get_exercises_page(self, search: str = "", offset: int = 0) -> dict:
         params: dict = {"offset": offset, "limit": PAGE_SIZE}
         if search:

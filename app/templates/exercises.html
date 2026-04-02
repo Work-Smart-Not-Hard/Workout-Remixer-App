@@ -165,7 +165,7 @@
 
 {% block subpage_scripts %}
 <script>
-    //State
+    // --- State ---
     let currentPage = [];       
     let currentBatch = [];      
     let totalExercises = 0;
@@ -176,8 +176,12 @@
     let userRoutines = [];
     const PAGE_SIZE = 100;
 
-    //SVG Muscle to API Muscle mapping
-    const MUSCLE_MAP = {
+    // Filter states
+    let currentMuscleFilter = "";
+    let currentEquipmentFilter = "";
+
+    // Use a different name to avoid duplicate declaration with heatmap's MUSCLE_MAP
+    const API_MUSCLE_MAP = {
         "chest": ["chest", "pectorals", "upper chest"],
         "abs": ["abs", "abdominals", "core", "lower abs"],
         "obliques": ["obliques"],
@@ -196,25 +200,19 @@
         "neck": ["neck", "sternocleidomastoid"]
     };
 
-    //Bootstrap
+    // --- Core Data Fetching ---
 
     async function init() {
-        const [musclesRes, equipmentsRes, favsRes, routinesRes] = await Promise.all([
-            fetch('/api/exercises/muscles'),
+        const [equipmentsRes, favsRes, routinesRes] = await Promise.all([
             fetch('/api/exercises/equipments'),
             fetch('/api/favourites'),
             fetch('/api/routines'),
         ]);
 
-        populateSelect('muscleFilter', await musclesRes.json());
-        populateSelect('equipmentFilter', await equipmentsRes.json());
-        
-        //Inject the Calisthenics Option Manually 
-        const eqFilter = document.getElementById('equipmentFilter');
-        const calOption = document.createElement('option');
-        calOption.value = 'calisthenics';
-        calOption.textContent = 'Calisthenics (Body Weight)';
-        eqFilter.appendChild(calOption);
+        // Equipment pills
+        const equipments = await equipmentsRes.json();
+        equipments.push("calisthenics"); // Inject Calisthenics
+        populateEquipmentPills(equipments);
 
         const favs = await favsRes.json();
         favouriteIds = new Set(favs.map(f => f.exercise_id));
@@ -224,13 +222,34 @@
         await fetchAndRender(0, "");
     }
 
-    function populateSelect(id, values) {
-        const sel = document.getElementById(id);
-        values.forEach(v => {
-            const o = document.createElement('option');
-            o.value = v;
-            o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
-            sel.appendChild(o);
+    function populateEquipmentPills(equipments) {
+        const container = document.getElementById('equipmentPills');
+        container.innerHTML = "";
+        
+        equipments.forEach(eq => {
+            const btn = document.createElement('button');
+            btn.className = "btn btn-sm btn-outline-secondary rounded-pill equipment-pill";
+            btn.textContent = eq === 'calisthenics' ? 'Calisthenics (Body Weight)' : eq.charAt(0).toUpperCase() + eq.slice(1);
+            btn.dataset.value = eq;
+            
+            btn.onclick = () => {
+                const isActive = btn.classList.contains('btn-secondary');
+                // Clear active state from all pills
+                document.querySelectorAll('.equipment-pill').forEach(p => {
+                    p.classList.remove('btn-secondary', 'text-white');
+                    p.classList.add('btn-outline-secondary');
+                });
+                
+                if (!isActive) {
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.classList.add('btn-secondary', 'text-white');
+                    currentEquipmentFilter = eq;
+                } else {
+                    currentEquipmentFilter = "";
+                }
+                applyLocalFilters();
+            };
+            container.appendChild(btn);
         });
     }
 
@@ -242,16 +261,104 @@
             : '<option value="">No routines yet — create one below</option>';
     }
 
-    //SVG Muscle Click Handler
-    function onMuscleClick(svgMuscleName) {
-        const mappedMuscles = MUSCLE_MAP[svgMuscleName.toLowerCase()];
+    // --- Filtering, Searching, Heatmap Integration ---
+
+    window.doSearch = function() {
+        const q = document.getElementById('searchInput').value.trim();
+        fetchAndRender(0, q);
+    };
+
+    window.onMuscleClick = function(svgMuscleName) {
+        const mappedMuscles = API_MUSCLE_MAP[svgMuscleName.toLowerCase()];
         if (mappedMuscles && mappedMuscles.length > 0) {
-            document.getElementById('muscleFilter').value = mappedMuscles[0]; 
+            currentMuscleFilter = mappedMuscles[0]; 
+            document.getElementById('selectedMuscleLabel').textContent = "Filtering by: " + mappedMuscles[0].charAt(0).toUpperCase() + mappedMuscles[0].slice(1);
+            document.getElementById('clearMuscleBtn').style.display = 'inline-block';
             applyLocalFilters();
         }
+    };
+
+    window.clearMuscle = function() {
+        currentMuscleFilter = "";
+        document.getElementById('selectedMuscleLabel').textContent = "Click a muscle to filter";
+        document.getElementById('clearMuscleBtn').style.display = 'none';
+        
+        if(typeof setActiveMuscle === 'function') setActiveMuscle(null);
+        applyLocalFilters();
+    };
+
+    window.clearAllFilters = function() {
+        document.getElementById('searchInput').value = "";
+        currentEquipmentFilter = "";
+        document.querySelectorAll('.equipment-pill').forEach(p => {
+            p.classList.remove('btn-secondary', 'text-white');
+            p.classList.add('btn-outline-secondary');
+        });
+        clearMuscle();
+        fetchAndRender(0, "");
+    };
+
+    function applyLocalFilters() {
+        const m = currentMuscleFilter.toLowerCase();
+        const e = currentEquipmentFilter.toLowerCase();
+
+        // Update heatmap active state
+        if (m && typeof setActiveMuscle === 'function') {
+            let foundSvgGroup = null;
+            for (const [svgGrp, aliases] of Object.entries(API_MUSCLE_MAP)) {
+                if (aliases.includes(m)) {
+                    foundSvgGroup = svgGrp;
+                    break;
+                }
+            }
+            setActiveMuscle(foundSvgGroup);
+        } else if (!m && typeof setActiveMuscle === 'function') {
+            setActiveMuscle(null);
+        }
+
+        // Map chosen muscle to its aliases
+        let acceptableMuscles = [m];
+        if (m) {
+            for (const [key, equivalents] of Object.entries(API_MUSCLE_MAP)) {
+                if (equivalents.includes(m)) {
+                    acceptableMuscles = equivalents;
+                    break;
+                }
+            }
+        }
+        
+        // Map Calisthenics to Body Weight
+        let acceptableEquipments = [e];
+        if (e === 'calisthenics') {
+            acceptableEquipments = ['body weight', 'assisted'];
+        }
+
+        currentPage = currentBatch.filter(ex => {
+            const eqList = ex.equipments || (ex.equipment ? [ex.equipment] : []);
+            const eqMatch = !e || eqList.some(eq => acceptableEquipments.includes(eq.toLowerCase()));
+            
+            const muMatch = !m || 
+                (ex.targetMuscles && ex.targetMuscles.some(mu => acceptableMuscles.includes(mu.toLowerCase()))) || 
+                (ex.secondaryMuscles && ex.secondaryMuscles.some(mu => acceptableMuscles.includes(mu.toLowerCase()))) ||
+                (ex.target && acceptableMuscles.includes(ex.target.toLowerCase()));
+
+            return eqMatch && muMatch;
+        });
+
+        renderGrid(currentPage);
+        updatePagination();
     }
 
-    //Fetch one page from API with Browser Cache
+    // --- Loading & Rendering ---
+
+    function showSpinner(msg) {
+        document.getElementById('exerciseGrid').innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">${msg}</p>
+            </div>
+        `;
+    }
 
     async function fetchAndRender(offset, search, attempt = 1) {
         showSpinner(attempt > 1 ? `Waking up exercise server — attempt ${attempt}...` : "Loading exercises...");
@@ -264,7 +371,7 @@
                 console.log("Loaded exercises from browser cache!");
                 json = JSON.parse(cachedData);
             } else {
-                const params = new URLSearchParams({ offset });
+                const params = new URLSearchParams({ offset, limit: PAGE_SIZE });
                 if (search) params.set('search', search);
                 const res = await fetch(`/api/exercises?${params}`);
                 if (!res.ok) throw new Error(res.status);
@@ -292,43 +399,41 @@
         }
     }
 
-    function applyLocalFilters() {
-        const m = document.getElementById('muscleFilter').value.toLowerCase();
-        const e = document.getElementById('equipmentFilter').value.toLowerCase();
-
-        //Map chosen muscle to its aliases
-        let acceptableMuscles = [m];
-        for (const [key, equivalents] of Object.entries(MUSCLE_MAP)) {
-            if (equivalents.includes(m)) {
-                acceptableMuscles = equivalents;
-                break;
-            }
-        }
-        
-        //Map Calisthenics to Body Weight
-        let acceptableEquipments = [e];
-        if (e === 'calisthenics') {
-            acceptableEquipments = ['body weight', 'assisted'];
+    function renderGrid(exercises) {
+        const grid = document.getElementById('exerciseGrid');
+        if (!exercises || exercises.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">No exercises found for these filters.</div>';
+            return;
         }
 
-        currentPage = currentBatch.filter(ex => {
-            const eqList = ex.equipments || (ex.equipment ? [ex.equipment] : []);
-            const eqMatch = !e || eqList.some(eq => acceptableEquipments.includes(eq.toLowerCase()));
+        grid.innerHTML = exercises.map(ex => {
+            const isFav = favouriteIds.has(ex.exerciseId || ex.id);
+            const eqList = ex.equipments ? ex.equipments.join(', ') : (ex.equipment || '');
+            const bodyParts = ex.bodyParts ? ex.bodyParts.join(', ') : (ex.bodyPart || '');
             
-            const muMatch = !m || 
-                (ex.targetMuscles && ex.targetMuscles.some(mu => acceptableMuscles.includes(mu.toLowerCase()))) || 
-                (ex.secondaryMuscles && ex.secondaryMuscles.some(mu => acceptableMuscles.includes(mu.toLowerCase()))) ||
-                (ex.target && acceptableMuscles.includes(ex.target.toLowerCase()));
-
-            return eqMatch && muMatch;
-        });
-
-        renderGrid(currentPage);
-        updatePagination();
+            return `
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 shadow-sm border-0 exercise-card" onclick='openModal(${JSON.stringify(ex).replace(/'/g, "&apos;")})'>
+                    <div class="card-body d-flex gap-3 align-items-center">
+                        <img src="${ex.gifUrl || ''}" alt="${ex.name}" class="rounded" style="width:70px; height:70px; object-fit:cover; background:#f8f9fa;">
+                        <div>
+                            <h6 class="fw-bold mb-1 text-capitalize text-truncate" style="max-width:200px;" title="${ex.name}">
+                                ${ex.name}
+                            </h6>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                <span class="badge bg-light text-dark border">${bodyParts}</span>
+                                <span class="badge bg-light text-dark border">${eqList}</span>
+                            </div>
+                        </div>
+                        ${isFav ? '<span class="material-symbols-outlined text-warning ms-auto" style="font-variation-settings:\'FILL\' 1">star</span>' : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
     }
 
     function updatePagination() {
-        const isFiltered = document.getElementById('muscleFilter').value || document.getElementById('equipmentFilter').value;
+        const isFiltered = currentMuscleFilter || currentEquipmentFilter;
         const pageNum = Math.floor(currentOffset / PAGE_SIZE) + 1;
         let totalPages = Math.ceil(totalExercises / PAGE_SIZE);
         
@@ -336,15 +441,90 @@
             ? `Showing ${currentPage.length} matching exercises (from page ${pageNum})`
             : `Showing ${currentBatch.length} exercises (Page ${pageNum} of ${totalPages || '?'})`;
             
-        document.getElementById('pageInfo').textContent = countText;
+        document.getElementById('pageIndicator').textContent = countText;
 
         document.getElementById('prevBtn').disabled = (currentOffset === 0);
         document.getElementById('nextBtn').disabled = currentBatch.length < PAGE_SIZE || (isFiltered && currentPage.length === 0);
     }
 
-    //Prevent Double Click / Add to Routine
+    window.prevPage = function() {
+        if (currentOffset > 0) fetchAndRender(currentOffset - PAGE_SIZE, currentSearch);
+    };
 
-    async function submitAddToRoutine() {
+    window.nextPage = function() {
+        fetchAndRender(currentOffset + PAGE_SIZE, currentSearch);
+    };
+
+    // --- Modal & Actions ---
+
+    window.openModal = function(ex) {
+        currentExercise = ex;
+        document.getElementById('modalExerciseName').textContent = ex.name;
+        document.getElementById('modalGif').src = ex.gifUrl || '';
+        document.getElementById('modalBodyPart').textContent = ex.bodyParts ? ex.bodyParts.join(', ') : (ex.bodyPart || '');
+        document.getElementById('modalTarget').textContent = ex.targetMuscles ? ex.targetMuscles.join(', ') : (ex.target || '');
+        document.getElementById('modalEquipment').textContent = ex.equipments ? ex.equipments.join(', ') : (ex.equipment || '');
+        document.getElementById('modalSecondary').textContent = ex.secondaryMuscles && ex.secondaryMuscles.length ? ex.secondaryMuscles.join(', ') : 'None';
+        
+        const ins = ex.instructions || [];
+        document.getElementById('modalInstructions').innerHTML = ins.length ? ins.map(i => `<li>${i}</li>`).join('') : '<li>No instructions available.</li>';
+
+        const isFav = favouriteIds.has(ex.exerciseId || ex.id);
+        const fb = document.getElementById('favBtn');
+        fb.className = isFav ? 'btn btn-warning' : 'btn btn-outline-warning';
+        document.getElementById('favBtnText').textContent = isFav ? 'Favourited' : 'Favourite';
+        
+        const icon = fb.querySelector('.material-symbols-outlined');
+        icon.style.fontVariationSettings = isFav ? "'FILL' 1" : "'FILL' 0";
+
+        document.getElementById('viewExBtn').href = `/exercises/${ex.exerciseId || ex.id}`;
+        
+        const m = new bootstrap.Modal(document.getElementById('exerciseModal'));
+        m.show();
+    };
+
+    window.showAddToRoutine = function() {
+        const exModal = bootstrap.Modal.getInstance(document.getElementById('exerciseModal'));
+        exModal.hide();
+        const addModal = new bootstrap.Modal(document.getElementById('addToRoutineModal'));
+        addModal.show();
+    };
+
+    window.toggleFavourite = async function() {
+        if (!currentExercise) return;
+        const btn = document.getElementById('favBtn');
+        const icon = btn.querySelector('.material-symbols-outlined');
+        btn.disabled = true;
+
+        try {
+            const exId = currentExercise.exerciseId || currentExercise.id;
+            const res = await fetch('/api/favourites/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentExercise)
+            });
+            const data = await res.json();
+            
+            if (data.favourited) {
+                favouriteIds.add(exId);
+                btn.className = 'btn btn-warning';
+                document.getElementById('favBtnText').textContent = 'Favourited';
+                icon.style.fontVariationSettings = "'FILL' 1";
+            } else {
+                favouriteIds.delete(exId);
+                btn.className = 'btn btn-outline-warning';
+                document.getElementById('favBtnText').textContent = 'Favourite';
+                icon.style.fontVariationSettings = "'FILL' 0";
+            }
+            renderGrid(currentPage);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    window.submitAddToRoutine = async function() {
         const btn = document.querySelector('button[onclick="submitAddToRoutine()"]');
         btn.disabled = true; // Disable to prevent double clicks creating duplicates
         btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
@@ -400,15 +580,16 @@
             btn.disabled = false;
             btn.innerHTML = 'Add';
         }
-    }
+    };
 
-    //Initialize
+    // --- Initialization ---
+
     document.addEventListener('DOMContentLoaded', init);
-    document.getElementById('searchBtn').addEventListener('click', () => fetchAndRender(0, document.getElementById('searchInput').value.trim()));
-    document.getElementById('muscleFilter').addEventListener('change', applyLocalFilters);
-    document.getElementById('equipmentFilter').addEventListener('change', applyLocalFilters);
-    document.getElementById('prevBtn').addEventListener('click', () => fetchAndRender(currentOffset - PAGE_SIZE, currentSearch));
-    document.getElementById('nextBtn').addEventListener('click', () => fetchAndRender(currentOffset + PAGE_SIZE, currentSearch));
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            fetchAndRender(0, document.getElementById('searchInput').value.trim());
+        }
+    });
 
 </script>
 {% endblock %}
