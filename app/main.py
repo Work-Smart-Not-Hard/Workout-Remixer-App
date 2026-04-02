@@ -8,6 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.routers import templates, static_files, router, api_router
 from app.config import get_settings
 from contextlib import asynccontextmanager
+from app.services.exercisedb_service import ExerciseDBService
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +16,14 @@ EXERCISEDB_BASE = "https://exercisedb-api-oe62.onrender.com/api/v1"
 
 
 async def warmup_exercisedb():
-    """Ping the ExerciseDB server on startup so it wakes up."""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+    """Wake up the ExerciseDB server and proactively cache all 1,500 exercises in the background."""
     try:
-        async with httpx.AsyncClient(timeout=60, headers=headers) as client:
-            await client.get(f"{EXERCISEDB_BASE}/exercises", params={"limit": 1})
-    except Exception:
-        pass
+        service = ExerciseDBService()
+        # This will securely fetch all pages and store them in the class-level cache
+        await service._fetch_all_exercises()
+        logger.info("Successfully warmed up and cached all exercises on startup.")
+    except Exception as e:
+        logger.error(f"Background warmup of ExerciseDB failed: {e}")
 
 
 @asynccontextmanager
