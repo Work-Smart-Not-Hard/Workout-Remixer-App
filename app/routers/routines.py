@@ -239,31 +239,3 @@ async def react_post(
         
     db.commit()
     return RedirectResponse(url=request.url_for("explore_view"), status_code=status.HTTP_303_SEE_OTHER)
-
-
-#API: Custom Exercises
-
-@api_router.post("/custom_exercises")
-async def create_custom_exercise(
-    request: Request,
-    user: AuthDep,
-    db: SessionDep,
-    name: str = Form(...),
-    description: str = Form(default=""),
-    body_part: str = Form(...),
-    equipment: str = Form(...),
-    media_url: str = Form(default="")
-):
-    custom_ex = CustomExercise(
-        user_id=user.id,
-        name=name,
-        description=description,
-        body_part=body_part,
-        equipment=equipment,
-        media_url=media_url
-    )
-    db.add(custom_ex)
-    db.commit()
-    flash(request, "Custom exercise created successfully!")
-    referer = request.headers.get("referer") or "/routines"
-    return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)

@@ -1,66 +1,58 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
-from typing import List
-from .. import models
-from ..database import get_db
-from ..dependencies import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
+from fastapi.responses import RedirectResponse
+from sqlmodel import select
+from typing import List, Optional
+from app.models.models import CustomExercise
+from app.dependencies.session import SessionDep
+from app.dependencies.auth import AuthDep
+from app.utilities.flash import flash
 
-router = APIRouter(prefix="/api/custom-exercises", tags=["Custom Exercises"])
+router = APIRouter(prefix="/api/custom_exercises", tags=["Custom Exercises"])
 
-@router.post("/", response_model=models.CustomExercise)
-def create_custom_exercise(
-    exercise: models.CustomExerciseBase, 
-    db: Session = Depends(get_db), 
-    current_user: models.User = Depends(get_current_user)
+@router.post("/")
+async def create_custom_exercise(
+    request: Request,
+    user: AuthDep,
+    db: SessionDep,
+    name: str = Form(...),
+    description: str = Form(default=""),
+    body_part: str = Form(...),
+    equipment: str = Form(...),
+    media_url: str = Form(default="")
 ):
-    new_exercise = models.CustomExercise.model_validate(exercise, update={"user_id": current_user.id})
-    db.add(new_exercise)
-    db.commit()
-    db.refresh(new_exercise)
-    return new_exercise
-
-@router.get("/", response_model=List[models.CustomExercise])
-def get_my_custom_exercises(
-    db: Session = Depends(get_db), 
-    current_user: models.User = Depends(get_current_user)
-):
-    statement = select(models.CustomExercise).where(models.CustomExercise.user_id == current_user.id)
-    return db.exec(statement).all()
-
-@router.put("/{exercise_id}", response_model=models.CustomExercise)
-def update_custom_exercise(
-    exercise_id: int, 
-    updated_exercise: models.CustomExerciseBase, 
-    db: Session = Depends(get_db), 
-    current_user: models.User = Depends(get_current_user)
-):
-    statement = select(models.CustomExercise).where(
-        models.CustomExercise.id == exercise_id,
-        models.CustomExercise.user_id == current_user.id
+    custom_ex = CustomExercise(
+        user_id=user.id,
+        name=name,
+        description=description,
+        body_part=body_part,
+        equipment=equipment,
+        media_url=media_url
     )
-    exercise = db.exec(statement).first()
-    
-    if not exercise:
-        raise HTTPException(status_code=404, detail="Custom exercise not found")
-    
-    exercise_data = updated_exercise.model_dump(exclude_unset=True)
-    for key, value in exercise_data.items():
-        setattr(exercise, key, value)
-        
-    db.add(exercise)
+    db.add(custom_ex)
     db.commit()
-    db.refresh(exercise)
-    return exercise
+    flash(request, "Custom exercise created successfully!")
+    
+    referer = request.headers.get("referer") or "/routines"
+    return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
+
+@router.get("/", response_model=List[CustomExercise])
+def get_my_custom_exercises(
+    db: SessionDep, 
+    current_user: AuthDep
+):
+    statement = select(CustomExercise).where(CustomExercise.user_id == current_user.id)
+    return db.exec(statement).all()
 
 @router.delete("/{exercise_id}")
 def delete_custom_exercise(
+    request: Request,
     exercise_id: int, 
-    db: Session = Depends(get_db), 
-    current_user: models.User = Depends(get_current_user)
+    db: SessionDep, 
+    current_user: AuthDep
 ):
-    statement = select(models.CustomExercise).where(
-        models.CustomExercise.id == exercise_id,
-        models.CustomExercise.user_id == current_user.id
+    statement = select(CustomExercise).where(
+        CustomExercise.id == exercise_id,
+        CustomExercise.user_id == current_user.id
     )
     exercise = db.exec(statement).first()
     
@@ -69,4 +61,7 @@ def delete_custom_exercise(
     
     db.delete(exercise)
     db.commit()
-    return {"message": "Custom exercise deleted successfully"}
+    
+    flash(request, "Custom exercise deleted successfully!")
+    referer = request.headers.get("referer") or "/routines"
+    return RedirectResponse(url=referer, status_code=status.HTTP_303_SEE_OTHER)
