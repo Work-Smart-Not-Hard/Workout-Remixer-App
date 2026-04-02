@@ -234,54 +234,100 @@
 
 {% block subpage_scripts %}
 <script>
-    let allFetched = [];       // full exercise list from API
-    let localFiltered = [];    // after client-side filters applied
+    let allFetched = [];       //full exercise list from API
+    let localFiltered = [];    //after client-side filters applied
 
-    //Bootstrap dropdowns from hardcoded lists
+    //MUSCLE MAPPING
+    const SVG_TO_API = {
+        "chest": ["chest", "pectorals", "upper chest", "serratus anterior"],
+        "abs": ["abs", "abdominals", "core", "lower abs", "waist"],
+        "obliques": ["obliques", "waist", "abs"],
+        "biceps": ["biceps", "brachialis", "upper arms"],
+        "triceps": ["triceps", "upper arms"],
+        "forearms": ["forearms", "wrist flexors", "wrist extensors", "wrists", "lower arms"],
+        "shoulders": ["shoulders", "delts", "deltoids"],
+        "traps": ["traps", "trapezius", "back"],
+        "neck": ["neck", "levator scapulae"],
+        "upper back": ["upper back", "rhomboids", "back"],
+        "lats": ["lats", "latissimus dorsi", "back"],
+        "lower back": ["lower back", "spine", "back"],
+        "glutes": ["glutes", "upper legs"],
+        "hamstrings": ["hamstrings", "upper legs"],
+        "adductors": ["adductors", "abductors", "inner thighs", "groin", "upper legs"],
+        "quads": ["quads", "quadriceps", "upper legs"],
+        "calves": ["calves", "soleus", "lower legs"],
+        "tibialis": ["shins", "lower legs"]
+    };
 
-    async function initFilters() {
-        const [musclesRes, equipmentsRes] = await Promise.all([
-            fetch('/api/exercises/muscles'),
-            fetch('/api/exercises/equipments'),
-        ]);
-        populateSelect('exMuscleFilter', await musclesRes.json());
-        populateSelect('exEquipFilter', await equipmentsRes.json());
-    }
+    //EQUIPMENT — organised groups matching ExerciseDB
+    const EQUIPMENT_GROUPS = [
+        {
+            label: "Free Weights",
+            items: ["barbell", "dumbbell", "ez barbell", "olympic barbell",
+                    "kettlebell", "trap bar", "hammer", "weighted"]
+        },
+        {
+            label: "Machines & Cables",
+            items: ["cable", "leverage machine", "smith machine",
+                    "sled machine", "skierg machine"]
+        },
+        {
+            label: "Cardio",
+            items: ["stationary bike", "elliptical machine", "stepmill machine",
+                    "upper body ergometer"]
+        },
+        {
+            label: "Bodyweight & Bands",
+            items: ["body weight", "assisted", "resistance band", "band",
+                    "bosu ball", "stability ball", "medicine ball",
+                    "roller", "wheel roller", "rope", "tire"]
+        }
+    ];
 
-    function populateSelect(id, values) {
-        const sel = document.getElementById(id);
-        values.forEach(v => {
+    //Bootstrap dropdowns using the mappings instead of raw API lists
+    function initFilters() {
+        const equipSelect = document.getElementById('exEquipFilter');
+        EQUIPMENT_GROUPS.forEach(group => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = group.label;
+            group.items.forEach(eq => {
+                const o = document.createElement('option');
+                o.value = eq;
+                o.textContent = eq.charAt(0).toUpperCase() + eq.slice(1);
+                optgroup.appendChild(o);
+            });
+            equipSelect.appendChild(optgroup);
+        });
+
+        const muscleSelect = document.getElementById('exMuscleFilter');
+        Object.keys(SVG_TO_API).forEach(muscle => {
             const o = document.createElement('option');
-            o.value = v; o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
-            sel.appendChild(o);
+            o.value = muscle;
+            o.textContent = muscle.charAt(0).toUpperCase() + muscle.slice(1);
+            muscleSelect.appendChild(o);
         });
     }
 
-    //Search (hits API for fuzzy match)
-
+    //Search
     async function searchExercises() {
         const q = document.getElementById('exSearch').value.trim();
         const spinner = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
         document.getElementById('exResults').innerHTML = spinner;
 
-        // 1. Create a unique key for this search query
         const cacheKey = `routine_search_${q}`;
         const cachedData = sessionStorage.getItem(cacheKey);
         let json;
 
         if (cachedData) {
-            // 2. Load from cache if it exists
             console.log("Loaded routine search from browser cache!");
             json = JSON.parse(cachedData);
         } else {
-            // 3. Otherwise, fetch from the API
             const params = new URLSearchParams();
             if (q) params.set('search', q);
 
             const res = await fetch(`/api/exercises?${params}`);
             json = await res.json();
             
-            // 4. Save to browser cache for next time
             sessionStorage.setItem(cacheKey, JSON.stringify(json));
         }
 
@@ -289,18 +335,27 @@
         applyLocalFilters();
     }
 
-    //Client-side filter on top of fetched results
-
+    //Client-side filter on top of fetched results using correct mappings
     function applyLocalFilters() {
         const equipment = document.getElementById('exEquipFilter').value.toLowerCase();
-        const muscle = document.getElementById('exMuscleFilter').value.toLowerCase();
+        const muscleKey = document.getElementById('exMuscleFilter').value.toLowerCase();
 
         localFiltered = allFetched.filter(ex => {
-            const eq = !equipment || ex.equipments.some(e => e.toLowerCase() === equipment);
-            const mu = !muscle ||
-                ex.targetMuscles.some(m => m.toLowerCase() === muscle) ||
-                ex.secondaryMuscles.some(m => m.toLowerCase() === muscle);
-            return eq && mu;
+            const eqMatch = !equipment || (ex.equipments && ex.equipments.some(e => e.toLowerCase() === equipment));
+            
+            let muMatch = true;
+            if (muscleKey) {
+                const apiMuscles = SVG_TO_API[muscleKey] || [muscleKey];
+                const exMuscles = [
+                    ...(ex.targetMuscles || []),
+                    ...(ex.secondaryMuscles || []),
+                    ...(ex.bodyParts || [])
+                ].map(m => m.toLowerCase());
+                
+                muMatch = exMuscles.some(m => apiMuscles.includes(m));
+            }
+
+            return eqMatch && muMatch;
         });
 
         renderResults();
