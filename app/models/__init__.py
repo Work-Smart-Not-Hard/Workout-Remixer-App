@@ -1,5 +1,6 @@
 from app.models.models import (
     Exercise,
+    CustomExercise,
     Routine,
     RoutineExercise,
     WorkoutSession,
@@ -7,5 +8,8 @@ from app.models.models import (
     RoutineLike,
     WorkoutInvite,
     ExerciseFavourite,
+    Post,
+    PostReaction,
+    UserMute,
 )
 from app.models.user import (User, UserBase)
