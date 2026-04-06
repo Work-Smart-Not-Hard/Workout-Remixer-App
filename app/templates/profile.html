@@ -1,183 +1,434 @@
 {% extends "authenticated-base.html" %}
+{% from "heatmap_component.html" import muscle_heatmap %}
 {% block title %}{{ profile_user.username }}'s Profile{% endblock %}
 
+{% block internal_css %}
+<style>
+  .profile-avatar {
+    width: 76px; height: 76px; border-radius: 50%;
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+
+  .summary-stat { text-align: center; }
+  .summary-stat h3 { font-weight: 800; color: #1b263b; margin: 0; }
+  .summary-stat small { color: #6c757d; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+
+  .activity-card {
+    border: none; border-radius: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+    transition: box-shadow .2s;
+  }
+  .activity-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.08); }
+  .activity-date-badge {
+    font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: #6c757d;
+  }
+  .activity-routine-name { font-size: 1rem; font-weight: 700; color: #1b263b; }
+  .stat-pill {
+    display: inline-flex; align-items: center; gap: .3rem;
+    background: #f0f4ff; color: #2d5be3;
+    border-radius: 2rem; padding: .2rem .75rem;
+    font-size: .74rem; font-weight: 600;
+  }
+  .stat-pill.green { background: #edfbf1; color: #198754; }
+  .stat-pill.amber { background: #fff8e1; color: #e65100; }
+
+  .ex-chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    background: #f8f9fa; border: 1px solid #e9ecef;
+    border-radius: .5rem; padding: .3rem .55rem;
+    font-size: .74rem; cursor: pointer;
+    transition: background .15s;
+  }
+  .ex-chip:hover { background: #e8f0fe; border-color: #a8c3f7; }
+  .ex-chip img { width: 30px; height: 30px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+  .ex-chip-name { font-weight: 600; color: #1b263b; text-transform: capitalize; }
+  .ex-chip-stat { color: #6c757d; }
+
+  .timeline-wrap { position: relative; }
+  .timeline-wrap::before {
+    content: ''; position: absolute;
+    left: 19px; top: 0; bottom: 0; width: 2px;
+    background: linear-gradient(to bottom, #0d6efd33, #0d6efd11);
+  }
+  .timeline-dot {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; position: relative;
+    box-shadow: 0 0 0 4px #e8f0fe;
+  }
+
+  .period-tabs .btn { font-size: .78rem; padding: .25rem .75rem; }
+  .period-tabs .btn.active { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+
+  .private-overlay {
+    text-align: center; padding: 4rem 2rem; color: #adb5bd;
+  }
+
+  .profile-summary-sticky {
+    position: sticky; top: 0; z-index: 10;
+    background: #f8f9fa;
+    padding: .5rem 0;
+  }
+</style>
+{% endblock %}
+
 {% block subpage_content %}
-<div class="container-fluid" style="max-width:760px;">
+<div class="container-fluid" style="max-width: 860px;">
 
-    {% for message in get_flashed_messages(request) %}
-    <div class="alert alert-{{ message.type }}" role="alert">{{ message.message }}</div>
-    {% endfor %}
+  {% for message in get_flashed_messages(request) %}
+  <div class="alert alert-{{ message.type }} alert-dismissible fade show">
+    {{ message.message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
 
-    <!-- Profile header -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body d-flex align-items-center gap-4 flex-wrap">
-            <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center fw-bold flex-shrink-0"
-                 style="width:72px;height:72px;font-size:2rem;">
-                {{ profile_user.username[0]|upper }}
-            </div>
-            <div class="flex-grow-1">
-                <h4 class="fw-bold mb-0">{{ profile_user.username }}</h4>
-                <span class="badge {% if profile_user.privacy_level == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
-                    {{ 'Public' if profile_user.privacy_level == 'public' else 'Private' }}
-                </span>
-            </div>
-            {% if not is_own %}
-            <form method="POST" action="/api/explore/mute/{{ profile_user.id }}"
-                  onsubmit="this.querySelector('button').disabled=true">
-                <button type="submit" class="btn {% if is_muted %}btn-secondary{% else %}btn-outline-secondary{% endif %} btn-sm">
-                    {{ 'Unmute' if is_muted else 'Mute' }}
-                </button>
-            </form>
-            {% endif %}
-        </div>
+  <div class="card activity-card p-3 mb-3">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div class="profile-avatar">{{ profile_user.username[0]|upper }}</div>
+      <div class="flex-grow-1">
+        <h4 class="fw-bold mb-1">{{ profile_user.username }}</h4>
+        <span class="badge {% if profile_user.privacy_level == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
+          <span class="material-symbols-outlined" style="font-size:.75rem;vertical-align:middle">
+            {% if profile_user.privacy_level == 'public' %}public{% else %}lock{% endif %}
+          </span>
+          {{ 'Public' if profile_user.privacy_level == 'public' else 'Private' }}
+        </span>
+      </div>
+      {% if not is_own %}
+      <form method="POST" action="/api/explore/mute/{{ profile_user.id }}">
+        <button type="submit" class="btn {% if is_muted %}btn-secondary{% else %}btn-outline-secondary{% endif %} btn-sm">
+          <span class="material-symbols-outlined me-1" style="font-size:.85rem;vertical-align:middle">
+            {{ 'volume_off' if is_muted else 'volume_up' }}
+          </span>
+          {{ 'Unmute' if is_muted else 'Mute' }}
+        </button>
+      </form>
+      {% endif %}
+      {% if is_own %}
+      <button class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#settingsPanel">
+        <span class="material-symbols-outlined me-1" style="font-size:.85rem;vertical-align:middle">settings</span>
+        Settings
+      </button>
+      {% endif %}
     </div>
 
-    <!-- Own settings card -->
     {% if is_own %}
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white fw-semibold">Account Settings</div>
-        <div class="card-body">
-            <form method="POST" action="/api/users/privacy">
-                <label class="form-label fw-semibold">Account Privacy</label>
-                <div class="d-flex gap-3 align-items-center flex-wrap">
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="privacy_level" value="public"
-                               id="privPublic" {% if profile_user.privacy_level == 'public' %}checked{% endif %}>
-                        <label class="form-check-label" for="privPublic">
-                            Public — anyone can see your posts and routines
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="privacy_level" value="private"
-                               id="privPrivate" {% if profile_user.privacy_level != 'public' %}checked{% endif %}>
-                        <label class="form-check-label" for="privPrivate">
-                            Private — your posts won't appear in the timeline
-                        </label>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                </div>
-            </form>
-        </div>
+    <div class="collapse mt-3" id="settingsPanel">
+      <div class="border-top pt-3">
+        <p class="fw-semibold small mb-2">Account Privacy</p>
+        <form method="POST" action="/api/users/privacy" class="d-flex gap-3 flex-wrap align-items-center">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="radio" name="privacy_level" value="public"
+                   id="privPublic" {% if profile_user.privacy_level == 'public' %}checked{% endif %}>
+            <label class="form-check-label small" for="privPublic">
+              <strong>Public</strong> — anyone can view your profile & posts
+            </label>
+          </div>
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="radio" name="privacy_level" value="private"
+                   id="privPrivate" {% if profile_user.privacy_level != 'public' %}checked{% endif %}>
+            <label class="form-check-label small" for="privPrivate">
+              <strong>Private</strong> — your posts are hidden from the timeline
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Save</button>
+        </form>
+      </div>
     </div>
     {% endif %}
+  </div>
 
-    <!-- Content: private gate -->
-    {% if not is_own and profile_user.privacy_level != 'public' %}
-    <div class="text-center py-5 text-muted">
-        <span class="material-symbols-outlined" style="font-size:3rem">lock</span>
-        <p class="mt-2">This account is private.</p>
-    </div>
-    {% else %}
+  {% if is_own or profile_user.privacy_level == 'public' %}
+  <div class="profile-summary-sticky mb-3">
+    <div class="card activity-card p-3">
 
-    <!-- Tabs -->
-    <ul class="nav nav-tabs mb-3" id="profileTabs">
-        <li class="nav-item">
-            <button class="nav-link active" onclick="showTab('routinesTab', this)">
-                Routines
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" onclick="showTab('postsTab', this)">
-                Posts
-            </button>
-        </li>
-    </ul>
-
-    <div id="routinesTab">
-        <div class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
+      <!-- Period selector -->
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <p class="fw-semibold small mb-0">Activity Summary</p>
+        <div class="btn-group period-tabs" role="group">
+          <button class="btn btn-outline-primary btn-sm active" onclick="setPeriod('week', this)">Week</button>
+          <button class="btn btn-outline-primary btn-sm" onclick="setPeriod('month', this)">Month</button>
+          <button class="btn btn-outline-primary btn-sm" onclick="setPeriod('year', this)">Year</button>
+          <button class="btn btn-outline-primary btn-sm" onclick="setPeriod('all', this)">All</button>
         </div>
-    </div>
-    <div id="postsTab" style="display:none;">
-        <div class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
-        </div>
-    </div>
+      </div>
 
+      <div class="row g-3 align-items-start">
+
+        <!-- Stats + heatmap -->
+        <div class="col-md-5">
+          <div class="row g-2 mb-3">
+            <div class="col-4 summary-stat">
+              <h3 id="sumSessions">—</h3>
+              <small>Workouts</small>
+            </div>
+            <div class="col-4 summary-stat">
+              <h3 id="sumSets">—</h3>
+              <small>Sets</small>
+            </div>
+            <div class="col-4 summary-stat">
+              <h3 id="sumDuration">—</h3>
+              <small>Minutes</small>
+            </div>
+          </div>
+          {{ muscle_heatmap(mode="stats", height="180px") }}
+        </div>
+
+        <!-- Recent public routines -->
+        <div class="col-md-7" id="profileRoutinesPanel">
+          <p class="fw-semibold small mb-2 text-muted text-uppercase" style="letter-spacing:.05em;font-size:.72rem;">
+            Public Routines
+          </p>
+          <div id="profileRoutinesList">
+            <div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h6 class="fw-bold mb-0">Workout History</h6>
+    {% if is_own %}
+    <a href="/activity" class="btn btn-outline-secondary btn-sm">
+      <span class="material-symbols-outlined me-1" style="font-size:.85rem;vertical-align:middle">open_in_full</span>
+      Full Activity
+    </a>
     {% endif %}
+  </div>
+
+  <div class="timeline-wrap" id="profileFeed">
+    <div class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-primary"></div>
+    </div>
+  </div>
+  <div class="text-center mt-3 mb-5" id="profileLoadMore" style="display:none;">
+    <button class="btn btn-outline-secondary btn-sm px-4" onclick="profileLoadMore()">Load more</button>
+  </div>
+
+  {% else %}
+  <!-- Private account -->
+  <div class="private-overlay">
+    <span class="material-symbols-outlined" style="font-size:4rem;opacity:.3">lock</span>
+    <h6 class="fw-bold mt-3">This account is private</h6>
+    <p class="small">Follow requests aren't supported yet. The user must make their account public for you to see their activity.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="modal fade" id="exDetailModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold text-capitalize" id="exDetailName"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="exDetailGif" src="" alt="" class="img-fluid rounded mb-3" style="max-height:200px;">
+        <div id="exDetailStats" class="d-flex flex-wrap gap-2 justify-content-center"></div>
+      </div>
+      <div class="modal-footer border-0 justify-content-center">
+        <a id="exDetailLink" href="#" class="btn btn-outline-primary btn-sm">View Stats</a>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block subpage_scripts %}
 <script>
-    const PROFILE_USER_ID = {{ profile_user.id }};
-    const IS_OWN = {{ 'true' if is_own else 'false' }};
+  const PROFILE_USER_ID = {{ profile_user.id }};
+  const IS_OWN = {{ 'true' if is_own else 'false' }};
+  let currentPeriod = 'week';
+  let profileOffset = 0;
+  let profileHasMore = true;
 
-    function showTab(tabId, btn) {
-        ['routinesTab','postsTab'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = id === tabId ? '' : 'none';
-        });
-        document.querySelectorAll('#profileTabs .nav-link').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+  const MUSCLE_MAP = {
+    "chest":"chest","pectorals":"chest","abs":"abs","abdominals":"abs","core":"abs",
+    "obliques":"obliques","biceps":"biceps","brachialis":"biceps","triceps":"triceps",
+    "forearms":"forearms","wrist flexors":"forearms","wrist extensors":"forearms",
+    "quads":"quads","quadriceps":"quads","calves":"calves","soleus":"calves",
+    "shoulders":"shoulders","delts":"shoulders","deltoids":"shoulders",
+    "traps":"traps","trapezius":"traps","upper back":"upper back",
+    "lats":"lats","latissimus dorsi":"lats","lower back":"lower back",
+    "glutes":"glutes","hamstrings":"hamstrings","neck":"neck",
+    "adductors":"adductors","tibialis":"tibialis"
+  };
+
+  function getHeatColor(v) {
+    if (!v) return null;
+    if (v < 0.33) return '#ffca28';
+    if (v < 0.66) return '#ff7043';
+    return '#f44336';
+  }
+
+  function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  function setPeriod(p, btn) {
+    currentPeriod = p;
+    document.querySelectorAll('.period-tabs .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadSummary();
+  }
+
+  async function loadSummary() {
+    const res = await fetch(`/api/users/${PROFILE_USER_ID}/activity/stats?period=${currentPeriod}`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    document.getElementById('sumSessions').textContent = data.total_sessions;
+    document.getElementById('sumSets').textContent = data.total_sets;
+    document.getElementById('sumDuration').textContent = data.total_duration;
+
+    if (typeof initHeatmap === 'function') initHeatmap(data.heatmap);
+  }
+
+  function onMuscleClick() {}
+
+  async function loadRoutines() {
+    const listEl = document.getElementById('profileRoutinesList');
+    if (!listEl) return;
+    try {
+      const res = await fetch(`/api/users/${PROFILE_USER_ID}/profile/data`);
+      const data = await res.json();
+      if (data.private || !data.routines) {
+        listEl.innerHTML = '<p class="text-muted small">No public routines.</p>';
+        return;
+      }
+      if (!data.routines.length) {
+        listEl.innerHTML = '<p class="text-muted small">No public routines yet.</p>';
+        return;
+      }
+      listEl.innerHTML = data.routines.slice(0, 5).map(r => `
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="overflow-hidden">
+            <p class="fw-semibold mb-0 text-truncate" style="font-size:.85rem;">${escHtml(r.name)}</p>
+            <small class="text-muted">${r.exercise_count} exercise${r.exercise_count!==1?'s':''}</small>
+          </div>
+          ${!IS_OWN ? `
+          <form method="POST" action="/api/routines/${r.id}/remix" class="ms-2 flex-shrink-0">
+            <button type="submit" class="btn btn-sm btn-outline-success py-0" style="font-size:.75rem;">Remix</button>
+          </form>` : `
+          <a href="/routines/${r.id}" class="btn btn-sm btn-outline-primary py-0 ms-2" style="font-size:.75rem;">View</a>`}
+        </div>`).join('');
+    } catch {
+      listEl.innerHTML = '<p class="text-muted small">Could not load routines.</p>';
+    }
+  }
+
+  async function loadProfileFeed(reset = false) {
+    if (reset) { profileOffset = 0; profileHasMore = true; }
+    if (!profileHasMore) return;
+
+    const res = await fetch(`/api/users/${PROFILE_USER_ID}/activity?offset=${profileOffset}&limit=8`);
+    if (!res.ok) {
+      document.getElementById('profileFeed').innerHTML =
+        '<div class="text-center py-3 text-muted small">Activity not available.</div>';
+      return;
+    }
+    const entries = await res.json();
+
+    const feed = document.getElementById('profileFeed');
+    if (reset) feed.innerHTML = '';
+
+    if (!entries.length && profileOffset === 0) {
+      feed.innerHTML = `<div class="text-center py-4 text-muted">
+        <span class="material-symbols-outlined" style="font-size:2.5rem;opacity:.4">fitness_center</span>
+        <p class="small mt-2">No completed workouts yet.</p>
+      </div>`;
+      document.getElementById('profileLoadMore').style.display = 'none';
+      return;
     }
 
-    function escHtml(str) {
-        return String(str)
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    entries.forEach(e => feed.insertAdjacentHTML('beforeend', renderActivityEntry(e)));
+    entries.forEach(e => initMiniMuscleChips(`hm-p-${e.id}`, e.muscle_data || {}));
+
+    profileHasMore = entries.length === 8;
+    document.getElementById('profileLoadMore').style.display = profileHasMore ? '' : 'none';
+    profileOffset += entries.length;
+  }
+
+  function profileLoadMore() { loadProfileFeed(false); }
+
+  function renderActivityEntry(e) {
+    const dt = e.completed_at ? new Date(e.completed_at) : new Date(e.started_at);
+    const dateStr = dt.toLocaleDateString('en-TT', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+    const timeStr = dt.toLocaleTimeString('en-TT', { hour:'2-digit', minute:'2-digit' });
+    const name = e.routine ? e.routine.name : 'Workout';
+
+    const stats = `
+      <span class="stat-pill"><span class="material-symbols-outlined" style="font-size:.8rem">schedule</span>${e.duration_minutes??'—'} min</span>
+      <span class="stat-pill green"><span class="material-symbols-outlined" style="font-size:.8rem">fitness_center</span>${e.total_sets} sets</span>
+      ${e.total_volume > 0 ? `<span class="stat-pill amber"><span class="material-symbols-outlined" style="font-size:.8rem">monitor_weight</span>${e.total_volume.toLocaleString()} kg</span>` : ''}
+    `;
+
+    const chips = e.exercises.slice(0, 6).map(ex => `
+      <div class="ex-chip" onclick='openExDetail(${JSON.stringify(ex)})'>
+        ${ex.gif_url ? `<img src="${ex.gif_url}" loading="lazy">` : ''}
+        <div>
+          <div class="ex-chip-name">${ex.name}</div>
+          <div class="ex-chip-stat">${ex.sets&&ex.reps?`${ex.sets}×${ex.reps}`:''}${ex.weight_kg?` · ${ex.weight_kg}kg`:''}</div>
+        </div>
+      </div>`).join('');
+
+    const more = e.exercises.length > 6
+      ? `<span class="text-muted small">+${e.exercises.length - 6} more</span>` : '';
+
+    return `
+    <div class="d-flex gap-3 mb-4 align-items-start">
+      <div class="timeline-dot mt-1">
+        <span class="material-symbols-outlined text-white" style="font-size:.95rem">fitness_center</span>
+      </div>
+      <div class="activity-card flex-grow-1 p-3">
+        <div class="activity-date-badge">${dateStr} · ${timeStr}</div>
+        <div class="activity-routine-name mb-2">${escHtml(name)}</div>
+        <div class="d-flex flex-wrap gap-2 mb-2">${stats}</div>
+        <div id="hm-p-${e.id}" class="mb-2"></div>
+        <div class="d-flex flex-wrap gap-2">${chips}${more}</div>
+        ${e.notes ? `<p class="text-muted small fst-italic mt-2 mb-0">"${escHtml(e.notes)}"</p>` : ''}
+      </div>
+    </div>`;
+  }
+
+  function initMiniMuscleChips(containerId, muscleData) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const worked = {};
+    for (const [m, v] of Object.entries(muscleData)) {
+      const svgM = MUSCLE_MAP[m.toLowerCase()];
+      if (svgM) worked[svgM] = Math.max(worked[svgM] || 0, v);
     }
+    const sorted = Object.entries(worked).sort((a,b) => b[1]-a[1]);
+    container.innerHTML = sorted.map(([m,v]) => {
+      const col = getHeatColor(v);
+      return `<span class="badge me-1" style="background:${col||'#dee2e6'};color:#1b263b;font-size:.65rem;text-transform:capitalize;">${m}</span>`;
+    }).join('');
+  }
 
-    async function loadProfileData() {
-        try {
-            const res = await fetch(`/api/users/${PROFILE_USER_ID}/profile/data`);
-            const data = await res.json();
+  function openExDetail(ex) {
+    document.getElementById('exDetailName').textContent = ex.name;
+    document.getElementById('exDetailGif').src = ex.gif_url || '';
+    document.getElementById('exDetailGif').style.display = ex.gif_url ? '' : 'none';
+    document.getElementById('exDetailLink').href = `/exercises/${ex.exercise_id}`;
+    const stats = [];
+    if (ex.sets && ex.reps) stats.push(`<span class="stat-pill">${ex.sets}×${ex.reps}</span>`);
+    if (ex.weight_kg) stats.push(`<span class="stat-pill green">${ex.weight_kg}kg</span>`);
+    if (ex.target) stats.push(`<span class="badge bg-success text-capitalize">${ex.target}</span>`);
+    document.getElementById('exDetailStats').innerHTML = stats.join('');
+    new bootstrap.Modal(document.getElementById('exDetailModal')).show();
+  }
 
-            if (data.private) {
-                document.getElementById('routinesTab').innerHTML =
-                    '<p class="text-muted text-center py-3">Private account.</p>';
-                return;
-            }
-
-            //Routines tab
-            const routinesTab = document.getElementById('routinesTab');
-            if (data.routines.length) {
-                routinesTab.innerHTML = data.routines.map(r => `
-                    <div class="card shadow-sm mb-2">
-                        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div>
-                                <strong>${escHtml(r.name)}</strong>
-                                <small class="text-muted ms-2">${r.exercise_count} exercise${r.exercise_count !== 1 ? 's' : ''}</small>
-                                ${r.description ? `<br><small class="text-muted">${escHtml(r.description)}</small>` : ''}
-                            </div>
-                            ${!IS_OWN ? `
-                            <form method="POST" action="/api/routines/${r.id}/remix">
-                                <button type="submit" class="btn btn-sm btn-outline-success">Remix</button>
-                            </form>` : `<a href="/routines/${r.id}" class="btn btn-sm btn-outline-primary">View</a>`}
-                        </div>
-                    </div>`).join('');
-            } else {
-                routinesTab.innerHTML = '<p class="text-muted text-center py-3">No public routines yet.</p>';
-            }
-
-            //Posts tab
-            const postsTab = document.getElementById('postsTab');
-            if (data.posts.length) {
-                postsTab.innerHTML = data.posts.map(p => {
-                    const d = new Date(p.created_at).toLocaleDateString('en-TT', {
-                        month: 'short', day: 'numeric', year: 'numeric'
-                    });
-                    return `
-                    <div class="card shadow-sm mb-2">
-                        <div class="card-body">
-                            <small class="text-muted">${d}</small>
-                            <p class="mb-1" style="white-space:pre-wrap;">${escHtml(p.content)}</p>
-                            ${p.routine ? `<span class="badge bg-light text-dark border me-1">${escHtml(p.routine.name)}</span>` : ''}
-                            <div class="mt-1 text-muted small">
-                                👍 ${p.likes} &nbsp; 👎 ${p.dislikes}
-                            </div>
-                        </div>
-                    </div>`;
-                }).join('');
-            } else {
-                postsTab.innerHTML = '<p class="text-muted text-center py-3">No posts yet.</p>';
-            }
-        } catch {
-            document.getElementById('routinesTab').innerHTML =
-                '<p class="text-danger text-center py-3">Could not load profile data.</p>';
-        }
-    }
-
-    loadProfileData();
+  loadSummary();
+  loadRoutines();
+  loadProfileFeed(true);
 </script>
 {% endblock %}

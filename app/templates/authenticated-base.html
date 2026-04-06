@@ -121,6 +121,13 @@
                 </a>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/activity' }}" href="/activity">
+                    <span class="material-symbols-outlined me-2">history</span>
+                    My Activity
+                </a>
+            </li>            
+
             <li class="nav-item mt-auto">
                 <a class="nav-link d-flex align-items-center" href="/users/{{ user.id }}/profile">
                     <span class="material-symbols-outlined me-2">person</span>

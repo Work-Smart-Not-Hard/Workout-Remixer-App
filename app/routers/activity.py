@@ -1,0 +1,231 @@
+from fastapi import Request, Form, status, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlmodel import select, desc, func
+from typing import Optional
+from app.dependencies import SessionDep, AuthDep
+from app.models import WorkoutSession, SessionExercise, Exercise
+from app.models.user import User
+from app.utilities.flash import flash
+from . import router, templates, api_router
+
+
+def _build_session_entry(db, session: WorkoutSession) -> dict:
+    logged = db.exec(
+        select(SessionExercise).where(SessionExercise.session_id == session.id)
+    ).all()
+
+    exercises = []
+    muscle_sets: dict[str, int] = {}
+    total_sets = 0
+    total_volume = 0.0
+
+    for se in logged:
+        ex = db.get(Exercise, se.exercise_id) if se.exercise_id else None
+        if not ex:
+            continue
+        exercises.append({
+            "name": ex.name,
+            "target": ex.target,
+            "body_part": ex.body_part,
+            "gif_url": ex.gif_url,
+            "exercise_id": ex.exercise_id,
+            "sets": se.sets_completed,
+            "reps": se.reps_completed,
+            "weight_kg": se.weight_kg,
+            "duration_seconds": se.duration_seconds,
+            "notes": se.notes,
+        })
+        for muscle in filter(None, [ex.target, ex.body_part]):
+            key = muscle.lower().strip()
+            sets_done = se.sets_completed or 1
+            muscle_sets[key] = muscle_sets.get(key, 0) + sets_done
+        total_sets += se.sets_completed or 0
+        if se.weight_kg and se.sets_completed and se.reps_completed:
+            total_volume += se.weight_kg * se.sets_completed * se.reps_completed
+
+    # Normalise muscle data to 0-1
+    muscle_data: dict[str, float] = {}
+    if muscle_sets:
+        max_v = max(muscle_sets.values())
+        muscle_data = {m: round(v / max_v, 2) for m, v in muscle_sets.items()}
+
+    routine = session.routine
+    return {
+        "id": session.id,
+        "started_at": session.started_at.isoformat(),
+        "completed_at": session.completed_at.isoformat() if session.completed_at else None,
+        "duration_minutes": session.duration_minutes,
+        "notes": session.notes,
+        "routine": {"id": routine.id, "name": routine.name} if routine else None,
+        "exercises": exercises,
+        "muscle_data": muscle_data,
+        "total_sets": total_sets,
+        "total_volume": round(total_volume, 1),
+        "exercise_count": len(exercises),
+    }
+
+
+#Views 
+@router.get("/activity", response_class=HTMLResponse)
+async def activity_view(request: Request, user: AuthDep, db: SessionDep):
+    return templates.TemplateResponse(
+        request=request,
+        name="activity.html",
+        context={"user": user},
+    )
+
+
+#API 
+@api_router.get("/activity/feed")
+async def get_my_activity(
+    user: AuthDep,
+    db: SessionDep,
+    offset: int = 0,
+    limit: int = 10,
+):
+    sessions = db.exec(
+        select(WorkoutSession)
+        .where(WorkoutSession.user_id == user.id)
+        .where(WorkoutSession.completed_at != None)
+        .order_by(desc(WorkoutSession.completed_at))
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return [_build_session_entry(db, s) for s in sessions]
+
+
+@api_router.get("/activity/stats")
+async def get_my_activity_stats(user: AuthDep, db: SessionDep):
+    """Quick summary stats for the current user's profile header."""
+    total_sessions = db.exec(
+        select(func.count()).select_from(
+            select(WorkoutSession)
+            .where(WorkoutSession.user_id == user.id)
+            .where(WorkoutSession.completed_at != None)
+            .subquery()
+        )
+    ).one()
+    return {"total_sessions": total_sessions}
+
+
+@api_router.get("/users/{profile_user_id}/activity")
+async def get_user_activity(
+    profile_user_id: int,
+    user: AuthDep,
+    db: SessionDep,
+    offset: int = 0,
+    limit: int = 10,
+):
+    profile_user = db.get(User, profile_user_id)
+    if not profile_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if profile_user.privacy_level != "public" and profile_user_id != user.id:
+        raise HTTPException(status_code=403, detail="This profile is private")
+
+    sessions = db.exec(
+        select(WorkoutSession)
+        .where(WorkoutSession.user_id == profile_user_id)
+        .where(WorkoutSession.completed_at != None)
+        .order_by(desc(WorkoutSession.completed_at))
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return [_build_session_entry(db, s) for s in sessions]
+
+
+@api_router.get("/users/{profile_user_id}/activity/stats")
+async def get_user_activity_stats(
+    profile_user_id: int,
+    user: AuthDep,
+    db: SessionDep,
+    period: str = "all",
+):
+    from datetime import datetime, timezone, timedelta
+
+    profile_user = db.get(User, profile_user_id)
+    if not profile_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if profile_user.privacy_level != "public" and profile_user_id != user.id:
+        raise HTTPException(status_code=403, detail="Private profile")
+
+    now = datetime.now(timezone.utc)
+    cutoff_map = {
+        "week": now - timedelta(days=7),
+        "month": now - timedelta(days=30),
+        "year": now - timedelta(days=365),
+    }
+    cutoff = cutoff_map.get(period)
+
+    query = (
+        select(WorkoutSession)
+        .where(WorkoutSession.user_id == profile_user_id)
+        .where(WorkoutSession.completed_at != None)
+    )
+    if cutoff:
+        query = query.where(WorkoutSession.completed_at >= cutoff)
+
+    sessions = db.exec(query.order_by(WorkoutSession.completed_at)).all()
+
+    muscle_sets: dict[str, int] = {}
+    total_sets = 0
+    for s in sessions:
+        logged = db.exec(
+            select(SessionExercise).where(SessionExercise.session_id == s.id)
+        ).all()
+        for se in logged:
+            ex = db.get(Exercise, se.exercise_id) if se.exercise_id else None
+            if ex and ex.target:
+                muscle_sets[ex.target] = muscle_sets.get(ex.target, 0) + (se.sets_completed or 0)
+                total_sets += se.sets_completed or 0
+
+    heatmap = {}
+    if muscle_sets:
+        max_v = max(muscle_sets.values())
+        heatmap = {m: round(v / max_v, 2) for m, v in muscle_sets.items()}
+
+    return {
+        "total_sessions": len(sessions),
+        "total_sets": total_sets,
+        "total_duration": sum(s.duration_minutes or 0 for s in sessions),
+        "heatmap": heatmap,
+    }
+
+
+@api_router.post("/sessions/{session_id}/edit-notes")
+async def edit_session_notes(
+    request: Request,
+    session_id: int,
+    user: AuthDep,
+    db: SessionDep,
+    notes: str = Form(default=""),
+):
+    session = db.get(WorkoutSession, session_id)
+    if not session or session.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session.notes = notes.strip() or None
+    db.add(session)
+    db.commit()
+    return {"ok": True, "notes": session.notes}
+
+
+@api_router.post("/sessions/{session_id}/delete-activity")
+async def delete_session_activity(
+    request: Request,
+    session_id: int,
+    user: AuthDep,
+    db: SessionDep,
+):
+    session = db.get(WorkoutSession, session_id)
+    if not session or session.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Cascade delete logged exercises
+    for se in db.exec(
+        select(SessionExercise).where(SessionExercise.session_id == session_id)
+    ).all():
+        db.delete(se)
+
+    db.delete(session)
+    db.commit()
+    return {"ok": True}

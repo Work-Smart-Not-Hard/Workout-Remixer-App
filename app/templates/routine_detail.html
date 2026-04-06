@@ -1,427 +1,657 @@
 {% extends "authenticated-base.html" %}
+{% from "heatmap_component.html" import muscle_heatmap %}
 {% block title %}{{ routine.name }}{% endblock %}
+
+{% block internal_css %}
+<style>
+  .equip-pill {
+    font-size: .72rem;
+    padding: 3px 10px;
+    border-radius: 2rem;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .equip-pill.active {
+    background: #0d6efd !important;
+    color: #fff !important;
+    border-color: #0d6efd !important;
+  }
+  .equip-group-label {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #adb5bd;
+    margin: .5rem 0 .2rem;
+    width: 100%;
+  }
+
+  .filter-tabs .nav-link {
+    font-size: .8rem;
+    padding: .3rem .75rem;
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+  }
+  .filter-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+    font-weight: 600;
+  }
+
+  .active-filter-chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    background: #e8f0fe; color: #2d5be3;
+    border-radius: 2rem; padding: .15rem .6rem;
+    font-size: .72rem; font-weight: 600;
+  }
+  .active-filter-chip button {
+    background: none; border: none; padding: 0;
+    line-height: 1; color: #2d5be3; cursor: pointer;
+    font-size: .8rem;
+  }
+
+  .ex-result-card {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .5rem .4rem;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    border-radius: .4rem;
+    transition: background .12s;
+  }
+  .ex-result-card:hover { background: #f0f4ff; }
+  .ex-result-card img {
+    width: 48px; height: 48px;
+    object-fit: cover; border-radius: 6px; flex-shrink: 0;
+  }
+  .ex-result-name { font-size: .82rem; font-weight: 600; text-transform: capitalize; color: #1b263b; }
+  .ex-result-meta { font-size: .72rem; color: #6c757d; }
+
+  #rdSelectedMuscleLabel { font-size: .72rem; color: #6c757d; min-height: 1.2em; }
+</style>
+{% endblock %}
 
 {% block subpage_content %}
 <div class="container-fluid">
 
-    <!-- Header -->
-    <div class="row mb-4 align-items-start">
-        <div class="col">
-            <a href="/routines" class="text-muted text-decoration-none small">
-                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">arrow_back</span>
-                My Routines
-            </a>
-            <h4 class="fw-bold mt-1 mb-0">{{ routine.name }}</h4>
-            {% if routine.description %}
-            <p class="text-muted mb-0">{{ routine.description }}</p>
-            {% endif %}
-            <div class="mt-1">
-                {% if routine.is_public %}
-                <span class="badge bg-success">Public</span>
-                {% else %}
-                <span class="badge bg-secondary">Private</span>
-                {% endif %}
-                {% if routine.remixed_from_id %}
-                <span class="badge bg-info">Remixed</span>
-                {% endif %}
-            </div>
+  <div class="row mb-4 align-items-start">
+    <div class="col">
+      <a href="/routines" class="text-muted text-decoration-none small">
+        <span class="material-symbols-outlined" style="font-size:.9rem;vertical-align:middle">arrow_back</span>
+        My Routines
+      </a>
+      <h4 class="fw-bold mt-1 mb-0">{{ routine.name }}</h4>
+      {% if routine.description %}<p class="text-muted mb-0">{{ routine.description }}</p>{% endif %}
+      <div class="mt-1">
+        <span class="badge {% if routine.is_public %}bg-success{% else %}bg-secondary{% endif %}">
+          {{ 'Public' if routine.is_public else 'Private' }}
+        </span>
+        {% if routine.remixed_from_id %}<span class="badge bg-info">Remixed</span>{% endif %}
+      </div>
+    </div>
+    {% if routine.owner_id == user.id %}
+    <div class="col-auto d-flex gap-2 flex-wrap">
+      {% if exercises %}
+      <form method="POST" action="/api/sessions/start">
+        <input type="hidden" name="routine_id" value="{{ routine.id }}">
+        <button type="submit" class="btn btn-success btn-sm">
+          <span class="material-symbols-outlined me-1" style="font-size:.9rem;vertical-align:middle">play_arrow</span>
+          Start Workout
+        </button>
+      </form>
+      {% endif %}
+      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal">Edit</button>
+      <form method="POST" action="/api/routines/{{ routine.id }}/delete"
+            onsubmit="return confirm('Delete this routine?')">
+        <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  {% for message in get_flashed_messages(request) %}
+  <div class="alert alert-{{ message.type }}" role="alert">{{ message.message }}</div>
+  {% endfor %}
+
+  <div class="row g-4">
+
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white fw-semibold">
+          Exercises
+          <span class="badge bg-primary ms-1">{{ exercises|length }}</span>
         </div>
-        {% if routine.owner_id == user.id %}
-        <div class="col-auto d-flex gap-2">
-            {% if exercises %}
-            <form method="POST" action="/api/sessions/start">
-                <input type="hidden" name="routine_id" value="{{ routine.id }}">
-                <button type="submit" class="btn btn-success btn-sm">
-                    <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">play_arrow</span>
-                    Start Workout
+        <div class="card-body p-0">
+          {% if exercises %}
+          <ul class="list-group list-group-flush">
+            {% for re in exercises %}
+            <li class="list-group-item d-flex align-items-center gap-3 py-3">
+              {% if re.exercise.gif_url %}
+              <img src="{{ re.exercise.gif_url }}" alt="{{ re.exercise.name }}"
+                   style="width:56px;height:56px;object-fit:cover;border-radius:8px;" loading="lazy">
+              {% endif %}
+              <div class="flex-grow-1">
+                <p class="fw-semibold mb-0 text-capitalize">{{ re.exercise.name }}</p>
+                <small class="text-muted">
+                  {% if re.sets and re.reps %}{{ re.sets }} sets × {{ re.reps }} reps{% endif %}
+                  {% if re.duration_seconds %}{{ re.duration_seconds }}s{% endif %}
+                  {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
+                </small>
+                {% if re.notes %}<br><small class="text-muted fst-italic">{{ re.notes }}</small>{% endif %}
+              </div>
+              {% if routine.owner_id == user.id %}
+              <form method="POST" action="/api/routines/exercises/{{ re.id }}/remove">
+                <button type="submit" class="btn btn-link text-danger p-0">
+                  <span class="material-symbols-outlined">close</span>
                 </button>
-            </form>
-            {% endif %}
-            <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal">
-                Edit
+              </form>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="text-center py-5 text-muted">
+            <span class="material-symbols-outlined" style="font-size:2.5rem">add_circle</span>
+            <p class="mt-2 mb-0">No exercises yet. Search and add from the panel!</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if routine.owner_id == user.id %}
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+          <span>Add Exercise</span>
+          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createCustomExModal">
+            <span class="material-symbols-outlined me-1" style="font-size:.85rem;vertical-align:middle">add</span>
+            Create Custom
+          </button>
+        </div>
+        <div class="card-body pb-1">
+
+          <!-- Search bar -->
+          <div class="input-group mb-2">
+            <input type="text" id="exSearch" class="form-control form-control-sm"
+                   placeholder="Search exercises…">
+            <button class="btn btn-sm btn-primary" onclick="doSearch()">
+              <span class="material-symbols-outlined" style="font-size:.9rem">search</span>
             </button>
-            <form method="POST" action="/api/routines/{{ routine.id }}/delete"
-                  onsubmit="return confirm('Delete this routine?')">
-                <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
-            </form>
+          </div>
+
+          <!-- Active filter chips row -->
+          <div id="activeFiltersRow" class="mb-2" style="min-height:1.6rem;display:none;">
+            <span id="equipChip" class="active-filter-chip me-1" style="display:none;">
+              <span id="equipChipLabel"></span>
+              <button onclick="clearEquipment()" title="Clear">×</button>
+            </span>
+            <span id="muscleChip" class="active-filter-chip" style="display:none;">
+              <span id="muscleChipLabel"></span>
+              <button onclick="clearMuscle()" title="Clear">×</button>
+            </span>
+          </div>
+
+          <!-- Filter tabs: Equipment | Muscle -->
+          <ul class="nav filter-tabs border-bottom mb-2" id="filterTabs">
+            <li class="nav-item">
+              <button class="nav-link active" onclick="switchTab('equipment', this)">Equipment</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" onclick="switchTab('muscle', this)">Muscle Group</button>
+            </li>
+          </ul>
+
+          <!-- Equipment pills pane -->
+          <div id="paneEquipment" style="max-height:220px;overflow-y:auto;">
+            <div id="equipmentPills" class="d-flex flex-wrap gap-1 pb-1"></div>
+          </div>
+
+          <!-- Muscle SVG pane (hidden by default) -->
+          <div id="paneMuscle" style="display:none;">
+            <p id="rdSelectedMuscleLabel" class="mb-1">Click a muscle to filter</p>
+            {{ muscle_heatmap(mode="filter", height="280px") }}
+          </div>
+
+          <!-- Results meta -->
+          <div class="d-flex justify-content-between align-items-center mt-2 mb-1">
+            <small class="text-muted" id="exResultCount"></small>
+            <button class="btn btn-link btn-sm p-0 text-muted" onclick="clearAllFilters()"
+                    id="clearAllBtn" style="font-size:.75rem;display:none;">Clear all</button>
+          </div>
+
+          <!-- Results -->
+          <div id="exResults" style="max-height:340px;overflow-y:auto;"></div>
         </div>
-        {% endif %}
+      </div>
     </div>
+    {% endif %}
 
-    {% for message in get_flashed_messages(request) %}
-    <div class="alert alert-{{ message.type }}" role="alert">{{ message.message }}</div>
-    {% endfor %}
+  </div><!-- /row -->
+</div><!-- /container -->
 
-    <div class="row g-4">
-
-        <!-- Exercise list -->
-        <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white fw-semibold">
-                    Exercises
-                    <span class="badge bg-primary ms-1">{{ exercises|length }}</span>
-                </div>
-                <div class="card-body p-0">
-                    {% if exercises %}
-                    <ul class="list-group list-group-flush">
-                        {% for re in exercises %}
-                        <li class="list-group-item d-flex align-items-center gap-3 py-3">
-                            {% if re.exercise.gif_url %}
-                            <img src="{{ re.exercise.gif_url }}" alt="{{ re.exercise.name }}"
-                                 style="width:56px;height:56px;object-fit:cover;border-radius:8px;">
-                            {% endif %}
-                            <div class="flex-grow-1">
-                                <p class="fw-semibold mb-0 text-capitalize">{{ re.exercise.name }}</p>
-                                <small class="text-muted">
-                                    {% if re.sets and re.reps %}
-                                        {{ re.sets }} sets × {{ re.reps }} reps
-                                    {% elif re.duration_seconds %}
-                                        {{ re.duration_seconds }}s
-                                    {% endif %}
-                                    {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
-                                </small>
-                                {% if re.notes %}
-                                <br><small class="text-muted fst-italic">{{ re.notes }}</small>
-                                {% endif %}
-                            </div>
-                            {% if routine.owner_id == user.id %}
-                            <form method="POST" action="/api/routines/exercises/{{ re.id }}/remove">
-                                <button type="submit" class="btn btn-link text-danger p-0">
-                                    <span class="material-symbols-outlined">close</span>
-                                </button>
-                            </form>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <div class="text-center py-5 text-muted">
-                        <span class="material-symbols-outlined" style="font-size:2.5rem">add_circle</span>
-                        <p class="mt-2 mb-0">No exercises yet. Search and add from the panel!</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Add exercise panel -->
-        {% if routine.owner_id == user.id %}
-        <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
-                    <span>Add Exercise</span>
-                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createCustomExModal">
-                        + Create Custom
-                    </button>
-                </div>
-                <div class="card-body">
-
-                    <!-- Search -->
-                    <div class="input-group mb-2">
-                        <input type="text" id="exSearch" class="form-control form-control-sm"
-                               placeholder="Search exercises...">
-                        <button class="btn btn-sm btn-primary" onclick="searchExercises()">Search</button>
-                    </div>
-
-                    <!-- Filters -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <select id="exEquipFilter" class="form-select form-select-sm"
-                                    onchange="applyLocalFilters()">
-                                <option value="">All Equipment</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <select id="exMuscleFilter" class="form-select form-select-sm"
-                                    onchange="applyLocalFilters()">
-                                <option value="">All Muscles</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <small class="text-muted" id="exResultCount"></small>
-
-                    <!-- Results -->
-                    <div id="exResults" style="max-height:420px;overflow-y:auto;margin-top:0.5rem;"></div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-    </div>
-</div>
-
-<!-- Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Edit Routine</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="/api/routines/{{ routine.id }}/edit">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control"
-                               value="{{ routine.name }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3">{{ routine.description or '' }}</textarea>
-                    </div>
-                    <div class="form-check">
-                        <input type="checkbox" name="is_public" value="true"
-                               class="form-check-input" id="isPublic"
-                               {% if routine.is_public %}checked{% endif %}>
-                        <label class="form-check-label" for="isPublic">Make this routine public</label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Edit Routine</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/api/routines/{{ routine.id }}/edit">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" name="name" class="form-control" value="{{ routine.name }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3">{{ routine.description or '' }}</textarea>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" name="is_public" value="true"
+                   class="form-check-input" id="isPublic"
+                   {% if routine.is_public %}checked{% endif %}>
+            <label class="form-check-label" for="isPublic">Make this routine public</label>
+          </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 
-<!-- Create Custom Exercise Modal -->
 <div class="modal fade" id="createCustomExModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Create Custom Exercise</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Create Custom Exercise</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/api/custom-exercises">
+        <div class="modal-body">
+          <div class="mb-2">
+            <label class="form-label">Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="e.g. Weighted Pull-up">
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label">Body Part</label>
+              <input type="text" name="body_part" class="form-control" placeholder="e.g. back">
             </div>
-            <form method="POST" action="/api/custom_exercises">
-                <div class="modal-body">
-                    <div class="mb-2">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" required placeholder="e.g. Weighted Pull-up">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Body Part</label>
-                        <input type="text" name="body_part" class="form-control" required placeholder="e.g. Back">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Equipment</label>
-                        <input type="text" name="equipment" class="form-control" required placeholder="e.g. Bodyweight">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Description / Steps</label>
-                        <textarea name="description" class="form-control" rows="2" placeholder="Form cues, tempo, etc."></textarea>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Media URL (optional)</label>
-                        <input type="url" name="media_url" class="form-control" placeholder="https://example.com/gif.gif">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Custom Exercise</button>
-                </div>
-            </form>
+            <div class="col-6">
+              <label class="form-label">Equipment</label>
+              <input type="text" name="equipment" class="form-control" placeholder="e.g. bodyweight">
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Description / Steps</label>
+            <textarea name="description" class="form-control" rows="2"
+                      placeholder="Form cues, tempo, etc."></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Media URL <span class="text-muted small">(image or GIF)</span></label>
+            <input type="url" name="media_url" class="form-control"
+                   placeholder="https://example.com/exercise.gif">
+          </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Add to Library</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 
-<!-- Add Exercise Config Modal -->
 <div class="modal fade" id="addExModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold text-capitalize" id="addExName"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-capitalize" id="addExName"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/api/routines/{{ routine.id }}/exercises">
+        <input type="hidden" name="exercise_id"             id="addExId">
+        <input type="hidden" name="exercise_name"           id="addExNameHidden">
+        <input type="hidden" name="exercise_body_parts"     id="addExBodyParts">
+        <input type="hidden" name="exercise_equipments"     id="addExEquipments">
+        <input type="hidden" name="exercise_target_muscles" id="addExTargetMuscles">
+        <input type="hidden" name="exercise_gif_url"        id="addExGifUrl">
+        <div class="modal-body">
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label">Sets</label>
+              <input type="number" name="sets" class="form-control" min="1" placeholder="e.g. 3">
             </div>
-            <form method="POST" action="/api/routines/{{ routine.id }}/exercises">
-                <input type="hidden" name="exercise_id" id="addExId">
-                <input type="hidden" name="exercise_name" id="addExNameHidden">
-                <input type="hidden" name="exercise_body_parts" id="addExBodyParts">
-                <input type="hidden" name="exercise_equipments" id="addExEquipments">
-                <input type="hidden" name="exercise_target_muscles" id="addExTargetMuscles">
-                <input type="hidden" name="exercise_gif_url" id="addExGifUrl">
-                <div class="modal-body">
-                    <div class="row g-2 mb-2">
-                        <div class="col-6">
-                            <label class="form-label">Sets</label>
-                            <input type="number" name="sets" class="form-control" min="1" placeholder="e.g. 3">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Reps</label>
-                            <input type="number" name="reps" class="form-control" min="1" placeholder="e.g. 10">
-                        </div>
-                    </div>
-                    <div class="row g-2 mb-2">
-                        <div class="col-6">
-                            <label class="form-label">Duration (s)</label>
-                            <input type="number" name="duration_seconds" class="form-control" placeholder="e.g. 60">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Rest (s)</label>
-                            <input type="number" name="rest_seconds" class="form-control" value="60" min="0">
-                        </div>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Notes</label>
-                        <input type="text" name="notes" class="form-control" placeholder="e.g. slow eccentric">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add to Routine</button>
-                </div>
-            </form>
+            <div class="col-6">
+              <label class="form-label">Reps</label>
+              <input type="number" name="reps" class="form-control" min="1" placeholder="e.g. 10">
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label">Duration (s)</label>
+              <input type="number" name="duration_seconds" class="form-control" placeholder="e.g. 60">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Rest (s)</label>
+              <input type="number" name="rest_seconds" class="form-control" value="60" min="0">
+            </div>
+          </div>
+          <div>
+            <label class="form-label">Notes</label>
+            <input type="text" name="notes" class="form-control" placeholder="e.g. slow eccentric">
+          </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add to Routine</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block subpage_scripts %}
 <script>
-    let allFetched = [];
-    let localFiltered = [];
+const SVG_TO_API = {
+  "chest":      ["chest","pectorals","upper chest","serratus anterior"],
+  "abs":        ["abs","abdominals","core","lower abs","waist"],
+  "obliques":   ["obliques","waist","abs"],
+  "biceps":     ["biceps","brachialis","upper arms"],
+  "triceps":    ["triceps","upper arms"],
+  "forearms":   ["forearms","wrist flexors","wrist extensors","wrists","lower arms"],
+  "shoulders":  ["shoulders","delts","deltoids"],
+  "traps":      ["traps","trapezius","back"],
+  "neck":       ["neck","levator scapulae"],
+  "upper back": ["upper back","rhomboids","back"],
+  "lats":       ["lats","latissimus dorsi","back"],
+  "lower back": ["lower back","spine","back"],
+  "glutes":     ["glutes","upper legs"],
+  "hamstrings": ["hamstrings","upper legs"],
+  "adductors":  ["adductors","abductors","inner thighs","groin","upper legs"],
+  "quads":      ["quads","quadriceps","upper legs"],
+  "calves":     ["calves","soleus","lower legs"],
+  "tibialis":   ["shins","lower legs"]
+};
 
-    async function initFilters() {
-        try {
-            const [musclesRes, equipmentsRes] = await Promise.all([
-                fetch('/api/exercises/muscles'),
-                fetch('/api/exercises/equipments'),
-            ]);
-            
-            if(musclesRes.ok) populateSelect('exMuscleFilter', await musclesRes.json());
-            if(equipmentsRes.ok) populateSelect('exEquipFilter', await equipmentsRes.json());
-        } catch(err) {
-            console.error("Failed to fetch filters", err);
-        }
+const EQUIPMENT_GROUPS = [
+  { label: "Free Weights",
+    items: ["barbell","dumbbell","ez barbell","olympic barbell",
+            "kettlebell","trap bar","hammer","weighted"] },
+  { label: "Machines & Cables",
+    items: ["cable","leverage machine","smith machine","sled machine","skierg machine"] },
+  { label: "Cardio",
+    items: ["stationary bike","elliptical machine","stepmill machine","upper body ergometer"] },
+  { label: "Bodyweight & Bands",
+    items: ["body weight","assisted","resistance band","band","bosu ball",
+            "stability ball","medicine ball","roller","wheel roller","rope","tire"] },
+];
+
+let allFetched      = [];
+let localFiltered   = [];
+let selectedEquip   = "";
+let selectedSvgGrp  = "";
+let currentSearch   = "";
+
+// Custom exercises injected from Jinja
+const CUSTOM_EXERCISES = [
+  {% for cx in custom_exercises %}
+  {
+    exerciseId: "custom_{{ cx.id }}",
+    name: "{{ cx.name | replace('"', '\\"') }}",
+    equipments: ["{{ cx.equipment or '' }}"],
+    targetMuscles: ["{{ cx.body_part or '' }}"],
+    secondaryMuscles: [],
+    bodyParts: ["{{ cx.body_part or '' }}"],
+    gifUrl: "{{ cx.media_url or '' }}",
+    isCustom: true,
+  },
+  {% endfor %}
+];
+
+function switchTab(name, btn) {
+  document.getElementById('paneEquipment').style.display = name === 'equipment' ? '' : 'none';
+  document.getElementById('paneMuscle').style.display    = name === 'muscle'    ? '' : 'none';
+  document.querySelectorAll('#filterTabs .nav-link').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function renderEquipmentPills() {
+  const container = document.getElementById('equipmentPills');
+  container.innerHTML = '';
+  for (const group of EQUIPMENT_GROUPS) {
+    const lbl = document.createElement('div');
+    lbl.className = 'equip-group-label';
+    lbl.textContent = group.label;
+    container.appendChild(lbl);
+    for (const eq of group.items) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm btn-outline-secondary equip-pill';
+      btn.dataset.equip = eq;
+      btn.textContent = eq.charAt(0).toUpperCase() + eq.slice(1);
+      btn.addEventListener('click', () => selectEquipment(eq));
+      container.appendChild(btn);
+    }
+  }
+}
+
+function selectEquipment(eq) {
+  selectedEquip = (selectedEquip === eq) ? '' : eq;
+  document.querySelectorAll('.equip-pill').forEach(b => {
+    const on = b.dataset.equip === selectedEquip;
+    b.classList.toggle('active', on);
+    b.classList.toggle('btn-outline-secondary', !on);
+  });
+  syncActiveFiltersRow();
+  applyLocalFilters();
+}
+
+function clearEquipment() { selectEquipment(selectedEquip); }
+
+function onMuscleClick(svgMuscle) {
+  if (selectedSvgGrp === svgMuscle) {
+    selectedSvgGrp = '';
+    if (typeof setActiveMuscle === 'function') setActiveMuscle(null);
+    document.getElementById('rdSelectedMuscleLabel').textContent = 'Click a muscle to filter';
+  } else {
+    selectedSvgGrp = svgMuscle;
+    if (typeof setActiveMuscle === 'function') setActiveMuscle(svgMuscle);
+    const label = (SVG_TO_API[svgMuscle] || [svgMuscle])[0];
+    document.getElementById('rdSelectedMuscleLabel').textContent =
+      'Filtering: ' + label.charAt(0).toUpperCase() + label.slice(1);
+  }
+  syncActiveFiltersRow();
+  applyLocalFilters();
+}
+
+function clearMuscle() {
+  if (selectedSvgGrp) onMuscleClick(selectedSvgGrp);
+}
+
+function syncActiveFiltersRow() {
+  const equipChip  = document.getElementById('equipChip');
+  const muscleChip = document.getElementById('muscleChip');
+  const row        = document.getElementById('activeFiltersRow');
+  const clearAll   = document.getElementById('clearAllBtn');
+
+  if (selectedEquip) {
+    document.getElementById('equipChipLabel').textContent = selectedEquip;
+    equipChip.style.display = '';
+  } else {
+    equipChip.style.display = 'none';
+  }
+  if (selectedSvgGrp) {
+    document.getElementById('muscleChipLabel').textContent =
+      (SVG_TO_API[selectedSvgGrp] || [selectedSvgGrp])[0];
+    muscleChip.style.display = '';
+  } else {
+    muscleChip.style.display = 'none';
+  }
+
+  const anyActive = !!(selectedEquip || selectedSvgGrp);
+  row.style.display = anyActive ? '' : 'none';
+  clearAll.style.display = anyActive ? '' : 'none';
+}
+
+function clearAllFilters() {
+  selectedEquip  = '';
+  selectedSvgGrp = '';
+  document.querySelectorAll('.equip-pill').forEach(b => {
+    b.classList.remove('active');
+    b.classList.add('btn-outline-secondary');
+  });
+  if (typeof setActiveMuscle === 'function') setActiveMuscle(null);
+  document.getElementById('rdSelectedMuscleLabel').textContent = 'Click a muscle to filter';
+  syncActiveFiltersRow();
+  applyLocalFilters();
+}
+
+async function doSearch(attempt = 1) {
+  const q = (document.getElementById('exSearch').value || '').trim();
+  currentSearch = q;
+  showSpinner(attempt > 1 ? `Waking up server — attempt ${attempt}…` : 'Loading…');
+
+  try {
+    const cacheKey = `rdex_${q}`;
+    let json = sessionStorage.getItem(cacheKey);
+    if (json) {
+      json = JSON.parse(json);
+    } else {
+      const params = new URLSearchParams({ limit: 9999 });
+      if (q) params.set('search', q);
+      const res = await fetch(`/api/exercises?${params}`);
+      if (!res.ok) throw new Error(res.status);
+      json = await res.json();
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(json)); } catch {}
     }
 
-    function populateSelect(id, values) {
-        const sel = document.getElementById(id);
-        if(!sel) return;
-        values.forEach(v => {
-            const o = document.createElement('option');
-            o.value = v; o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
-            sel.appendChild(o);
-        });
+    const apiEx = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+    const matchedCustom = CUSTOM_EXERCISES.filter(c =>
+      !q || c.name.toLowerCase().includes(q.toLowerCase())
+    );
+    allFetched = [...matchedCustom, ...apiEx];
+    applyLocalFilters();
+
+  } catch (err) {
+    if (attempt < 5) {
+      setTimeout(() => doSearch(attempt + 1), 2000);
+    } else {
+      document.getElementById('exResults').innerHTML =
+        `<p class="text-danger text-center small mt-2">
+           Could not load exercises.
+           <button class="btn btn-link btn-sm p-0" onclick="doSearch()">Retry</button>
+         </p>`;
+    }
+  }
+}
+
+function applyLocalFilters() {
+  const acceptableApiMuscles = selectedSvgGrp
+    ? (SVG_TO_API[selectedSvgGrp] || []).map(s => s.toLowerCase())
+    : [];
+
+  localFiltered = allFetched.filter(ex => {
+    const equipments     = Array.isArray(ex.equipments)     ? ex.equipments     : (ex.equipment   ? [ex.equipment]   : []);
+    const targets        = Array.isArray(ex.targetMuscles)  ? ex.targetMuscles  : (ex.target      ? [ex.target]      : []);
+    const secondary      = Array.isArray(ex.secondaryMuscles)? ex.secondaryMuscles : [];
+    const bodyParts      = Array.isArray(ex.bodyParts)      ? ex.bodyParts      : (ex.bodyPart    ? [ex.bodyPart]    : []);
+
+    if (selectedEquip) {
+      const exEquips = equipments.map(e => String(e).toLowerCase());
+      if (!exEquips.includes(selectedEquip.toLowerCase())) return false;
     }
 
-    async function searchExercises() {
-        const q = document.getElementById('exSearch').value.trim();
-        const container = document.getElementById('exResults');
-        container.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
-
-        try {
-            const params = new URLSearchParams();
-            if (q) params.set('search', q);
-            params.set('limit', 100);
-
-            const res = await fetch(`/api/exercises?${params}`);
-            if(!res.ok) throw new Error("Network response was not ok");
-            
-            const json = await res.json();
-            allFetched = json.data || [];
-            
-            {% if custom_exercises %}
-            const customExs = [
-                {% for cx in custom_exercises %}
-                {
-                    exerciseId: "custom_{{ cx.id }}",
-                    name: "{{ cx.name }}",
-                    equipments: ["{{ cx.equipment }}"],
-                    targetMuscles: ["{{ cx.body_part }}"],
-                    secondaryMuscles: [],
-                    bodyParts: ["{{ cx.body_part }}"],
-                    gifUrl: "{{ cx.media_url or '' }}",
-                    isCustom: true
-                },
-                {% endfor %}
-            ];
-            
-            const matchedCustoms = customExs.filter(c => !q || c.name.toLowerCase().includes(q.toLowerCase()));
-            allFetched = [...matchedCustoms, ...allFetched];
-            {% endif %}
-            
-            applyLocalFilters();
-        } catch (err) {
-            console.error("Search failed:", err);
-            container.innerHTML = '<p class="text-danger text-center small mt-2">Failed to load exercises. Please try again.</p>';
-        }
+    if (acceptableApiMuscles.length > 0) {
+      const all = [...targets, ...secondary, ...bodyParts].map(m => String(m).toLowerCase());
+      if (!acceptableApiMuscles.some(alias => all.includes(alias))) return false;
     }
 
-    function applyLocalFilters() {
-        const equipmentSelect = document.getElementById('exEquipFilter');
-        const muscleSelect = document.getElementById('exMuscleFilter');
-        
-        const equipment = equipmentSelect ? equipmentSelect.value.toLowerCase() : "";
-        const muscle = muscleSelect ? muscleSelect.value.toLowerCase() : "";
+    return true;
+  });
 
-        localFiltered = allFetched.filter(ex => {
-            const hasEq = ex.equipments && Array.isArray(ex.equipments);
-            const hasMu = ex.targetMuscles && Array.isArray(ex.targetMuscles);
-            const hasSecMu = ex.secondaryMuscles && Array.isArray(ex.secondaryMuscles);
+  renderResults();
+}
 
-            const eqMatch = !equipment || (hasEq && ex.equipments.some(e => e && e.toLowerCase() === equipment));
-            const muMatch = !muscle || 
-                            (hasMu && ex.targetMuscles.some(m => m && m.toLowerCase() === muscle)) ||
-                            (hasSecMu && ex.secondaryMuscles.some(m => m && m.toLowerCase() === muscle));
-            
-            return eqMatch && muMatch;
-        });
+function renderResults() {
+  const container = document.getElementById('exResults');
+  const counter   = document.getElementById('exResultCount');
 
-        renderResults();
-    }
+  counter.textContent = localFiltered.length
+    ? `${localFiltered.length.toLocaleString()} result${localFiltered.length !== 1 ? 's' : ''}`
+    : '';
 
-    function renderResults() {
-        const container = document.getElementById('exResults');
-        const counter = document.getElementById('exResultCount');
-        
-        if (counter) {
-            counter.textContent = localFiltered.length ? `${localFiltered.length} results` : '';
-        }
+  if (!localFiltered.length) {
+    container.innerHTML =
+      '<p class="text-muted text-center small mt-3">No exercises match your filters.</p>';
+    return;
+  }
 
-        if (!localFiltered.length) {
-            container.innerHTML = '<p class="text-muted text-center small mt-2">No exercises found.</p>';
-            return;
-        }
+  container.innerHTML = localFiltered.slice(0, 60).map(ex => {
+    const exId    = ex.exerciseId || ex.id;
+    const equips  = Array.isArray(ex.equipments)    ? ex.equipments    : (ex.equipment  ? [ex.equipment]  : []);
+    const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target     ? [ex.target]     : []);
+    const imgSrc  = ex.gifUrl || '';
+    const customBadge = ex.isCustom
+      ? `<span class="badge bg-warning text-dark ms-1" style="font-size:.6rem">Custom</span>` : '';
 
-        container.innerHTML = localFiltered.slice(0, 50).map(ex => {
-            const badge = ex.isCustom ? `<span class="badge bg-warning ms-1" style="font-size:0.6rem">Custom</span>` : "";
-            const eqText = ex.equipments ? ex.equipments.join(', ') : '';
-            const muText = ex.targetMuscles ? ex.targetMuscles.join(', ') : '';
-            const imgSrc = ex.gifUrl || "https://via.placeholder.com/48?text=No+Img";
-            
-            return `
-            <div class="d-flex align-items-center gap-2 py-2 border-bottom"
-                 role="button" onclick='selectExercise(${JSON.stringify(ex).replace(/'/g, "&#39;")})'>
-                <img src="${imgSrc}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;flex-shrink:0;">
-                <div class="flex-grow-1 overflow-hidden">
-                    <p class="mb-0 fw-semibold text-capitalize text-truncate" style="font-size:0.82rem">
-                        ${ex.name} ${badge}
-                    </p>
-                    <small class="text-muted">${eqText} · ${muText}</small>
-                </div>
-            </div>
-            `;
-        }).join('');
-    }
+    return `<div class="ex-result-card" onclick='selectExercise(${JSON.stringify(ex)})'>
+      ${imgSrc ? `<img src="${imgSrc}" loading="lazy" alt="">` :
+        `<div class="bg-light rounded d-flex align-items-center justify-content-center flex-shrink-0"
+              style="width:48px;height:48px;">
+           <span class="material-symbols-outlined text-muted" style="font-size:1.4rem">fitness_center</span>
+         </div>`}
+      <div class="overflow-hidden">
+        <div class="ex-result-name text-truncate">${ex.name}${customBadge}</div>
+        <div class="ex-result-meta">
+          ${targets.slice(0,2).map(t=>`<span class="badge bg-success me-1" style="font-size:.6rem">${t}</span>`).join('')}
+          ${equips.slice(0,1).map(e=>`<span class="badge bg-secondary me-1" style="font-size:.6rem">${e}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 
-    function selectExercise(ex) {
-        document.getElementById('addExId').value = ex.exerciseId;
-        document.getElementById('addExNameHidden').value = ex.name;
-        document.getElementById('addExName').textContent = ex.name;
-        document.getElementById('addExBodyParts').value = ex.bodyParts ? ex.bodyParts.join(',') : "";
-        document.getElementById('addExEquipments').value = ex.equipments ? ex.equipments.join(',') : "";
-        document.getElementById('addExTargetMuscles').value = ex.targetMuscles ? ex.targetMuscles.join(',') : "";
-        document.getElementById('addExGifUrl').value = ex.gifUrl || "";
-        new bootstrap.Modal(document.getElementById('addExModal')).show();
-    }
+  if (localFiltered.length > 60) {
+    container.insertAdjacentHTML('beforeend',
+      `<p class="text-center text-muted small py-2">
+         Showing 60 of ${localFiltered.length}. Refine your search to narrow down.
+       </p>`);
+  }
+}
 
-    document.getElementById('exSearch')?.addEventListener('keydown', e => {
-        if (e.key === 'Enter') searchExercises();
-    });
+function showSpinner(msg) {
+  document.getElementById('exResults').innerHTML =
+    `<div class="text-center py-4">
+       <div class="spinner-border spinner-border-sm text-primary"></div>
+       <p class="text-muted small mt-1">${msg}</p>
+     </div>`;
+}
 
-    initFilters();
-    searchExercises(); 
+function selectExercise(ex) {
+  const exId    = ex.exerciseId || ex.id;
+  const bps     = Array.isArray(ex.bodyParts)      ? ex.bodyParts      : (ex.bodyPart  ? [ex.bodyPart]  : []);
+  const equips  = Array.isArray(ex.equipments)     ? ex.equipments     : (ex.equipment ? [ex.equipment] : []);
+  const targets = Array.isArray(ex.targetMuscles)  ? ex.targetMuscles  : (ex.target    ? [ex.target]    : []);
+
+  document.getElementById('addExId').value           = exId;
+  document.getElementById('addExNameHidden').value   = ex.name;
+  document.getElementById('addExName').textContent   = ex.name;
+  document.getElementById('addExBodyParts').value    = bps.join(',');
+  document.getElementById('addExEquipments').value   = equips.join(',');
+  document.getElementById('addExTargetMuscles').value= targets.join(',');
+  document.getElementById('addExGifUrl').value       = ex.gifUrl || '';
+  new bootstrap.Modal(document.getElementById('addExModal')).show();
+}
+
+document.getElementById('exSearch')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+
+renderEquipmentPills();
+doSearch();   // load all exercises on page open (cached after first load)
 </script>
 {% endblock %}

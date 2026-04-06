@@ -20,5 +20,5 @@ api_router = APIRouter(tags=["API Endpoints"], prefix="/api")
 from . import (
     index, login, register, admin_home, user_home, users, logout,
     exercises, routines, favourites, sessions, dashboard,
-    custom_exercises, explore
+    custom_exercises, explore, activity
 )
