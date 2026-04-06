@@ -6,7 +6,7 @@ from app.dependencies import SessionDep, AuthDep
 from app.repositories.routine import RoutineRepository
 from app.services.routine_service import RoutineService
 from app.utilities.flash import flash
-from app.models.models import CustomExercise, Exercise, RoutineExercise
+from app.models.models import CustomExercise, Exercise, RoutineExercise, Routine
 from . import router, templates, api_router
 
 
@@ -15,10 +15,10 @@ def get_service(db) -> RoutineService:
 
 
 #Views
+
 @router.get("/routines", response_class=HTMLResponse)
 async def routines_view(request: Request, user: AuthDep, db: SessionDep):
-    service = get_service(db)
-    routines = service.get_user_routines(user.id)
+    routines = get_service(db).get_user_routines(user.id)
     return templates.TemplateResponse(
         request=request,
         name="routines.html",
@@ -30,12 +30,9 @@ async def routines_view(request: Request, user: AuthDep, db: SessionDep):
 async def routine_detail_view(request: Request, routine_id: int, user: AuthDep, db: SessionDep):
     service = get_service(db)
     routine, exercises = service.get_routine_with_exercises(routine_id, user.id)
-
-    # Pass the user's custom exercises so they appear in the "Add Exercise" panel
     custom_exercises = db.exec(
         select(CustomExercise).where(CustomExercise.user_id == user.id)
     ).all()
-
     return templates.TemplateResponse(
         request=request,
         name="routine_detail.html",
@@ -49,6 +46,7 @@ async def routine_detail_view(request: Request, routine_id: int, user: AuthDep, 
 
 
 #Routines
+
 @api_router.get("/routines")
 async def list_routines(user: AuthDep, db: SessionDep):
     return get_service(db).get_user_routines(user.id)
@@ -62,8 +60,9 @@ async def create_routine(
     name: str = Form(),
     description: str = Form(default=""),
 ):
-    service = get_service(db)
-    routine = service.create_routine(name=name, description=description or None, owner_id=user.id)
+    routine = get_service(db).create_routine(
+        name=name, description=description or None, owner_id=user.id
+    )
     flash(request, f'Routine "{routine.name}" created!')
     return RedirectResponse(
         url=request.url_for("routine_detail_view", routine_id=routine.id),
@@ -81,8 +80,7 @@ async def edit_routine(
     description: str = Form(default=""),
     is_public: bool = Form(default=False),
 ):
-    service = get_service(db)
-    service.update_routine(
+    get_service(db).update_routine(
         routine_id=routine_id, user_id=user.id,
         name=name, description=description or None, is_public=is_public,
     )
@@ -105,14 +103,12 @@ async def delete_routine(request: Request, routine_id: int, user: AuthDep, db: S
 
 @api_router.post("/routines/{routine_id}/remix")
 async def remix_routine(request: Request, routine_id: int, user: AuthDep, db: SessionDep):
-    source_service = get_service(db)
-    source = source_service.get_routine_or_404(routine_id)
+    """Copy a public routine into the current user's library.
+    Custom exercises from the source are duplicated into the user's library."""
+    source = get_service(db).get_routine_or_404(routine_id)
     if not source.is_public and source.owner_id != user.id:
         raise HTTPException(status_code=403, detail="This routine is private")
 
-    #Create new routine
-    new_routine = db.exec(select(__import__('app.models.models', fromlist=['Routine']).Routine)).all()  # unused
-    from app.models.models import Routine
     new_r = Routine(
         name=f"{source.name} (remix)",
         description=source.description,
@@ -123,11 +119,8 @@ async def remix_routine(request: Request, routine_id: int, user: AuthDep, db: Se
     db.commit()
     db.refresh(new_r)
 
-    #Copy exercises, duplicating custom ones into the user's library
     repo = RoutineRepository(db)
-    source_exercises = repo.get_exercises_for_routine(routine_id)
-
-    for re in source_exercises:
+    for re in repo.get_exercises_for_routine(routine_id):
         exercise = re.exercise
         target_exercise_id = re.exercise_id
 
@@ -140,7 +133,6 @@ async def remix_routine(request: Request, routine_id: int, user: AuthDep, db: Se
             if source_ce_id:
                 source_ce = db.get(CustomExercise, source_ce_id)
                 if source_ce and source_ce.user_id != user.id:
-                    # Duplicate the custom exercise for the new user
                     new_ce = CustomExercise(
                         user_id=user.id,
                         name=source_ce.name,
@@ -152,7 +144,6 @@ async def remix_routine(request: Request, routine_id: int, user: AuthDep, db: Se
                     db.add(new_ce)
                     db.commit()
                     db.refresh(new_ce)
-                    # Create backing Exercise row for new user's copy
                     new_ex = Exercise(
                         exercise_id=f"custom_{new_ce.id}",
                         name=new_ce.name,
@@ -166,7 +157,7 @@ async def remix_routine(request: Request, routine_id: int, user: AuthDep, db: Se
                     db.refresh(new_ex)
                     target_exercise_id = new_ex.id
 
-        new_re = RoutineExercise(
+        db.add(RoutineExercise(
             routine_id=new_r.id,
             exercise_id=target_exercise_id,
             position=re.position,
@@ -177,8 +168,7 @@ async def remix_routine(request: Request, routine_id: int, user: AuthDep, db: Se
             notes=re.notes,
             is_custom=re.is_custom,
             custom_exercise_id=re.custom_exercise_id,
-        )
-        db.add(new_re)
+        ))
 
     db.commit()
     flash(request, f'Remixed "{source.name}" — it\'s now in your routines!')
@@ -206,19 +196,21 @@ async def add_exercise(
     rest_seconds: Optional[int] = Form(default=60),
     notes: str = Form(default=""),
 ):
-    service = get_service(db)
-    exercise_data = {
-        "exerciseId": exercise_id,
-        "name": exercise_name,
-        "bodyParts": exercise_body_parts.split(",") if exercise_body_parts else [],
-        "equipments": exercise_equipments.split(",") if exercise_equipments else [],
-        "targetMuscles": exercise_target_muscles.split(",") if exercise_target_muscles else [],
-        "gifUrl": exercise_gif_url,
-    }
-    service.add_exercise_to_routine(
-        routine_id=routine_id, user_id=user.id,
-        exercise_data=exercise_data, sets=sets, reps=reps,
-        duration_seconds=duration_seconds, rest_seconds=rest_seconds,
+    get_service(db).add_exercise_to_routine(
+        routine_id=routine_id,
+        user_id=user.id,
+        exercise_data={
+            "exerciseId": exercise_id,
+            "name": exercise_name,
+            "bodyParts": exercise_body_parts.split(",") if exercise_body_parts else [],
+            "equipments": exercise_equipments.split(",") if exercise_equipments else [],
+            "targetMuscles": exercise_target_muscles.split(",") if exercise_target_muscles else [],
+            "gifUrl": exercise_gif_url,
+        },
+        sets=sets,
+        reps=reps,
+        duration_seconds=duration_seconds,
+        rest_seconds=rest_seconds,
         notes=notes or None,
     )
     flash(request, f'"{exercise_name}" added to routine!')

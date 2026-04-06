@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-EXERCISEDB_BASE = "https://exercisedb-api-oe62.onrender.com/api/v1"
+EXERCISEDB_BASE = "https://exercisedb-api-cmwf.onrender.com/api/v1"
 PAGE_SIZE = 100
 
 MUSCLES = sorted([
@@ -28,8 +28,6 @@ EQUIPMENTS = sorted([
     "upper body ergometer", "weighted", "wheel roller",
 ])
 
-_WAKE_RETRY_DELAYS = [5, 10, 15, 20, 30, 30, 30, 30, 30, 30]
-
 
 class ExerciseDBService:
     _cache: list = []
@@ -41,38 +39,7 @@ class ExerciseDBService:
     def get_equipments(self) -> list[str]:
         return EQUIPMENTS
 
-    async def _ping_until_alive(self, client: httpx.AsyncClient) -> bool:
-        """
-        Send lightweight requests to the ExerciseDB service until it responds
-        with a real HTTP status (not a connection error / timeout).
-        This is what actually wakes up the Render free-tier instance.
-        Returns True once the server is alive, False if we exhausted all attempts.
-        """
-        url = f"{EXERCISEDB_BASE}/exercises"
-        params = {"offset": 0, "limit": 1}
-
-        for attempt, delay in enumerate(_WAKE_RETRY_DELAYS, start=1):
-            try:
-                response = await client.get(url, params=params)
-                if response.status_code == 429:
-                    logger.info(f"ExerciseDB alive (rate-limited) on wake attempt {attempt}")
-                    return True
-                if response.status_code < 500:
-                    logger.info(f"ExerciseDB alive (status {response.status_code}) on wake attempt {attempt}")
-                    return True
-                logger.warning(f"ExerciseDB returned {response.status_code} on wake attempt {attempt}, retrying in {delay}s…")
-            except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.ConnectError) as exc:
-                logger.info(f"ExerciseDB not yet reachable (attempt {attempt}/{len(_WAKE_RETRY_DELAYS)}): {exc!r}. Waiting {delay}s…")
-            except Exception as exc:
-                logger.warning(f"Unexpected error during ExerciseDB wake ping (attempt {attempt}): {exc!r}")
-
-            await asyncio.sleep(delay)
-
-        logger.error("ExerciseDB did not come online after all wake attempts.")
-        return False
-
     async def _fetch_all_exercises(self) -> list:
-        """Fetch every exercise from ExerciseDB and store in the class-level cache."""
         if self.__class__._cache:
             return self.__class__._cache
 
@@ -88,67 +55,48 @@ class ExerciseDBService:
                 )
             }
 
+            all_exercises: list = []
+            offset = 0
+
             async with httpx.AsyncClient(timeout=60.0, headers=headers) as client:
-
-                alive = await self._ping_until_alive(client)
-                if not alive:
-                    raise Exception(
-                        "ExerciseDB API did not come online. "
-                        "It may still be cold-starting — the next request will retry."
-                    )
-
-                all_exercises: list = []
-                offset = 0
-
                 while True:
                     params = {"offset": offset, "limit": PAGE_SIZE}
                     items: list = []
                     success = False
 
-                    for attempt in range(8):
+                    for attempt in range(5):
                         try:
                             response = await client.get(
                                 f"{EXERCISEDB_BASE}/exercises", params=params
                             )
-
                             if response.status_code == 429:
                                 wait = (attempt + 1) * 5
-                                logger.info(f"Rate-limited on page offset={offset}, waiting {wait}s…")
+                                logger.info(f"Rate-limited at offset={offset}, retrying in {wait}s…")
                                 await asyncio.sleep(wait)
                                 continue
-
                             response.raise_for_status()
                             data = response.json()
-                            items = (
-                                data.get("data", []) if isinstance(data, dict) else data
-                            )
+                            items = data.get("data", []) if isinstance(data, dict) else data
                             success = True
                             break
-
                         except (httpx.ReadTimeout, httpx.ConnectTimeout) as exc:
                             wait = (attempt + 1) * 5
-                            logger.warning(f"Timeout fetching offset={offset} (attempt {attempt+1}): {exc!r}. Retrying in {wait}s…")
+                            logger.warning(f"Timeout at offset={offset} (attempt {attempt + 1}): {exc!r}. Retrying in {wait}s…")
                             await asyncio.sleep(wait)
-
                         except Exception as exc:
-                            logger.error(f"Unexpected error fetching offset={offset}: {exc!r}")
+                            logger.error(f"Error fetching offset={offset}: {exc!r}")
                             break
 
                     if not success:
-                        raise Exception(
-                            f"Failed to fetch exercises from ExerciseDB at offset={offset} after multiple retries."
-                        )
+                        raise Exception(f"Failed to fetch exercises at offset={offset} after retries.")
 
                     if not items:
                         if offset == 0:
-                            raise Exception(
-                                "ExerciseDB returned 0 exercises on the first page — "
-                                "the server may still be initialising its database."
-                            )
+                            raise Exception("ExerciseDB returned 0 exercises — server may be starting up.")
                         break
 
                     all_exercises.extend(items)
-                    logger.info(f"Fetched {len(all_exercises)} exercises so far (offset={offset})…")
+                    logger.info(f"Cached {len(all_exercises)} exercises (offset={offset})…")
 
                     if len(items) < PAGE_SIZE:
                         break
@@ -156,7 +104,7 @@ class ExerciseDBService:
                     offset += PAGE_SIZE
 
             self.__class__._cache = all_exercises
-            logger.info(f"ExerciseDB cache populated with {len(all_exercises)} exercises.")
+            logger.info(f"ExerciseDB cache ready: {len(all_exercises)} exercises.")
             return all_exercises
 
     async def get_exercises_page(
@@ -168,10 +116,8 @@ class ExerciseDBService:
             search_lower = search.lower()
             all_ex = [ex for ex in all_ex if search_lower in ex.get("name", "").lower()]
 
-        paginated = all_ex[offset: offset + limit]
-
         return {
-            "data": paginated,
+            "data": all_ex[offset: offset + limit],
             "total": len(all_ex),
             "metadata": {"totalExercises": len(all_ex)},
         }
@@ -185,22 +131,15 @@ class ExerciseDBService:
         async with httpx.AsyncClient(timeout=60.0) as client:
             for attempt in range(5):
                 try:
-                    response = await client.get(
-                        f"{EXERCISEDB_BASE}/exercises/{exercise_id}"
-                    )
-
+                    response = await client.get(f"{EXERCISEDB_BASE}/exercises/{exercise_id}")
                     if response.status_code == 404:
                         return None
-
                     if response.status_code == 429:
                         await asyncio.sleep((attempt + 1) * 5)
                         continue
-
                     response.raise_for_status()
                     data = response.json()
                     return data.get("data") if isinstance(data, dict) else data
-
                 except (httpx.ReadTimeout, httpx.ConnectTimeout):
                     await asyncio.sleep((attempt + 1) * 5)
-
-            return None
+        return None
