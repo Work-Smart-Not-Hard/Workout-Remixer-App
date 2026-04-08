@@ -4,103 +4,142 @@
 
 {% block internal_css %}
 <style>
-  .equip-pill {
-    font-size: .72rem;
-    padding: 3px 10px;
-    border-radius: 2rem;
+  /* Exercise search results */
+  .ex-result-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background .15s, color .15s;
+    transition: background 0.1s;
   }
-  .equip-pill.active {
-    background: #0d6efd !important;
-    color: #fff !important;
-    border-color: #0d6efd !important;
+  .ex-result-item:hover { background: #f0f4ff; }
+  .ex-result-item img {
+    width: 44px; height: 44px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: #f3f4f6;
   }
-  .equip-group-label {
-    font-size: .65rem;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    color: #adb5bd;
-    margin: .5rem 0 .2rem;
-    width: 100%;
+  .ex-result-placeholder {
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; color: #9ca3af;
   }
-
-  .filter-tabs .nav-link {
-    font-size: .8rem;
-    padding: .3rem .75rem;
-    color: #6c757d;
-    border: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-  }
-  .filter-tabs .nav-link.active {
-    color: #0d6efd;
-    border-bottom-color: #0d6efd;
+  .ex-result-name {
+    font-size: 0.82rem;
     font-weight: 600;
+    text-transform: capitalize;
+    color: #1b263b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .ex-result-meta { font-size: 0.7rem; color: #9ca3af; }
 
-  .active-filter-chip {
-    display: inline-flex; align-items: center; gap: .3rem;
-    background: #e8f0fe; color: #2d5be3;
-    border-radius: 2rem; padding: .15rem .6rem;
-    font-size: .72rem; font-weight: 600;
+  /* Equipment pills */
+  .equip-scroller {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    max-height: 130px;
+    overflow-y: auto;
   }
-  .active-filter-chip button {
-    background: none; border: none; padding: 0;
-    line-height: 1; color: #2d5be3; cursor: pointer;
-    font-size: .8rem;
-  }
-
-  .ex-result-card {
-    display: flex; align-items: center; gap: .6rem;
-    padding: .5rem .4rem;
-    border-bottom: 1px solid #f0f0f0;
+  .equip-pill {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 99px;
+    border: 1.5px solid #dee2e6;
+    background: transparent;
+    color: #6c757d;
     cursor: pointer;
-    border-radius: .4rem;
-    transition: background .12s;
+    transition: all 0.12s;
+    white-space: nowrap;
   }
-  .ex-result-card:hover { background: #f0f4ff; }
-  .ex-result-card img {
-    width: 48px; height: 48px;
-    object-fit: cover; border-radius: 6px; flex-shrink: 0;
-  }
-  .ex-result-name { font-size: .82rem; font-weight: 600; text-transform: capitalize; color: #1b263b; }
-  .ex-result-meta { font-size: .72rem; color: #6c757d; }
+  .equip-pill:hover  { border-color: #6366f1; color: #6366f1; background: #f5f3ff; }
+  .equip-pill.active { border-color: #0d6efd; color: #fff; background: #0d6efd; }
 
-  #rdSelectedMuscleLabel { font-size: .72rem; color: #6c757d; min-height: 1.2em; }
+  .equip-group-label {
+    width: 100%;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #adb5bd;
+    padding: 0.2rem 0 0;
+  }
+
+  /* Routine exercise list */
+  .ex-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .ex-list-item:last-child { border-bottom: none; }
+  .ex-list-gif {
+    width: 52px; height: 52px;
+    object-fit: cover;
+    border-radius: 10px;
+    flex-shrink: 0;
+    background: #f3f4f6;
+  }
+  .ex-list-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    color: #1b263b;
+    margin: 0 0 0.15rem;
+  }
+  .ex-list-meta { font-size: 0.72rem; color: #9ca3af; margin: 0; }
+
+  /* Muscle filter toggle */
+  #musclePaneWrap { display: none; }
+  #musclePaneWrap.open { display: block; }
 </style>
 {% endblock %}
 
 {% block subpage_content %}
 <div class="container-fluid">
 
-  <div class="row mb-4 align-items-start">
-    <div class="col">
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-4">
+    <div>
       <a href="/routines" class="text-muted text-decoration-none small">
-        <span class="material-symbols-outlined" style="font-size:.9rem;vertical-align:middle">arrow_back</span>
+        <span class="material-symbols-outlined" style="font-size:0.85rem;vertical-align:middle">arrow_back</span>
         My Routines
       </a>
-      <h4 class="fw-bold mt-1 mb-0">{{ routine.name }}</h4>
-      {% if routine.description %}<p class="text-muted mb-0">{{ routine.description }}</p>{% endif %}
-      <div class="mt-1">
+      <h4 class="fw-bold mt-1 mb-1">{{ routine.name }}</h4>
+      {% if routine.description %}
+      <p class="text-muted small mb-1">{{ routine.description }}</p>
+      {% endif %}
+      <div class="d-flex gap-1 flex-wrap">
         <span class="badge {% if routine.is_public %}bg-success{% else %}bg-secondary{% endif %}">
           {{ 'Public' if routine.is_public else 'Private' }}
         </span>
-        {% if routine.remixed_from_id %}<span class="badge bg-info">Remixed</span>{% endif %}
+        {% if routine.remixed_from_id %}
+        <span class="badge bg-info">Remixed</span>
+        {% endif %}
       </div>
     </div>
+
     {% if routine.owner_id == user.id %}
-    <div class="col-auto d-flex gap-2 flex-wrap">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
       {% if exercises %}
       <form method="POST" action="/api/sessions/start">
         <input type="hidden" name="routine_id" value="{{ routine.id }}">
-        <button type="submit" class="btn btn-success btn-sm">
-          <span class="material-symbols-outlined me-1" style="font-size:.9rem;vertical-align:middle">play_arrow</span>
+        <button type="submit" class="btn btn-success btn-sm fw-semibold">
+          <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">play_arrow</span>
           Start Workout
         </button>
       </form>
       {% endif %}
-      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal">Edit</button>
+      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal">
+        Edit
+      </button>
       <form method="POST" action="/api/routines/{{ routine.id }}/delete"
             onsubmit="return confirm('Delete this routine?')">
         <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
@@ -110,129 +149,144 @@
   </div>
 
   {% for message in get_flashed_messages(request) %}
-  <div class="alert alert-{{ message.type }}" role="alert">{{ message.message }}</div>
+  <div class="alert alert-{{ message.type }} alert-dismissible fade show mb-3">
+    {{ message.message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
   {% endfor %}
 
+  <!-- Two-column layout -->
   <div class="row g-4">
 
-    <div class="col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header bg-white fw-semibold">
-          Exercises
-          <span class="badge bg-primary ms-1">{{ exercises|length }}</span>
+    <!-- Left: exercise list -->
+    <div class="{% if routine.owner_id == user.id %}col-lg-5{% else %}col-12{% endif %}">
+      <div class="card shadow-sm" style="border-radius:1rem;border:none;">
+        <div class="card-header bg-white fw-semibold d-flex align-items-center justify-content-between"
+             style="border-radius:1rem 1rem 0 0;border-bottom:1px solid #f3f4f6;">
+          <span>
+            Exercises
+            <span class="badge bg-primary ms-1">{{ exercises|length }}</span>
+          </span>
         </div>
-        <div class="card-body p-0">
-          {% if exercises %}
-          <ul class="list-group list-group-flush">
-            {% for re in exercises %}
-            <li class="list-group-item d-flex align-items-center gap-3 py-3">
-              {% if re.exercise.gif_url %}
-              <img src="{{ re.exercise.gif_url }}" alt="{{ re.exercise.name }}"
-                   style="width:56px;height:56px;object-fit:cover;border-radius:8px;" loading="lazy">
-              {% endif %}
-              <div class="flex-grow-1">
-                <p class="fw-semibold mb-0 text-capitalize">{{ re.exercise.name }}</p>
-                <small class="text-muted">
-                  {% if re.sets and re.reps %}{{ re.sets }} sets × {{ re.reps }} reps{% endif %}
-                  {% if re.duration_seconds %}{{ re.duration_seconds }}s{% endif %}
-                  {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
-                </small>
-                {% if re.notes %}<br><small class="text-muted fst-italic">{{ re.notes }}</small>{% endif %}
-              </div>
-              {% if routine.owner_id == user.id %}
-              <form method="POST" action="/api/routines/exercises/{{ re.id }}/remove">
-                <button type="submit" class="btn btn-link text-danger p-0">
-                  <span class="material-symbols-outlined">close</span>
-                </button>
-              </form>
-              {% endif %}
-            </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <div class="text-center py-5 text-muted">
-            <span class="material-symbols-outlined" style="font-size:2.5rem">add_circle</span>
-            <p class="mt-2 mb-0">No exercises yet. Search and add from the panel!</p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
 
+        {% if exercises %}
+        <div class="card-body p-0">
+          {% for re in exercises %}
+          <div class="ex-list-item">
+            {% if re.exercise.gif_url %}
+            <img src="{{ re.exercise.gif_url }}" class="ex-list-gif" loading="lazy"
+                 alt="{{ re.exercise.name }}">
+            {% else %}
+            <div class="ex-list-gif d-flex align-items-center justify-content-center">
+              <span class="material-symbols-outlined text-muted">fitness_center</span>
+            </div>
+            {% endif %}
+
+            <div class="flex-grow-1 overflow-hidden">
+              <p class="ex-list-name">{{ re.exercise.name }}</p>
+              <p class="ex-list-meta">
+                {% if re.sets and re.reps %}{{ re.sets }} sets × {{ re.reps }} reps{% endif %}
+                {% if re.duration_seconds %}{{ re.duration_seconds }}s{% endif %}
+                {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
+                {% if re.notes %}<br><em class="fst-italic">{{ re.notes }}</em>{% endif %}
+              </p>
+            </div>
+
+            {% if routine.owner_id == user.id %}
+            <form method="POST" action="/api/routines/exercises/{{ re.id }}/remove"
+                  class="flex-shrink-0">
+              <button type="submit" class="btn btn-link text-danger p-0" title="Remove"
+                      style="line-height:1;">
+                <span class="material-symbols-outlined" style="font-size:1.1rem">close</span>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="card-body text-center py-5 text-muted">
+          <span class="material-symbols-outlined" style="font-size:2.5rem">add_circle</span>
+          <p class="mt-2 mb-0 small">No exercises yet. Add some from the panel!</p>
+        </div>
+        {% endif %}
+      </div>
+    </div><!-- /left col -->
+
+    <!-- Right: add exercise (owner only) -->
     {% if routine.owner_id == user.id %}
-    <div class="col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
-          <span>Add Exercise</span>
-          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createCustomExModal">
-            <span class="material-symbols-outlined me-1" style="font-size:.85rem;vertical-align:middle">add</span>
+    <div class="col-lg-7">
+      <div class="card shadow-sm" style="border-radius:1rem;border:none;">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between"
+             style="border-radius:1rem 1rem 0 0;border-bottom:1px solid #f3f4f6;">
+          <span class="fw-semibold">Add Exercise</span>
+          <button class="btn btn-outline-primary btn-sm"
+                  data-bs-toggle="modal" data-bs-target="#createCustomExModal">
+            <span class="material-symbols-outlined me-1" style="font-size:0.85rem;vertical-align:middle">add</span>
             Create Custom
           </button>
         </div>
-        <div class="card-body pb-1">
+
+        <div class="card-body pb-2">
 
           <!-- Search bar -->
-          <div class="input-group mb-2">
-            <input type="text" id="exSearch" class="form-control form-control-sm"
+          <div class="input-group mb-3">
+            <input type="text" id="exSearch" class="form-control"
                    placeholder="Search exercises…">
-            <button class="btn btn-sm btn-primary" onclick="doSearch()">
-              <span class="material-symbols-outlined" style="font-size:.9rem">search</span>
+            <button class="btn btn-primary" onclick="doSearch()">
+              <span class="material-symbols-outlined" style="font-size:0.9rem;">search</span>
             </button>
           </div>
 
-          <!-- Active filter chips row -->
-          <div id="activeFiltersRow" class="mb-2" style="min-height:1.6rem;display:none;">
-            <span id="equipChip" class="active-filter-chip me-1" style="display:none;">
-              <span id="equipChipLabel"></span>
-              <button onclick="clearEquipment()" title="Clear">×</button>
-            </span>
-            <span id="muscleChip" class="active-filter-chip" style="display:none;">
-              <span id="muscleChipLabel"></span>
-              <button onclick="clearMuscle()" title="Clear">×</button>
-            </span>
+          <!-- Filter row: Equipment toggle + Muscle toggle -->
+          <div class="d-flex gap-2 align-items-center mb-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-secondary" onclick="togglePane('equipment')" id="equipToggle">
+              <span class="material-symbols-outlined me-1" style="font-size:0.8rem;vertical-align:middle">fitness_center</span>
+              Equipment
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="togglePane('muscle')" id="muscleToggle">
+              <span class="material-symbols-outlined me-1" style="font-size:0.8rem;vertical-align:middle">sports_gymnastics</span>
+              Muscle
+            </button>
+            <button class="btn btn-sm btn-link text-muted p-0 ms-auto" onclick="clearAllFilters()"
+                    id="clearAllBtn" style="font-size:0.75rem;display:none;">Clear all</button>
           </div>
 
-          <!-- Filter tabs: Equipment | Muscle -->
-          <ul class="nav filter-tabs border-bottom mb-2" id="filterTabs">
-            <li class="nav-item">
-              <button class="nav-link active" onclick="switchTab('equipment', this)">Equipment</button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" onclick="switchTab('muscle', this)">Muscle Group</button>
-            </li>
-          </ul>
+          <!-- Active chips -->
+          <div id="activeChips" class="d-flex flex-wrap gap-1 mb-2" style="min-height:0;"></div>
 
-          <!-- Equipment pills pane -->
-          <div id="paneEquipment" style="max-height:220px;overflow-y:auto;">
-            <div id="equipmentPills" class="d-flex flex-wrap gap-1 pb-1"></div>
+          <!-- Equipment pane -->
+          <div id="equipPane" style="display:none;" class="mb-3">
+            <div class="equip-scroller" id="equipmentPills"></div>
           </div>
 
-          <!-- Muscle SVG pane (hidden by default) -->
-          <div id="paneMuscle" style="display:none;">
-            <p id="rdSelectedMuscleLabel" class="mb-1">Click a muscle to filter</p>
-            {{ muscle_heatmap(mode="filter", height="280px") }}
+          <!-- Muscle pane -->
+          <div id="musclePane" style="display:none;" class="mb-3">
+            <p class="text-muted mb-1" style="font-size:0.72rem;" id="rdSelectedMuscleLabel">
+              Click a muscle to filter
+            </p>
+            {{ muscle_heatmap(mode="filter", height="260px") }}
           </div>
 
-          <!-- Results meta -->
-          <div class="d-flex justify-content-between align-items-center mt-2 mb-1">
-            <small class="text-muted" id="exResultCount"></small>
-            <button class="btn btn-link btn-sm p-0 text-muted" onclick="clearAllFilters()"
-                    id="clearAllBtn" style="font-size:.75rem;display:none;">Clear all</button>
+          <!-- Result count -->
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <small class="text-muted" id="exResultCount" style="font-size:0.72rem;"></small>
           </div>
 
           <!-- Results -->
-          <div id="exResults" style="max-height:340px;overflow-y:auto;"></div>
+          <div id="exResults" style="max-height:360px;overflow-y:auto;"></div>
         </div>
       </div>
     </div>
     {% endif %}
 
   </div><!-- /row -->
-</div><!-- /container -->
+</div>
 
+<!-- Edit Routine Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:1rem;border:none;">
       <div class="modal-header">
         <h5 class="modal-title fw-bold">Edit Routine</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -240,22 +294,22 @@
       <form method="POST" action="/api/routines/{{ routine.id }}/edit">
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Name</label>
+            <label class="form-label fw-semibold small">Name</label>
             <input type="text" name="name" class="form-control" value="{{ routine.name }}" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Description</label>
+            <label class="form-label fw-semibold small">Description</label>
             <textarea name="description" class="form-control" rows="3">{{ routine.description or '' }}</textarea>
           </div>
           <div class="form-check">
             <input type="checkbox" name="is_public" value="true"
                    class="form-check-input" id="isPublic"
                    {% if routine.is_public %}checked{% endif %}>
-            <label class="form-check-label" for="isPublic">Make this routine public</label>
+            <label class="form-check-label small" for="isPublic">Make this routine public</label>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary">Save</button>
         </div>
       </form>
@@ -263,42 +317,43 @@
   </div>
 </div>
 
+<!-- Create Custom Exercise Modal -->
 <div class="modal fade" id="createCustomExModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:1rem;border:none;">
       <div class="modal-header">
         <h5 class="modal-title fw-bold">Create Custom Exercise</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" action="/api/custom-exercises">
         <div class="modal-body">
-          <div class="mb-2">
-            <label class="form-label">Name <span class="text-danger">*</span></label>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Name <span class="text-danger">*</span></label>
             <input type="text" name="name" class="form-control" required placeholder="e.g. Weighted Pull-up">
           </div>
-          <div class="row g-2 mb-2">
+          <div class="row g-2 mb-3">
             <div class="col-6">
-              <label class="form-label">Body Part</label>
+              <label class="form-label fw-semibold small">Body Part</label>
               <input type="text" name="body_part" class="form-control" placeholder="e.g. back">
             </div>
             <div class="col-6">
-              <label class="form-label">Equipment</label>
+              <label class="form-label fw-semibold small">Equipment</label>
               <input type="text" name="equipment" class="form-control" placeholder="e.g. bodyweight">
             </div>
           </div>
-          <div class="mb-2">
-            <label class="form-label">Description / Steps</label>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Description / Steps</label>
             <textarea name="description" class="form-control" rows="2"
                       placeholder="Form cues, tempo, etc."></textarea>
           </div>
-          <div class="mb-2">
-            <label class="form-label">Media URL <span class="text-muted small">(image or GIF)</span></label>
+          <div class="mb-1">
+            <label class="form-label fw-semibold small">Media URL <span class="text-muted fw-normal">(image or GIF)</span></label>
             <input type="url" name="media_url" class="form-control"
                    placeholder="https://example.com/exercise.gif">
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary">Save & Add to Library</button>
         </div>
       </form>
@@ -306,9 +361,10 @@
   </div>
 </div>
 
+<!-- Add Exercise (sets/reps) Modal -->
 <div class="modal fade" id="addExModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:1rem;border:none;">
       <div class="modal-header">
         <h5 class="modal-title fw-bold text-capitalize" id="addExName"></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -321,33 +377,33 @@
         <input type="hidden" name="exercise_target_muscles" id="addExTargetMuscles">
         <input type="hidden" name="exercise_gif_url"        id="addExGifUrl">
         <div class="modal-body">
-          <div class="row g-2 mb-2">
+          <div class="row g-2 mb-3">
             <div class="col-6">
-              <label class="form-label">Sets</label>
+              <label class="form-label fw-semibold small">Sets</label>
               <input type="number" name="sets" class="form-control" min="1" placeholder="e.g. 3">
             </div>
             <div class="col-6">
-              <label class="form-label">Reps</label>
+              <label class="form-label fw-semibold small">Reps</label>
               <input type="number" name="reps" class="form-control" min="1" placeholder="e.g. 10">
             </div>
           </div>
-          <div class="row g-2 mb-2">
+          <div class="row g-2 mb-3">
             <div class="col-6">
-              <label class="form-label">Duration (s)</label>
+              <label class="form-label fw-semibold small">Duration (s)</label>
               <input type="number" name="duration_seconds" class="form-control" placeholder="e.g. 60">
             </div>
             <div class="col-6">
-              <label class="form-label">Rest (s)</label>
+              <label class="form-label fw-semibold small">Rest (s)</label>
               <input type="number" name="rest_seconds" class="form-control" value="60" min="0">
             </div>
           </div>
           <div>
-            <label class="form-label">Notes</label>
+            <label class="form-label fw-semibold small">Notes</label>
             <input type="text" name="notes" class="form-control" placeholder="e.g. slow eccentric">
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary">Add to Routine</button>
         </div>
       </form>
@@ -376,7 +432,7 @@ const SVG_TO_API = {
   "adductors":  ["adductors","abductors","inner thighs","groin","upper legs"],
   "quads":      ["quads","quadriceps","upper legs"],
   "calves":     ["calves","soleus","lower legs"],
-  "tibialis":   ["shins","lower legs"]
+  "tibialis":   ["shins","lower legs"],
 };
 
 const EQUIPMENT_GROUPS = [
@@ -392,13 +448,6 @@ const EQUIPMENT_GROUPS = [
             "stability ball","medicine ball","roller","wheel roller","rope","tire"] },
 ];
 
-let allFetched      = [];
-let localFiltered   = [];
-let selectedEquip   = "";
-let selectedSvgGrp  = "";
-let currentSearch   = "";
-
-// Custom exercises injected from Jinja
 const CUSTOM_EXERCISES = [
   {% for cx in custom_exercises %}
   {
@@ -414,13 +463,40 @@ const CUSTOM_EXERCISES = [
   {% endfor %}
 ];
 
-function switchTab(name, btn) {
-  document.getElementById('paneEquipment').style.display = name === 'equipment' ? '' : 'none';
-  document.getElementById('paneMuscle').style.display    = name === 'muscle'    ? '' : 'none';
-  document.querySelectorAll('#filterTabs .nav-link').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+//State
+let allFetched    = [];
+let localFiltered = [];
+let selectedEquip = "";
+let selectedSvg   = "";
+let currentSearch = "";
+let activePane    = "";   
+
+//Pane toggling
+function togglePane(name) {
+  const equipPane  = document.getElementById('equipPane');
+  const musclePane = document.getElementById('musclePane');
+  const equipToggle  = document.getElementById('equipToggle');
+  const muscleToggle = document.getElementById('muscleToggle');
+
+  if (activePane === name) {
+    // Close
+    activePane = "";
+    equipPane.style.display  = 'none';
+    musclePane.style.display = 'none';
+    equipToggle.classList.remove('btn-primary');  equipToggle.classList.add('btn-outline-secondary');
+    muscleToggle.classList.remove('btn-primary'); muscleToggle.classList.add('btn-outline-secondary');
+  } else {
+    activePane = name;
+    equipPane.style.display  = name === 'equipment' ? '' : 'none';
+    musclePane.style.display = name === 'muscle'    ? '' : 'none';
+    equipToggle.classList.toggle('btn-primary',         name === 'equipment');
+    equipToggle.classList.toggle('btn-outline-secondary', name !== 'equipment');
+    muscleToggle.classList.toggle('btn-primary',        name === 'muscle');
+    muscleToggle.classList.toggle('btn-outline-secondary', name !== 'muscle');
+  }
 }
 
+//Equipment pills
 function renderEquipmentPills() {
   const container = document.getElementById('equipmentPills');
   container.innerHTML = '';
@@ -431,7 +507,7 @@ function renderEquipmentPills() {
     container.appendChild(lbl);
     for (const eq of group.items) {
       const btn = document.createElement('button');
-      btn.className = 'btn btn-sm btn-outline-secondary equip-pill';
+      btn.className   = `equip-pill ${selectedEquip === eq ? 'active' : ''}`;
       btn.dataset.equip = eq;
       btn.textContent = eq.charAt(0).toUpperCase() + eq.slice(1);
       btn.addEventListener('click', () => selectEquipment(eq));
@@ -442,77 +518,67 @@ function renderEquipmentPills() {
 
 function selectEquipment(eq) {
   selectedEquip = (selectedEquip === eq) ? '' : eq;
-  document.querySelectorAll('.equip-pill').forEach(b => {
-    const on = b.dataset.equip === selectedEquip;
-    b.classList.toggle('active', on);
-    b.classList.toggle('btn-outline-secondary', !on);
-  });
-  syncActiveFiltersRow();
+  renderEquipmentPills();
+  syncChips();
   applyLocalFilters();
 }
 
-function clearEquipment() { selectEquipment(selectedEquip); }
-
+//Muscle SVG click (called by heatmap component)
 function onMuscleClick(svgMuscle) {
-  if (selectedSvgGrp === svgMuscle) {
-    selectedSvgGrp = '';
+  if (selectedSvg === svgMuscle) {
+    selectedSvg = '';
     if (typeof setActiveMuscle === 'function') setActiveMuscle(null);
     document.getElementById('rdSelectedMuscleLabel').textContent = 'Click a muscle to filter';
   } else {
-    selectedSvgGrp = svgMuscle;
+    selectedSvg = svgMuscle;
     if (typeof setActiveMuscle === 'function') setActiveMuscle(svgMuscle);
     const label = (SVG_TO_API[svgMuscle] || [svgMuscle])[0];
     document.getElementById('rdSelectedMuscleLabel').textContent =
       'Filtering: ' + label.charAt(0).toUpperCase() + label.slice(1);
   }
-  syncActiveFiltersRow();
+  syncChips();
   applyLocalFilters();
 }
 
-function clearMuscle() {
-  if (selectedSvgGrp) onMuscleClick(selectedSvgGrp);
-}
-
-function syncActiveFiltersRow() {
-  const equipChip  = document.getElementById('equipChip');
-  const muscleChip = document.getElementById('muscleChip');
-  const row        = document.getElementById('activeFiltersRow');
-  const clearAll   = document.getElementById('clearAllBtn');
-
-  if (selectedEquip) {
-    document.getElementById('equipChipLabel').textContent = selectedEquip;
-    equipChip.style.display = '';
-  } else {
-    equipChip.style.display = 'none';
-  }
-  if (selectedSvgGrp) {
-    document.getElementById('muscleChipLabel').textContent =
-      (SVG_TO_API[selectedSvgGrp] || [selectedSvgGrp])[0];
-    muscleChip.style.display = '';
-  } else {
-    muscleChip.style.display = 'none';
-  }
-
-  const anyActive = !!(selectedEquip || selectedSvgGrp);
-  row.style.display = anyActive ? '' : 'none';
-  clearAll.style.display = anyActive ? '' : 'none';
-}
+function clearEquipment() { selectEquipment(selectedEquip); }
+function clearMuscle()    { if (selectedSvg) onMuscleClick(selectedSvg); }
 
 function clearAllFilters() {
-  selectedEquip  = '';
-  selectedSvgGrp = '';
-  document.querySelectorAll('.equip-pill').forEach(b => {
-    b.classList.remove('active');
-    b.classList.add('btn-outline-secondary');
-  });
+  selectedEquip = '';
+  selectedSvg   = '';
+  renderEquipmentPills();
   if (typeof setActiveMuscle === 'function') setActiveMuscle(null);
   document.getElementById('rdSelectedMuscleLabel').textContent = 'Click a muscle to filter';
-  syncActiveFiltersRow();
+  syncChips();
   applyLocalFilters();
 }
 
+function syncChips() {
+  const container = document.getElementById('activeChips');
+  const clearBtn  = document.getElementById('clearAllBtn');
+  const chips = [];
+
+  if (selectedEquip) {
+    chips.push(`<span class="badge bg-primary d-flex align-items-center gap-1" style="font-size:.72rem;padding:.3rem .6rem;border-radius:99px;">
+      ${selectedEquip}
+      <button onclick="clearEquipment()" style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);cursor:pointer;font-size:.85rem;line-height:1;">×</button>
+    </span>`);
+  }
+  if (selectedSvg) {
+    const label = (SVG_TO_API[selectedSvg] || [selectedSvg])[0];
+    chips.push(`<span class="badge bg-success d-flex align-items-center gap-1" style="font-size:.72rem;padding:.3rem .6rem;border-radius:99px;">
+      ${label}
+      <button onclick="clearMuscle()" style="background:none;border:none;padding:0;color:rgba(255,255,255,0.8);cursor:pointer;font-size:.85rem;line-height:1;">×</button>
+    </span>`);
+  }
+
+  container.innerHTML = chips.join('');
+  clearBtn.style.display = chips.length ? '' : 'none';
+}
+
+//Fetch + filter
 async function doSearch(attempt = 1) {
-  const q = (document.getElementById('exSearch').value || '').trim();
+  const q = (document.getElementById('exSearch')?.value || '').trim();
   currentSearch = q;
   showSpinner(attempt > 1 ? `Waking up server — attempt ${attempt}…` : 'Loading…');
 
@@ -529,14 +595,12 @@ async function doSearch(attempt = 1) {
       json = await res.json();
       try { sessionStorage.setItem(cacheKey, JSON.stringify(json)); } catch {}
     }
-
     const apiEx = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
     const matchedCustom = CUSTOM_EXERCISES.filter(c =>
       !q || c.name.toLowerCase().includes(q.toLowerCase())
     );
     allFetched = [...matchedCustom, ...apiEx];
     applyLocalFilters();
-
   } catch (err) {
     if (attempt < 5) {
       setTimeout(() => doSearch(attempt + 1), 2000);
@@ -551,26 +615,23 @@ async function doSearch(attempt = 1) {
 }
 
 function applyLocalFilters() {
-  const acceptableApiMuscles = selectedSvgGrp
-    ? (SVG_TO_API[selectedSvgGrp] || []).map(s => s.toLowerCase())
+  const acceptable = selectedSvg
+    ? (SVG_TO_API[selectedSvg] || []).map(s => s.toLowerCase())
     : [];
 
   localFiltered = allFetched.filter(ex => {
-    const equipments     = Array.isArray(ex.equipments)     ? ex.equipments     : (ex.equipment   ? [ex.equipment]   : []);
-    const targets        = Array.isArray(ex.targetMuscles)  ? ex.targetMuscles  : (ex.target      ? [ex.target]      : []);
-    const secondary      = Array.isArray(ex.secondaryMuscles)? ex.secondaryMuscles : [];
-    const bodyParts      = Array.isArray(ex.bodyParts)      ? ex.bodyParts      : (ex.bodyPart    ? [ex.bodyPart]    : []);
+    const equips  = Array.isArray(ex.equipments)     ? ex.equipments    : (ex.equipment  ? [ex.equipment]  : []);
+    const targets = Array.isArray(ex.targetMuscles)  ? ex.targetMuscles : (ex.target     ? [ex.target]     : []);
+    const sec     = Array.isArray(ex.secondaryMuscles)? ex.secondaryMuscles : [];
+    const bps     = Array.isArray(ex.bodyParts)      ? ex.bodyParts     : (ex.bodyPart   ? [ex.bodyPart]   : []);
 
     if (selectedEquip) {
-      const exEquips = equipments.map(e => String(e).toLowerCase());
-      if (!exEquips.includes(selectedEquip.toLowerCase())) return false;
+      if (!equips.map(e => String(e).toLowerCase()).includes(selectedEquip.toLowerCase())) return false;
     }
-
-    if (acceptableApiMuscles.length > 0) {
-      const all = [...targets, ...secondary, ...bodyParts].map(m => String(m).toLowerCase());
-      if (!acceptableApiMuscles.some(alias => all.includes(alias))) return false;
+    if (acceptable.length) {
+      const all = [...targets, ...sec, ...bps].map(m => String(m).toLowerCase());
+      if (!acceptable.some(a => all.includes(a))) return false;
     }
-
     return true;
   });
 
@@ -586,30 +647,29 @@ function renderResults() {
     : '';
 
   if (!localFiltered.length) {
-    container.innerHTML =
-      '<p class="text-muted text-center small mt-3">No exercises match your filters.</p>';
+    container.innerHTML = '<p class="text-muted text-center small mt-3">No exercises match your filters.</p>';
     return;
   }
 
   container.innerHTML = localFiltered.slice(0, 60).map(ex => {
     const exId    = ex.exerciseId || ex.id;
-    const equips  = Array.isArray(ex.equipments)    ? ex.equipments    : (ex.equipment  ? [ex.equipment]  : []);
-    const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target     ? [ex.target]     : []);
+    const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
+    const equips  = Array.isArray(ex.equipments)    ? ex.equipments    : (ex.equipment ? [ex.equipment] : []);
     const imgSrc  = ex.gifUrl || '';
     const customBadge = ex.isCustom
-      ? `<span class="badge bg-warning text-dark ms-1" style="font-size:.6rem">Custom</span>` : '';
+      ? `<span class="badge bg-warning text-dark ms-1" style="font-size:.6rem;vertical-align:middle;">Custom</span>` : '';
 
-    return `<div class="ex-result-card" onclick='selectExercise(${JSON.stringify(ex)})'>
-      ${imgSrc ? `<img src="${imgSrc}" loading="lazy" alt="">` :
-        `<div class="bg-light rounded d-flex align-items-center justify-content-center flex-shrink-0"
-              style="width:48px;height:48px;">
-           <span class="material-symbols-outlined text-muted" style="font-size:1.4rem">fitness_center</span>
-         </div>`}
+    return `<div class="ex-result-item" onclick='selectExercise(${JSON.stringify(ex)})'>
+      ${imgSrc
+        ? `<img src="${imgSrc}" loading="lazy" alt="">`
+        : `<div class="ex-result-placeholder">
+             <span class="material-symbols-outlined" style="font-size:1.3rem">fitness_center</span>
+           </div>`}
       <div class="overflow-hidden">
-        <div class="ex-result-name text-truncate">${ex.name}${customBadge}</div>
+        <div class="ex-result-name">${ex.name}${customBadge}</div>
         <div class="ex-result-meta">
-          ${targets.slice(0,2).map(t=>`<span class="badge bg-success me-1" style="font-size:.6rem">${t}</span>`).join('')}
-          ${equips.slice(0,1).map(e=>`<span class="badge bg-secondary me-1" style="font-size:.6rem">${e}</span>`).join('')}
+          ${targets.slice(0,2).map(t => `<span class="badge bg-success me-1" style="font-size:.6rem">${t}</span>`).join('')}
+          ${equips.slice(0,1).map(e => `<span class="badge bg-secondary" style="font-size:.6rem">${e}</span>`).join('')}
         </div>
       </div>
     </div>`;
@@ -618,7 +678,7 @@ function renderResults() {
   if (localFiltered.length > 60) {
     container.insertAdjacentHTML('beforeend',
       `<p class="text-center text-muted small py-2">
-         Showing 60 of ${localFiltered.length}. Refine your search to narrow down.
+         Showing 60 of ${localFiltered.length}. Refine your search to narrow results.
        </p>`);
   }
 }
@@ -631,27 +691,31 @@ function showSpinner(msg) {
      </div>`;
 }
 
+//Select exercise → open add modal
 function selectExercise(ex) {
   const exId    = ex.exerciseId || ex.id;
-  const bps     = Array.isArray(ex.bodyParts)      ? ex.bodyParts      : (ex.bodyPart  ? [ex.bodyPart]  : []);
-  const equips  = Array.isArray(ex.equipments)     ? ex.equipments     : (ex.equipment ? [ex.equipment] : []);
-  const targets = Array.isArray(ex.targetMuscles)  ? ex.targetMuscles  : (ex.target    ? [ex.target]    : []);
+  const bps     = Array.isArray(ex.bodyParts)     ? ex.bodyParts     : (ex.bodyPart  ? [ex.bodyPart]  : []);
+  const equips  = Array.isArray(ex.equipments)    ? ex.equipments    : (ex.equipment ? [ex.equipment] : []);
+  const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target    ? [ex.target]    : []);
 
-  document.getElementById('addExId').value           = exId;
-  document.getElementById('addExNameHidden').value   = ex.name;
-  document.getElementById('addExName').textContent   = ex.name;
-  document.getElementById('addExBodyParts').value    = bps.join(',');
-  document.getElementById('addExEquipments').value   = equips.join(',');
-  document.getElementById('addExTargetMuscles').value= targets.join(',');
-  document.getElementById('addExGifUrl').value       = ex.gifUrl || '';
+  document.getElementById('addExId').value            = exId;
+  document.getElementById('addExNameHidden').value    = ex.name;
+  document.getElementById('addExName').textContent    = ex.name;
+  document.getElementById('addExBodyParts').value     = bps.join(',');
+  document.getElementById('addExEquipments').value    = equips.join(',');
+  document.getElementById('addExTargetMuscles').value = targets.join(',');
+  document.getElementById('addExGifUrl').value        = ex.gifUrl || '';
+
   new bootstrap.Modal(document.getElementById('addExModal')).show();
 }
 
+//Search on Enter
 document.getElementById('exSearch')?.addEventListener('keydown', e => {
   if (e.key === 'Enter') doSearch();
 });
 
+//Boot
 renderEquipmentPills();
-doSearch();   // load all exercises on page open (cached after first load)
+doSearch();
 </script>
 {% endblock %}

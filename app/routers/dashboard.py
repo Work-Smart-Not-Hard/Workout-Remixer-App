@@ -18,8 +18,6 @@ def _get_cutoff(period: str):
     }.get(period)
 
 
-# ── Views ─────────────────────────────────────────────────────────────────────
-
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_view(request: Request, user: AuthDep, db: SessionDep):
     sessions = db.exec(
@@ -41,9 +39,6 @@ async def muscle_history_view(request: Request, muscle_name: str, user: AuthDep,
         request=request, name="muscle_history.html",
         context={"user": user, "muscle_name": muscle_name, "period": period},
     )
-
-
-# ── API ───────────────────────────────────────────────────────────────────────
 
 @api_router.get("/dashboard/heatmap")
 async def heatmap_data(user: AuthDep, db: SessionDep, period: str = "week"):
@@ -178,12 +173,18 @@ async def exercise_history(exercise_id: str, user: AuthDep, db: SessionDep, peri
     if cutoff:
         query = query.where(WorkoutSession.completed_at >= cutoff)
 
-    rows = db.exec(query.order_by(WorkoutSession.completed_at)).all()
+    rows = db.exec(
+        query.order_by(WorkoutSession.completed_at, SessionExercise.id)
+    ).all()
+
     sets = [
         {
+            "session_id": session.id,
             "date": session.completed_at.strftime("%Y-%m-%d"),
-            "sets": se.sets_completed, "reps": se.reps_completed,
-            "weight_kg": se.weight_kg, "duration_seconds": se.duration_seconds,
+            "sets": se.sets_completed,
+            "reps": se.reps_completed,
+            "weight_kg": se.weight_kg,
+            "duration_seconds": se.duration_seconds,
             "notes": se.notes,
         }
         for se, session in rows

@@ -1,149 +1,697 @@
 {% extends "authenticated-base.html" %}
-{% block title %}Workout in Progress{% endblock %}
+{% block title %}Workout — {{ routine.name }}{% endblock %}
+
+{% block internal_css %}
+<style>
+  /* Page shell */
+  body { background: #f0f2f5; }
+
+  .session-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding-bottom: 120px;
+  }
+
+  /* Sticky header */
+  .workout-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0.75rem 1rem;
+    margin: -1rem -1rem 1.25rem;
+  }
+
+  .routine-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .started-at {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    margin: 0;
+  }
+
+  .timer-block {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .timer-digits {
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.03em;
+    color: #111827;
+    min-width: 72px;
+    text-align: right;
+  }
+
+  .pause-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1.5px solid #d1d5db;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    transition: background 0.12s, border-color 0.12s;
+    flex-shrink: 0;
+  }
+  .pause-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
+  .pause-btn.paused { background: #fef3c7; border-color: #f59e0b; color: #d97706; }
+
+  .finish-btn {
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+  .finish-btn:hover { background: #15803d; }
+
+  /* Progress bar */
+  .progress-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+  }
+  .progress-track {
+    height: 5px;
+    background: #e5e7eb;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #16a34a;
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  /* Exercise card */
+  .ex-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+
+  .ex-card-header {
+    padding: 1rem 1rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .ex-gif {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 10px;
+    flex-shrink: 0;
+    background: #f3f4f6;
+  }
+
+  .ex-gif-placeholder {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #9ca3af;
+  }
+
+  .ex-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+    text-transform: capitalize;
+    margin: 0 0 0.1rem;
+  }
+
+  .ex-target {
+    font-size: 0.72rem;
+    color: #9ca3af;
+    margin: 0;
+  }
+
+  /* Rest timer badge */
+  .rest-badge {
+    display: none;
+    margin-left: auto;
+    flex-shrink: 0;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #2563eb;
+    font-variant-numeric: tabular-nums;
+    gap: 0.25rem;
+    align-items: center;
+  }
+  .rest-badge.visible { display: flex; }
+  .rest-badge.rest-done {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #16a34a;
+  }
+
+  /* Sets table */
+  .sets-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .sets-table thead th {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #9ca3af;
+    padding: 0 0.5rem 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    text-align: center;
+  }
+
+  .sets-table thead th.col-set  { width: 40px; }
+  .sets-table thead th.col-prev { width: auto; }
+  .sets-table thead th.col-kg,
+  .sets-table thead th.col-reps { width: 72px; }
+  .sets-table thead th.col-done { width: 48px; }
+
+  .set-row td {
+    padding: 0.3rem 0.5rem;
+    vertical-align: middle;
+    text-align: center;
+  }
+
+  .set-num-cell  { font-size: 0.82rem; font-weight: 700; color: #6b7280; }
+  .set-prev-cell { font-size: 0.75rem; color: #9ca3af; }
+
+  .set-input {
+    width: 58px;
+    padding: 0.3rem 0.25rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 7px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    color: #111827;
+    background: #f9fafb;
+    appearance: textfield;
+    -moz-appearance: textfield;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .set-input::-webkit-inner-spin-button,
+  .set-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .set-input:focus { outline: none; border-color: #6366f1; background: #fff; }
+  .set-input:disabled { background: #f3f4f6; color: #6b7280; border-color: transparent; }
+
+  .set-check-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 2px solid #d1d5db;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    transition: all 0.15s;
+    color: transparent;
+  }
+  .set-check-btn:hover:not(:disabled) { border-color: #16a34a; background: #f0fdf4; }
+  .set-check-btn.done { background: #16a34a; border-color: #16a34a; color: #fff; }
+  .set-check-btn:disabled { opacity: 0.4; cursor: default; }
+  .set-row.completed .set-num-cell { color: #9ca3af; }
+
+  /* Add set button */
+  .add-set-row td { padding: 0.5rem 1rem 1rem; }
+  .add-set-btn {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1.5px dashed #d1d5db;
+    border-radius: 8px;
+    background: transparent;
+    color: #6b7280;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s, background 0.12s;
+  }
+  .add-set-btn:hover { border-color: #6366f1; color: #6366f1; background: #f5f3ff; }
+
+  /* Bottom finish bar */
+  .finish-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    justify-content: flex-end;
+    z-index: 200;
+  }
+  .finish-bar-btn {
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.65rem 2rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .finish-bar-btn:hover { background: #15803d; }
+
+  /* Modal */
+  .modal-content { border: none; border-radius: 16px; overflow: hidden; }
+  .modal-header  { border-bottom: 1px solid #f3f4f6; padding: 1.25rem 1.5rem 1rem; }
+  .modal-footer  { border-top: 1px solid #f3f4f6; }
+</style>
+{% endblock %}
 
 {% block subpage_content %}
-<div class="container-fluid">
+<div class="session-wrap">
 
-    <!-- Header -->
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h4 class="fw-bold mb-0">{{ routine.name }}</h4>
-            <small class="text-muted">Started {{ session.started_at.strftime('%I:%M %p') }}</small>
-        </div>
-        <div class="col-auto">
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#completeModal">
-                <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:middle">check_circle</span>
-                Finish Workout
-            </button>
-        </div>
-    </div>
-
-    {% for message in get_flashed_messages(request) %}
-    <div class="alert alert-{{ message.type }}">{{ message.message }}</div>
-    {% endfor %}
-
-    <!-- Progress bar -->
-    <div class="mb-4">
-        {% set done_count = logged_ids|length %}
-        {% set total_count = exercises|length %}
-        {% set pct = ((done_count / total_count) * 100)|int if total_count > 0 else 0 %}
-        <div class="d-flex justify-content-between mb-1">
-            <small class="text-muted">Progress</small>
-            <small class="text-muted">{{ done_count }} / {{ total_count }} exercises</small>
-        </div>
-        <div class="progress" style="height:8px;">
-            <div class="progress-bar bg-success" style="width:{{ pct }}%"></div>
-        </div>
-    </div>
-
-    <!-- Exercise list -->
-    <div class="row g-3">
-        {% for re in exercises %}
-        {% set is_done = re.exercise_id in logged_ids %}
-        <div class="col-12">
-            <div class="card shadow-sm {% if is_done %}border-success{% endif %}">
-                <div class="card-body">
-                    <div class="row align-items-center g-3">
-
-                        <!-- GIF + name -->
-                        <div class="col-auto">
-                            {% if re.exercise.gif_url %}
-                            <img src="{{ re.exercise.gif_url }}" alt="{{ re.exercise.name }}"
-                                 style="width:64px;height:64px;object-fit:cover;border-radius:8px;">
-                            {% endif %}
-                        </div>
-                        <div class="col">
-                            <h6 class="fw-bold mb-0 text-capitalize">{{ re.exercise.name }}</h6>
-                            <small class="text-muted">
-                                Target:
-                                {% if re.sets and re.reps %}{{ re.sets }} × {{ re.reps }}{% endif %}
-                                {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
-                            </small>
-                        </div>
-                        <div class="col-auto">
-                            {% if is_done %}
-                            <span class="badge bg-success">
-                                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">check</span>
-                                Done
-                            </span>
-                            {% endif %}
-                        </div>
-
-                        <!-- Log form -->
-                        <div class="col-12">
-                            <form method="POST" action="/api/sessions/{{ session.id }}/log"
-                                  class="row g-2 align-items-end">
-                                <input type="hidden" name="exercise_id" value="{{ re.exercise_id }}">
-                                <div class="col-6 col-md-2">
-                                    <label class="form-label form-label-sm mb-1">Sets</label>
-                                    <input type="number" name="sets_completed" class="form-control form-control-sm"
-                                           min="1" placeholder="{{ re.sets or '' }}"
-                                           value="{{ re.sets or '' }}">
-                                </div>
-                                <div class="col-6 col-md-2">
-                                    <label class="form-label form-label-sm mb-1">Reps</label>
-                                    <input type="number" name="reps_completed" class="form-control form-control-sm"
-                                           min="1" placeholder="{{ re.reps or '' }}"
-                                           value="{{ re.reps or '' }}">
-                                </div>
-                                <div class="col-6 col-md-2">
-                                    <label class="form-label form-label-sm mb-1">Weight (kg)</label>
-                                    <input type="number" name="weight_kg" class="form-control form-control-sm"
-                                           min="0" step="0.5" placeholder="0">
-                                </div>
-                                <div class="col-6 col-md-2">
-                                    <label class="form-label form-label-sm mb-1">Duration (s)</label>
-                                    <input type="number" name="duration_seconds" class="form-control form-control-sm"
-                                           min="0" placeholder="{{ re.duration_seconds or '' }}">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label form-label-sm mb-1">Notes</label>
-                                    <input type="text" name="notes" class="form-control form-control-sm"
-                                           placeholder="e.g. felt strong">
-                                </div>
-                                <div class="col-md-1">
-                                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                                        <span class="material-symbols-outlined" style="font-size:1rem">check</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="mt-4 d-flex justify-content-end">
-        <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#completeModal">
-            Finish Workout
+  <!-- Sticky header -->
+  <div class="workout-header">
+    <div class="d-flex align-items-center justify-content-between gap-2">
+      <div class="overflow-hidden me-auto">
+        <p class="routine-title text-truncate">{{ routine.name }}</p>
+        <p class="started-at">Started {{ session.started_at.strftime('%I:%M %p') }}</p>
+      </div>
+      <div class="timer-block">
+        <div class="timer-digits" id="timerDisplay">00:00</div>
+        <button class="pause-btn" id="pauseBtn" onclick="togglePause()" title="Pause timer">
+          <span class="material-symbols-outlined" style="font-size:1.1rem" id="pauseIcon">pause</span>
         </button>
+      </div>
+      <button class="finish-btn" data-bs-toggle="modal" data-bs-target="#completeModal">
+        <span class="material-symbols-outlined" style="font-size:0.95rem">check_circle</span>
+        Finish Workout
+      </button>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-row">
+    <small class="text-muted" style="font-size:0.72rem;">Progress</small>
+    <small class="text-muted" style="font-size:0.72rem;" id="progressLabel">
+      0 / {{ exercises|length }} exercises
+    </small>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressBar" style="width:0%"></div>
+  </div>
+
+  {% for message in get_flashed_messages(request) %}
+  <div class="alert alert-{{ message.type }} alert-dismissible mb-3">
+    {{ message.message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  <!-- Exercise cards -->
+  {% for re in exercises %}
+  <div class="ex-card" id="exCard_{{ re.id }}">
+    <div class="ex-card-header">
+      {% if re.exercise.gif_url %}
+      <img src="{{ re.exercise.gif_url }}" class="ex-gif" loading="lazy" alt="{{ re.exercise.name }}">
+      {% else %}
+      <div class="ex-gif-placeholder">
+        <span class="material-symbols-outlined" style="font-size:1.4rem">fitness_center</span>
+      </div>
+      {% endif %}
+      <div class="overflow-hidden">
+        <p class="ex-name">{{ re.exercise.name }}</p>
+        <p class="ex-target">
+          Target:
+          {% if re.sets and re.reps %}{{ re.sets }} × {{ re.reps }}{% endif %}
+          {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
+        </p>
+      </div>
+      <div class="rest-badge" id="restBadge_{{ re.id }}">
+        <span class="material-symbols-outlined" style="font-size:0.85rem">timer</span>
+        <span id="restCount_{{ re.id }}">0</span>s
+      </div>
     </div>
 
+    <table class="sets-table">
+      <thead>
+        <tr>
+          <th class="col-set">Set</th>
+          <th class="col-prev">Previous</th>
+          <th class="col-kg">KG</th>
+          <th class="col-reps">Reps</th>
+          <th class="col-done"></th>
+        </tr>
+      </thead>
+      <tbody id="setsBody_{{ re.id }}"></tbody>
+      <tr class="add-set-row">
+        <td colspan="5">
+          <button class="add-set-btn"
+                  onclick="addSet({{ re.id }}, {{ re.exercise_id }}, '{{ re.exercise.exercise_id }}', {{ re.rest_seconds or 60 }})">
+            + Add Set
+          </button>
+        </td>
+      </tr>
+    </table>
+  </div>
+  {% endfor %}
+
+</div>
+
+<!-- Fixed bottom bar -->
+<div class="finish-bar">
+  <button class="finish-bar-btn" data-bs-toggle="modal" data-bs-target="#completeModal">
+    Finish Workout
+  </button>
 </div>
 
 <!-- Complete Modal -->
 <div class="modal fade" id="completeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Finish Workout</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Finish Workout 💪</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/api/sessions/{{ session.id }}/complete">
+        <div class="modal-body p-4">
+          <div class="d-flex gap-3 mb-4">
+            <div class="text-center flex-grow-1 p-3 rounded-3" style="background:#f0fdf4;">
+              <div style="font-size:1.4rem;font-weight:800;color:#16a34a;" id="summaryDuration">—</div>
+              <div style="font-size:0.72rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Duration</div>
             </div>
-            <form method="POST" action="/api/sessions/{{ session.id }}/complete">
-                <div class="modal-body">
-                    <p class="text-muted">Any final notes for this session?</p>
-                    <textarea name="notes" class="form-control" rows="3"
-                              placeholder="e.g. great session, increased bench weight"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Going</button>
-                    <button type="submit" class="btn btn-success">Complete Workout</button>
-                </div>
-            </form>
+            <div class="text-center flex-grow-1 p-3 rounded-3" style="background:#eff6ff;">
+              <div style="font-size:1.4rem;font-weight:800;color:#2563eb;" id="summarySets">—</div>
+              <div style="font-size:0.72rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Sets Done</div>
+            </div>
+            <div class="text-center flex-grow-1 p-3 rounded-3" style="background:#faf5ff;">
+              <div style="font-size:1.4rem;font-weight:800;color:#7c3aed;" id="summaryVolume">—</div>
+              <div style="font-size:0.72rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Volume (kg)</div>
+            </div>
+          </div>
+          <label class="form-label fw-semibold" style="font-size:0.85rem;">
+            Session Notes <span class="text-muted fw-normal">(optional)</span>
+          </label>
+          <textarea name="notes" class="form-control" rows="3"
+                    style="border-radius:10px;border-color:#e5e7eb;"
+                    placeholder="e.g. felt strong today, PB on bench…"></textarea>
         </div>
+        <div class="modal-footer px-4 pb-4 border-0 pt-0">
+          <button type="button" class="btn btn-light fw-semibold" data-bs-dismiss="modal"
+                  style="border-radius:10px;">Keep Going</button>
+          <button type="submit" class="btn btn-success fw-bold px-4" style="border-radius:10px;">
+            Complete Workout
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+const SESSION_ID = {{ session.id }};
+
+const EXERCISES = [
+  {% for re in exercises %}
+  {
+    reId:          {{ re.id }},
+    exerciseIntId: {{ re.exercise_id }},
+    exerciseDbId:  "{{ re.exercise.exercise_id }}",
+    targetSets:    {{ re.sets or 3 }},
+    targetReps:    {{ re.reps or 0 }},
+    restSeconds:   {{ re.rest_seconds or 60 }},
+  },
+  {% endfor %}
+];
+
+//State
+const exState   = {};   // reId → { sets: [{kg, reps, prev, checked}], history: [] }
+const restTimers = {};
+
+//Workout timer
+let elapsed = 0;
+let paused  = false;
+
+setInterval(() => {
+  if (!paused) {
+    elapsed++;
+    document.getElementById('timerDisplay').textContent = fmtTime(elapsed);
+  }
+}, 1000);
+
+function fmtTime(s) {
+  const h  = Math.floor(s / 3600);
+  const m  = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  return h > 0
+    ? `${pad(h)}:${pad(m)}:${pad(ss)}`
+    : `${pad(m)}:${pad(ss)}`;
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseBtn').classList.toggle('paused', paused);
+  document.getElementById('pauseIcon').textContent = paused ? 'play_arrow' : 'pause';
+}
+
+//History fetch
+async function fetchHistory(exerciseDbId) {
+  try {
+    const r = await fetch(`/api/exercises/${encodeURIComponent(exerciseDbId)}/history?period=all`);
+    if (!r.ok) return [];
+    const d = await r.json();
+    return d.sets || [];
+  } catch { return []; }
+}
+
+function getPrevLabel(history, setIndex) {
+  if (!history.length) return null;
+
+  //Group entries by session_id (integer). Entries are already ordered by (completed_at, SessionExercise.id) from the backend, so within each
+  //group the order reflects the actual set sequence.
+  const bySess = {};
+  for (const h of history) {
+    const key = h.session_id ?? h.date; // fallback to date for older data
+    if (!bySess[key]) bySess[key] = [];
+    bySess[key].push(h);
+  }
+
+  //The highest numeric session_id is the most recent completed session.
+  const sessionKeys = Object.keys(bySess);
+  const latestKey   = sessionKeys.reduce((a, b) =>
+    Number(a) > Number(b) ? a : b
+  );
+  const lastSessionSets = bySess[latestKey];
+
+  //If the previous session had fewer sets than setIndex, return null
+  //(no previous data for this set — the user is going beyond their record).
+  const entry = lastSessionSets[setIndex];
+  if (!entry) return null;
+
+  const parts = [];
+  if (entry.weight_kg != null && entry.weight_kg > 0)
+    parts.push(`${entry.weight_kg}kg`);
+  if (entry.reps != null && entry.reps > 0)
+    parts.push(`×${entry.reps}`);
+  return parts.length ? parts.join(' ') : null;
+}
+
+//Init
+async function init() {
+  for (const ex of EXERCISES) {
+    exState[ex.reId] = { sets: [], history: [] };
+    exState[ex.reId].history = await fetchHistory(ex.exerciseDbId);
+
+    const n = Math.max(1, ex.targetSets);
+    for (let i = 0; i < n; i++) {
+      exState[ex.reId].sets.push({
+        kg:      '',
+        reps:    ex.targetReps > 0 ? ex.targetReps : '',
+        prev:    getPrevLabel(exState[ex.reId].history, i),
+        checked: false,
+      });
+    }
+    renderSets(ex.reId, ex.exerciseIntId, ex.restSeconds);
+  }
+  updateProgress();
+}
+
+//Render sets tbody
+function renderSets(reId, exerciseIntId, restSeconds) {
+  const tbody = document.getElementById(`setsBody_${reId}`);
+  if (!tbody) return;
+  tbody.innerHTML = exState[reId].sets.map((set, i) => `
+    <tr class="set-row ${set.checked ? 'completed' : ''}" id="setRow_${reId}_${i}">
+      <td class="set-num-cell">${i + 1}</td>
+      <td class="set-prev-cell">${set.prev || '—'}</td>
+      <td>
+        <input type="number" class="set-input" id="setKg_${reId}_${i}"
+               value="${set.kg}" placeholder="0" min="0" step="0.5"
+               ${set.checked ? 'disabled' : ''}
+               onchange="exState[${reId}].sets[${i}].kg = this.value">
+      </td>
+      <td>
+        <input type="number" class="set-input" id="setReps_${reId}_${i}"
+               value="${set.reps}" placeholder="0" min="0"
+               ${set.checked ? 'disabled' : ''}
+               onchange="exState[${reId}].sets[${i}].reps = this.value">
+      </td>
+      <td>
+        <button class="set-check-btn ${set.checked ? 'done' : ''}"
+                onclick="toggleSet(${reId}, ${exerciseIntId}, ${i}, ${restSeconds})"
+                title="${set.checked ? 'Undo set' : 'Mark set done'}">
+          <span class="material-symbols-outlined" style="font-size:1rem;">
+            ${set.checked ? 'check' : ''}
+          </span>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+//Add set
+function addSet(reId, exerciseIntId, exerciseDbId, restSeconds) {
+  const idx  = exState[reId].sets.length;
+  exState[reId].sets.push({
+    kg:      '',
+    reps:    '',
+    prev:    getPrevLabel(exState[reId].history, idx),
+    checked: false,
+  });
+  renderSets(reId, exerciseIntId, restSeconds);
+}
+
+//Toggle set done
+async function toggleSet(reId, exerciseIntId, setIndex, restSeconds) {
+  const set  = exState[reId].sets[setIndex];
+
+  // Snapshot live input values
+  const kgEl   = document.getElementById(`setKg_${reId}_${setIndex}`);
+  const repsEl = document.getElementById(`setReps_${reId}_${setIndex}`);
+  if (kgEl)   set.kg   = kgEl.value;
+  if (repsEl) set.reps = repsEl.value;
+
+  if (!set.checked) {
+    set.checked = true;
+    renderSets(reId, exerciseIntId, restSeconds);
+    updateProgress();
+    updateSummary();
+
+    // Log this single set to backend
+    try {
+      const fd = new FormData();
+      fd.append('exercise_id',    exerciseIntId);
+      fd.append('sets_completed', 1);
+      if (set.reps) fd.append('reps_completed', set.reps);
+      if (set.kg)   fd.append('weight_kg',      set.kg);
+      fd.append('notes', '');
+      await fetch(`/api/sessions/${SESSION_ID}/log`, { method: 'POST', body: fd });
+    } catch (e) { console.warn('Log failed', e); }
+
+    startRest(reId, restSeconds);
+  } else {
+    set.checked = false;
+    clearRest(reId);
+    renderSets(reId, exerciseIntId, restSeconds);
+    updateProgress();
+    updateSummary();
+  }
+}
+
+//Rest timer
+function startRest(reId, seconds) {
+  clearRest(reId);
+  const badge   = document.getElementById(`restBadge_${reId}`);
+  const counter = document.getElementById(`restCount_${reId}`);
+  if (!badge || !counter) return;
+
+  let rem = seconds;
+  counter.textContent = rem;
+  badge.className = 'rest-badge visible';
+
+  restTimers[reId] = setInterval(() => {
+    rem--;
+    counter.textContent = rem;
+    if (rem <= 0) {
+      clearRest(reId);
+      badge.className = 'rest-badge visible rest-done';
+      counter.textContent = '✓';
+      setTimeout(() => { badge.className = 'rest-badge'; }, 2000);
+    }
+  }, 1000);
+}
+
+function clearRest(reId) {
+  if (restTimers[reId]) { clearInterval(restTimers[reId]); delete restTimers[reId]; }
+}
+
+//Progress
+function updateProgress() {
+  const total = EXERCISES.length;
+  const done  = EXERCISES.filter(ex => exState[ex.reId]?.sets.some(s => s.checked)).length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('progressBar').style.width  = pct + '%';
+  document.getElementById('progressLabel').textContent = `${done} / ${total} exercises`;
+}
+
+//Modal summary
+function updateSummary() {
+  let totalSets = 0, totalVolume = 0;
+  for (const ex of EXERCISES) {
+    for (const s of (exState[ex.reId]?.sets || [])) {
+      if (!s.checked) continue;
+      totalSets++;
+      const kg   = parseFloat(s.kg)   || 0;
+      const reps = parseFloat(s.reps) || 0;
+      if (kg && reps) totalVolume += kg * reps;
+    }
+  }
+  document.getElementById('summaryDuration').textContent = fmtTime(elapsed);
+  document.getElementById('summarySets').textContent     = totalSets;
+  document.getElementById('summaryVolume').textContent   =
+    totalVolume > 0 ? totalVolume.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—';
+}
+
+document.getElementById('completeModal').addEventListener('show.bs.modal', updateSummary);
+
+init();
+</script>
 {% endblock %}

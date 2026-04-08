@@ -2,6 +2,7 @@ from fastapi import Request, Form, status, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import select, desc, func
 from typing import Optional
+from collections import defaultdict
 from app.dependencies import SessionDep, AuthDep
 from app.models import WorkoutSession, SessionExercise, Exercise
 from app.models.user import User
@@ -11,37 +12,53 @@ from . import router, templates, api_router
 
 def _build_session_entry(db, session: WorkoutSession) -> dict:
     logged = db.exec(
-        select(SessionExercise).where(SessionExercise.session_id == session.id)
+        select(SessionExercise)
+        .where(SessionExercise.session_id == session.id)
+        .order_by(SessionExercise.id)      # preserve set order
     ).all()
+
+    exercise_groups: dict[int, list] = defaultdict(list)
+    for se in logged:
+        if se.exercise_id is not None:
+            exercise_groups[se.exercise_id].append(se)
 
     exercises = []
     muscle_sets: dict[str, int] = {}
     total_sets = 0
     total_volume = 0.0
 
-    for se in logged:
-        ex = db.get(Exercise, se.exercise_id) if se.exercise_id else None
+    for exercise_id, ses in exercise_groups.items():
+        ex = db.get(Exercise, exercise_id)
         if not ex:
             continue
+
+        agg_sets      = len(ses)
+        agg_reps      = sum(se.reps_completed or 0 for se in ses) or None
+        weights       = [se.weight_kg for se in ses if se.weight_kg]
+        agg_weight    = max(weights) if weights else None 
+        agg_duration  = sum(se.duration_seconds or 0 for se in ses) or None
+        agg_notes     = "; ".join(se.notes for se in ses if se.notes) or None
+
         exercises.append({
             "name": ex.name,
             "target": ex.target,
             "body_part": ex.body_part,
             "gif_url": ex.gif_url,
             "exercise_id": ex.exercise_id,
-            "sets": se.sets_completed,
-            "reps": se.reps_completed,
-            "weight_kg": se.weight_kg,
-            "duration_seconds": se.duration_seconds,
-            "notes": se.notes,
+            "sets": agg_sets,
+            "reps": agg_reps,
+            "weight_kg": agg_weight,
+            "duration_seconds": agg_duration,
+            "notes": agg_notes,
         })
+
         for muscle in filter(None, [ex.target, ex.body_part]):
             key = muscle.lower().strip()
-            sets_done = se.sets_completed or 1
-            muscle_sets[key] = muscle_sets.get(key, 0) + sets_done
-        total_sets += se.sets_completed or 0
-        if se.weight_kg and se.sets_completed and se.reps_completed:
-            total_volume += se.weight_kg * se.sets_completed * se.reps_completed
+            muscle_sets[key] = muscle_sets.get(key, 0) + agg_sets
+
+        total_sets += agg_sets
+        if agg_weight and agg_sets and agg_reps:
+            total_volume += agg_weight * agg_reps 
 
     # Normalise muscle data to 0-1
     muscle_data: dict[str, float] = {}
@@ -65,7 +82,6 @@ def _build_session_entry(db, session: WorkoutSession) -> dict:
     }
 
 
-#Views 
 @router.get("/activity", response_class=HTMLResponse)
 async def activity_view(request: Request, user: AuthDep, db: SessionDep):
     return templates.TemplateResponse(
@@ -74,8 +90,6 @@ async def activity_view(request: Request, user: AuthDep, db: SessionDep):
         context={"user": user},
     )
 
-
-#API 
 @api_router.get("/activity/feed")
 async def get_my_activity(
     user: AuthDep,
@@ -96,7 +110,6 @@ async def get_my_activity(
 
 @api_router.get("/activity/stats")
 async def get_my_activity_stats(user: AuthDep, db: SessionDep):
-    """Quick summary stats for the current user's profile header."""
     total_sessions = db.exec(
         select(func.count()).select_from(
             select(WorkoutSession)
@@ -220,7 +233,6 @@ async def delete_session_activity(
     if not session or session.user_id != user.id:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Cascade delete logged exercises
     for se in db.exec(
         select(SessionExercise).where(SessionExercise.session_id == session_id)
     ).all():
