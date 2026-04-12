@@ -48,6 +48,14 @@ class SessionRepository:
             else session.completed_at - session.started_at
         session.duration_minutes = max(1, int(delta.total_seconds() / 60))
         session.notes = notes
+
+        # Calculate calories burned using user body weight and session duration
+        user = self.db.get(User, session.user_id)
+        session.calories_burned = calculate_session_calories(
+            weight_kg=user.weight_kg if user else None,
+            duration_minutes=session.duration_minutes,
+        )
+
         self.db.add(session)
         self.db.commit()
         self.db.refresh(session)
