@@ -32,9 +32,10 @@
 
     #sidebar .nav-link:hover,
     #sidebar .nav-link.active {
-        color: #fff;
-        background-color: #415a77;
-        border-radius: 0.5rem;
+        background: rgba(99,102,241,0.15) !important;
+        color: #a5b4fc !important;
+        border-left: 3px solid var(--accent-indigo);
+        padding-left: calc(0.75rem - 3px);
     }
 
     #content {
@@ -43,7 +44,7 @@
         transition: all 0.3s;
         display: flex;
         flex-direction: column;
-        background-color: #f8f9fa;
+        background-color: var(--bg-base)
     }
 
     .card {
@@ -56,7 +57,10 @@
     }
 
     .navbar {
-        border-bottom: 1px solid #dee2e6;
+        background: rgba(13,17,23,0.85) !important;
+        backdrop-filter: blur(16px);
+        border-bottom: 0.5px solid var(--border-glass) !important;
+        box-shadow: none !important;
     }
 </style>
 

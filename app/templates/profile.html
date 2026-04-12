@@ -20,7 +20,7 @@
                 {{ profile_user.username[0]|upper }}
             </div>
             <div class="flex-grow-1">
-                <h4 class="fw-bold mb-1">{{ profile_user.username }}</h4>
+                <h4 class="page-title mb-1">{{ profile_user.username }}</h4>
                 <span class="badge {% if profile_user.privacy_level == 'public' %}bg-success{% else %}bg-secondary{% endif %}">
                     {{ 'Public' if profile_user.privacy_level == 'public' else 'Private' }}
                 </span>
@@ -84,8 +84,8 @@
 
     <!-- Stats summary -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span class="fw-semibold">Activity Summary</span>
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="section-title">Activity Summary</span>
             <div class="btn-group btn-group-sm" role="group">
                 <button type="button" class="btn btn-primary" onclick="setPeriod('week', this)">Week</button>
                 <button type="button" class="btn btn-outline-primary" onclick="setPeriod('month', this)">Month</button>
@@ -97,24 +97,29 @@
             <div class="row g-4 align-items-start">
                 <div class="col-md-5">
                     <div class="row g-3 mb-3">
-                        <div class="col-4 text-center">
-                            <h3 class="fw-bold mb-0" id="sumSessions">—</h3>
-                            <small class="text-muted">Workouts</small>
+                        <div class="col-sm-4">
+                            <div class="card stat-card tint-indigo">
+                                <div class="stat-number" id="sumSessions">—</div>
+                                <div class="stat-label">Workouts</div>
+                            </div>
                         </div>
-                        <div class="col-4 text-center">
-                            <h3 class="fw-bold mb-0" id="sumSets">—</h3>
-                            <small class="text-muted">Sets</small>
+                        <div class="col-sm-4">
+                            <div class="card stat-card tint-green">
+                                <div class="stat-number" id="sumSets">—</div>
+                                <div class="stat-label">Sets</div>
+                            </div>
                         </div>
-                        <div class="col-4 text-center">
-                            <h3 class="fw-bold mb-0" id="sumDuration">—</h3>
-                            <small class="text-muted">Minutes</small>
+                        <div class="col-sm-4">
+                            <div class="card stat-card tint-amber">
+                                <div class="stat-number" id="sumDuration">—</div>
+                                <div class="stat-label">Minutes</div>
+                            </div>
                         </div>
                     </div>
                     {{ muscle_heatmap(mode="stats", height="180px") }}
                 </div>
                 <div class="col-md-7">
-                    <p class="fw-semibold small text-muted text-uppercase mb-2"
-                       style="letter-spacing:.05em;font-size:.72rem;">Public Routines</p>
+                    <p class="meta-kicker mb-2">Public Routines</p>
                     <div id="profileRoutinesList">
                         <div class="text-center py-2">
                             <div class="spinner-border spinner-border-sm text-primary"></div>
@@ -127,7 +132,7 @@
 
     <!-- Workout history -->
     <div class="d-flex align-items-center justify-content-between mb-3">
-        <h6 class="fw-bold mb-0">Workout History</h6>
+        <h6 class="section-title">Workout History</h6>
         {% if is_own %}
         <a href="/activity" class="btn btn-outline-secondary btn-sm">Full Activity</a>
         {% endif %}

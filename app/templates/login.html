@@ -5,9 +5,15 @@
 <style>
     body { background-color: #f8f9fa; }
     .login-container { min-height: 100vh; }
-    .login-card { border: none; border-radius: 1rem; overflow: hidden; }
+    .login-card {
+        background: var(--bg-surface) !important;
+        border: 0.5px solid var(--border-glass) !important;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
     .login-image {
-        background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+        background: linear-gradient(135deg, #1a1f2e, #0d1117);
+        border-right: 0.5px solid rgba(99,102,241,0.3);
         display: flex; align-items: center; justify-content: center;
         color: white; padding: 3rem;
     }
@@ -28,7 +34,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-6 bg-white">
+            <div class="col-lg-6">
                 <div class="form-section">
                     <h3 class="fw-bold mb-4">Login</h3>
 

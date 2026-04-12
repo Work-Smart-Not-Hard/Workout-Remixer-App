@@ -1,10 +1,10 @@
 {% extends "authenticated-base.html" %}
 {% block title %}Workout — {{ routine.name }}{% endblock %}
 
-{% block internal_css %}
+{% block additional_styles %}
 <style>
   /* Page shell */
-  body { background: #f0f2f5; }
+  body { background: var(--bg-base); }
 
   .session-wrap {
     max-width: 680px;
@@ -17,8 +17,8 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
+    background: var(--bg-surface);
+    border-bottom: 0.5px solid var(--border-glass);
     padding: 0.75rem 1rem;
     margin: -1rem -1rem 1.25rem;
   }
@@ -26,14 +26,14 @@
   .routine-title {
     font-size: 1rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-primary);
     letter-spacing: -0.01em;
     margin: 0;
   }
 
   .started-at {
     font-size: 0.72rem;
-    color: #9ca3af;
+    color: var(--text-muted);
     margin: 0;
   }
 
@@ -48,7 +48,7 @@
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.03em;
-    color: #111827;
+    color: var(--text-primary);
     min-width: 72px;
     text-align: right;
   }
@@ -57,22 +57,22 @@
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    border: 1.5px solid #d1d5db;
+    border: 1.5px solid var(--border-glass);
     background: transparent;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6b7280;
+    color: var(--text-muted);
     transition: background 0.12s, border-color 0.12s;
     flex-shrink: 0;
   }
-  .pause-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
-  .pause-btn.paused { background: #fef3c7; border-color: #f59e0b; color: #d97706; }
+  .pause-btn:hover { background: rgba(255,255,255,0.06); border-color: #94a3b8; }
+  .pause-btn.paused { background: rgba(245,158,11,0.16); border-color: #f59e0b; color: #fbbf24; }
 
   .finish-btn {
-    background: #16a34a;
-    color: #fff;
+    background: var(--accent-green);
+    color: #052e16;
     border: none;
     border-radius: 8px;
     padding: 0.45rem 1.1rem;
@@ -85,7 +85,7 @@
     transition: background 0.12s;
     white-space: nowrap;
   }
-  .finish-btn:hover { background: #15803d; }
+  .finish-btn:hover { background: #22c55e; }
 
   /* Progress bar */
   .progress-row {
@@ -96,23 +96,24 @@
   }
   .progress-track {
     height: 5px;
-    background: #e5e7eb;
+    background: rgba(255,255,255,0.08);
     border-radius: 99px;
     overflow: hidden;
     margin-bottom: 1.25rem;
   }
   .progress-fill {
     height: 100%;
-    background: #16a34a;
+    background: var(--accent-green);
     border-radius: 99px;
     transition: width 0.4s ease;
   }
 
   /* Exercise card */
   .ex-card {
-    background: #fff;
+    background: var(--bg-surface);
+    border: 0.5px solid var(--border-glass);
     border-radius: 14px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
     margin-bottom: 1rem;
     overflow: hidden;
   }
@@ -130,32 +131,32 @@
     object-fit: cover;
     border-radius: 10px;
     flex-shrink: 0;
-    background: #f3f4f6;
+    background: rgba(255,255,255,0.06);
   }
 
   .ex-gif-placeholder {
     width: 52px;
     height: 52px;
     border-radius: 10px;
-    background: #f3f4f6;
+    background: rgba(255,255,255,0.06);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #9ca3af;
+    color: var(--text-muted);
   }
 
   .ex-name {
     font-size: 0.95rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-primary);
     text-transform: capitalize;
     margin: 0 0 0.1rem;
   }
 
   .ex-target {
     font-size: 0.72rem;
-    color: #9ca3af;
+    color: var(--text-muted);
     margin: 0;
   }
 
@@ -164,22 +165,22 @@
     display: none;
     margin-left: auto;
     flex-shrink: 0;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
+    background: rgba(37,99,235,0.16);
+    border: 1px solid rgba(147,197,253,0.35);
     border-radius: 8px;
     padding: 0.3rem 0.7rem;
     font-size: 0.75rem;
     font-weight: 700;
-    color: #2563eb;
+    color: #93c5fd;
     font-variant-numeric: tabular-nums;
     gap: 0.25rem;
     align-items: center;
   }
   .rest-badge.visible { display: flex; }
   .rest-badge.rest-done {
-    background: #f0fdf4;
-    border-color: #86efac;
-    color: #16a34a;
+    background: rgba(34,197,94,0.18);
+    border-color: rgba(134,239,172,0.45);
+    color: #86efac;
   }
 
   /* Sets table */
@@ -194,9 +195,9 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    color: #9ca3af;
+    color: var(--text-muted);
     padding: 0 0.5rem 0.5rem;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--border-glass);
     text-align: center;
   }
 
@@ -212,33 +213,33 @@
     text-align: center;
   }
 
-  .set-num-cell  { font-size: 0.82rem; font-weight: 700; color: #6b7280; }
-  .set-prev-cell { font-size: 0.75rem; color: #9ca3af; }
+  .set-num-cell  { font-size: 0.82rem; font-weight: 700; color: #94a3b8; }
+  .set-prev-cell { font-size: 0.75rem; color: var(--text-muted); }
 
   .set-input {
     width: 58px;
     padding: 0.3rem 0.25rem;
-    border: 1.5px solid #e5e7eb;
+    border: 1.5px solid var(--border-glass);
     border-radius: 7px;
     font-size: 0.9rem;
     font-weight: 600;
     text-align: center;
-    color: #111827;
-    background: #f9fafb;
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.04);
     appearance: textfield;
     -moz-appearance: textfield;
     transition: border-color 0.12s, background 0.12s;
   }
   .set-input::-webkit-inner-spin-button,
   .set-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-  .set-input:focus { outline: none; border-color: #6366f1; background: #fff; }
-  .set-input:disabled { background: #f3f4f6; color: #6b7280; border-color: transparent; }
+  .set-input:focus { outline: none; border-color: var(--accent-indigo); background: rgba(255,255,255,0.08); }
+  .set-input:disabled { background: rgba(255,255,255,0.02); color: var(--text-muted); border-color: transparent; }
 
   .set-check-btn {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    border: 2px solid #d1d5db;
+    border: 2px solid var(--border-glass);
     background: transparent;
     cursor: pointer;
     display: flex;
@@ -248,20 +249,20 @@
     transition: all 0.15s;
     color: transparent;
   }
-  .set-check-btn:hover:not(:disabled) { border-color: #16a34a; background: #f0fdf4; }
-  .set-check-btn.done { background: #16a34a; border-color: #16a34a; color: #fff; }
+  .set-check-btn:hover:not(:disabled) { border-color: var(--accent-green); background: rgba(34,197,94,0.12); }
+  .set-check-btn.done { background: var(--accent-green); border-color: var(--accent-green); color: #052e16; }
   .set-check-btn:disabled { opacity: 0.4; cursor: default; }
-  .set-row.completed .set-num-cell { color: #9ca3af; }
+  .set-row.completed .set-num-cell { color: var(--text-muted); }
 
   /* Add set button */
   .add-set-row td { padding: 0.5rem 1rem 1rem; }
   .add-set-btn {
     width: 100%;
     padding: 0.5rem;
-    border: 1.5px dashed #d1d5db;
+    border: 1.5px dashed var(--border-glass);
     border-radius: 8px;
     background: transparent;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -269,22 +270,22 @@
     cursor: pointer;
     transition: border-color 0.12s, color 0.12s, background 0.12s;
   }
-  .add-set-btn:hover { border-color: #6366f1; color: #6366f1; background: #f5f3ff; }
+  .add-set-btn:hover { border-color: var(--accent-indigo); color: #a5b4fc; background: rgba(99,102,241,0.14); }
 
   /* Bottom finish bar */
   .finish-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: #fff;
-    border-top: 1px solid #e5e7eb;
+    background: var(--bg-surface);
+    border-top: 0.5px solid var(--border-glass);
     padding: 0.75rem 1.25rem;
     display: flex;
     justify-content: flex-end;
     z-index: 200;
   }
   .finish-bar-btn {
-    background: #16a34a;
-    color: #fff;
+    background: var(--accent-green);
+    color: #052e16;
     border: none;
     border-radius: 10px;
     padding: 0.65rem 2rem;
@@ -293,12 +294,68 @@
     cursor: pointer;
     transition: background 0.12s;
   }
-  .finish-bar-btn:hover { background: #15803d; }
+  .finish-bar-btn:hover { background: #22c55e; }
 
   /* Modal */
-  .modal-content { border: none; border-radius: 16px; overflow: hidden; }
-  .modal-header  { border-bottom: 1px solid #f3f4f6; padding: 1.25rem 1.5rem 1rem; }
-  .modal-footer  { border-top: 1px solid #f3f4f6; }
+  .modal-content {
+    background: var(--bg-surface);
+    border: 0.5px solid var(--border-glass);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .modal-header  { border-bottom: 1px solid var(--border-glass); padding: 1.25rem 1.5rem 1rem; }
+  .modal-footer  { border-top: 1px solid var(--border-glass); }
+
+  .summary-stat {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-glass);
+  }
+  .summary-stat-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+  .summary-stat-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .summary-stat-duration {
+    background: rgba(34,197,94,0.12);
+    border-color: rgba(134,239,172,0.35);
+  }
+  .summary-stat-duration .summary-stat-value { color: #86efac; }
+  .summary-stat-sets {
+    background: rgba(37,99,235,0.13);
+    border-color: rgba(147,197,253,0.35);
+  }
+  .summary-stat-sets .summary-stat-value { color: #93c5fd; }
+  .summary-stat-volume {
+    background: rgba(99,102,241,0.13);
+    border-color: rgba(165,180,252,0.35);
+  }
+  .summary-stat-volume .summary-stat-value { color: #a5b4fc; }
+
+  .session-notes {
+    border-radius: 10px;
+    border-color: var(--border-glass) !important;
+  }
+
+  .modal-action-cancel {
+    border-radius: 10px;
+    color: var(--text-primary);
+    border: 0.5px solid var(--border-glass);
+    background: rgba(255,255,255,0.06);
+  }
+  .modal-action-cancel:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--text-primary);
+  }
+
+  .session-muted {
+    color: var(--text-muted) !important;
+  }
 </style>
 {% endblock %}
 
@@ -327,8 +384,8 @@
 
   <!-- Progress -->
   <div class="progress-row">
-    <small class="text-muted" style="font-size:0.72rem;">Progress</small>
-    <small class="text-muted" style="font-size:0.72rem;" id="progressLabel">
+    <small class="session-muted" style="font-size:0.72rem;">Progress</small>
+    <small class="session-muted" style="font-size:0.72rem;" id="progressLabel">
       0 / {{ exercises|length }} exercises
     </small>
   </div>
@@ -339,7 +396,7 @@
   {% for message in get_flashed_messages(request) %}
   <div class="alert alert-{{ message.type }} alert-dismissible mb-3">
     {{ message.message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
   </div>
   {% endfor %}
 
@@ -406,34 +463,32 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title fw-bold">Finish Workout 💪</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" action="/api/sessions/{{ session.id }}/complete">
         <div class="modal-body p-4">
           <div class="d-flex gap-3 mb-4">
-            <div class="text-center flex-grow-1 p-3 rounded-3" style="background:#f0fdf4;">
-              <div style="font-size:1.4rem;font-weight:800;color:#16a34a;" id="summaryDuration">—</div>
-              <div style="font-size:0.72rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Duration</div>
+            <div class="text-center flex-grow-1 p-3 rounded-3 summary-stat summary-stat-duration">
+              <div class="summary-stat-value" id="summaryDuration">—</div>
+              <div class="summary-stat-label">Duration</div>
             </div>
-            <div class="text-center flex-grow-1 p-3 rounded-3" style="background:#eff6ff;">
-              <div style="font-size:1.4rem;font-weight:800;color:#2563eb;" id="summarySets">—</div>
-              <div style="font-size:0.72rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Sets Done</div>
+            <div class="text-center flex-grow-1 p-3 rounded-3 summary-stat summary-stat-sets">
+              <div class="summary-stat-value" id="summarySets">—</div>
+              <div class="summary-stat-label">Sets Done</div>
             </div>
-            <div class="text-center flex-grow-1 p-3 rounded-3" style="background:#faf5ff;">
-              <div style="font-size:1.4rem;font-weight:800;color:#7c3aed;" id="summaryVolume">—</div>
-              <div style="font-size:0.72rem;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Volume (kg)</div>
+            <div class="text-center flex-grow-1 p-3 rounded-3 summary-stat summary-stat-volume">
+              <div class="summary-stat-value" id="summaryVolume">—</div>
+              <div class="summary-stat-label">Volume (kg)</div>
             </div>
           </div>
           <label class="form-label fw-semibold" style="font-size:0.85rem;">
-            Session Notes <span class="text-muted fw-normal">(optional)</span>
+            Session Notes <span class="session-muted fw-normal">(optional)</span>
           </label>
-          <textarea name="notes" class="form-control" rows="3"
-                    style="border-radius:10px;border-color:#e5e7eb;"
+          <textarea name="notes" class="form-control session-notes" rows="3"
                     placeholder="e.g. felt strong today, PB on bench…"></textarea>
         </div>
         <div class="modal-footer px-4 pb-4 border-0 pt-0">
-          <button type="button" class="btn btn-light fw-semibold" data-bs-dismiss="modal"
-                  style="border-radius:10px;">Keep Going</button>
+          <button type="button" class="btn fw-semibold modal-action-cancel" data-bs-dismiss="modal">Keep Going</button>
           <button type="submit" class="btn btn-success fw-bold px-4" style="border-radius:10px;">
             Complete Workout
           </button>
