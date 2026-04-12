@@ -1,0 +1,260 @@
+{% extends "authenticated-base.html" %}
+{% block title %}Edit Workout Record — {{ routine.name }}{% endblock %}
+
+{% block additional_styles %}
+<style>
+  .session-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding-bottom: 120px;
+  }
+
+  .workout-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-surface);
+    border-bottom: 0.5px solid var(--border-glass);
+    padding: 0.75rem 1rem;
+    margin: -1rem -1rem 1.25rem;
+  }
+
+  .routine-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .started-at {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .edit-btn {
+    background: var(--accent-indigo);
+    color: #e0e7ff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .ex-card {
+    background: var(--bg-surface);
+    border: 0.5px solid var(--border-glass);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+
+  .ex-card-header {
+    padding: 1rem 1rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .ex-gif {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 10px;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .ex-gif-placeholder {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  .ex-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: capitalize;
+    margin: 0;
+  }
+
+  .ex-target {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 0;
+    text-transform: capitalize;
+  }
+
+  .sets-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .sets-table thead th {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    padding: 0 0.5rem 0.5rem;
+    border-bottom: 1px solid var(--border-glass);
+    text-align: center;
+  }
+
+  .set-row td {
+    padding: 0.45rem 0.5rem;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .set-num-cell {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #94a3b8;
+  }
+
+  .set-input {
+    width: 90%;
+    padding: 0.35rem 0.4rem;
+    border: 1.5px solid var(--border-glass);
+    border-radius: 7px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.04);
+  }
+
+  .set-input:focus {
+    outline: none;
+    border-color: var(--accent-indigo);
+    background: rgba(255,255,255,0.08);
+  }
+
+  .set-notes {
+    text-align: left;
+    width: 100%;
+  }
+
+  .notes-card {
+    background: var(--bg-surface);
+    border: 0.5px solid var(--border-glass);
+    border-radius: 14px;
+    padding: 1rem;
+  }
+
+  .save-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-surface);
+    border-top: 0.5px solid var(--border-glass);
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    justify-content: flex-end;
+    z-index: 200;
+    gap: 0.5rem;
+  }
+
+  .muted-copy {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+</style>
+{% endblock %}
+
+{% block subpage_content %}
+<form method="POST" action="/api/sessions/{{ session.id }}/edit-records">
+  <div class="session-wrap">
+    <div class="workout-header">
+      <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <div>
+          <p class="routine-title">{{ routine.name }}</p>
+          <p class="started-at">
+            Editing workout from {{ session.completed_at.strftime('%b %d, %Y %I:%M %p') if session.completed_at else session.started_at.strftime('%b %d, %Y %I:%M %p') }}
+          </p>
+        </div>
+        <button type="submit" class="edit-btn">
+          Make Changes
+        </button>
+      </div>
+      <p class="muted-copy mt-2 mb-0">Changes update this historical workout only. The original workout date stays the same.</p>
+    </div>
+
+    {% for group in edit_groups %}
+    <div class="ex-card">
+      <div class="ex-card-header">
+        {% if group.exercise_gif %}
+        <img src="{{ group.exercise_gif }}" class="ex-gif" loading="lazy" alt="{{ group.exercise_name }}">
+        {% else %}
+        <div class="ex-gif-placeholder">
+          <span class="material-symbols-outlined" style="font-size:1.3rem">fitness_center</span>
+        </div>
+        {% endif %}
+        <div class="overflow-hidden">
+          <p class="ex-name">{{ group.exercise_name }}</p>
+          <p class="ex-target">{{ group.exercise_target or 'Logged exercise' }}</p>
+        </div>
+      </div>
+
+      <table class="sets-table">
+        <thead>
+          <tr>
+            <th style="width:54px;">Set</th>
+            <th style="width:90px;">KG</th>
+            <th style="width:90px;">Reps</th>
+            <th style="width:110px;">Duration (s)</th>
+            <th>Set Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for se in group.sets %}
+          <tr class="set-row">
+            <td class="set-num-cell">{{ loop.index }}</td>
+            <td>
+              <input class="set-input" type="number" min="0" step="0.5"
+                     name="weight_kg_{{ se.id }}" value="{{ se.weight_kg if se.weight_kg is not none else '' }}">
+            </td>
+            <td>
+              <input class="set-input" type="number" min="0"
+                     name="reps_completed_{{ se.id }}" value="{{ se.reps_completed if se.reps_completed is not none else '' }}">
+            </td>
+            <td>
+              <input class="set-input" type="number" min="0"
+                     name="duration_seconds_{{ se.id }}" value="{{ se.duration_seconds if se.duration_seconds is not none else '' }}">
+            </td>
+            <td>
+              <input class="set-input set-notes" type="text"
+                     name="set_notes_{{ se.id }}" value="{{ se.notes or '' }}"
+                     placeholder="Optional note for this set">
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+
+    <div class="notes-card mb-5">
+      <label class="form-label fw-semibold" for="session_notes">Session Notes</label>
+      <textarea id="session_notes" name="session_notes" class="form-control" rows="3"
+                placeholder="Optional notes about the whole workout">{{ session.notes or '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="save-bar">
+    <a href="/activity" class="btn btn-outline-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">Make Changes</button>
+  </div>
+</form>
+{% endblock %}
