@@ -11,5 +11,6 @@ from app.models.models import (
     Post,
     PostReaction,
     UserMute,
+    User,
+    UserBase,
 )
-from app.models.user import (User, UserBase)
