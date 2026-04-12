@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status, Request
 import jwt
 from jwt.exceptions import InvalidTokenError
 from app.config import get_settings
-from app.models.user import User
+from app.models.models import User 
 from app.dependencies.session import SessionDep
 from app.repositories.user import UserRepository
 

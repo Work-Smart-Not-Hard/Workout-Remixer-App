@@ -5,7 +5,7 @@ from typing import Optional
 from collections import defaultdict
 from app.dependencies import SessionDep, AuthDep
 from app.models import WorkoutSession, SessionExercise, Exercise
-from app.models.user import User
+from app.models.models import User 
 from app.utilities.flash import flash
 from . import router, templates, api_router
 

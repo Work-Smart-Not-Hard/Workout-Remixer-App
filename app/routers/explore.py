@@ -4,7 +4,7 @@ from sqlmodel import select, desc, func
 from typing import Optional
 from app.dependencies import SessionDep, AuthDep
 from app.models.models import Post, PostReaction, UserMute, Routine
-from app.models.user import User
+from app.models.models import User 
 from app.utilities.flash import flash
 from . import router, templates, api_router
 

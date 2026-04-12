@@ -1,5 +1,6 @@
 from sqlmodel import Session, select
-from app.models import WorkoutSession, SessionExercise
+from app.models import WorkoutSession, SessionExercise, User
+from app.services.calorie_service import calculate_session_calories
 from datetime import datetime, timezone
 from typing import Optional
 import logging

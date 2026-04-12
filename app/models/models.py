@@ -97,6 +97,7 @@ class WorkoutSession(SQLModel, table=True):
     completed_at: Optional[datetime] = None
     duration_minutes: Optional[int] = None
     notes: Optional[str] = None
+    calories_burned: Optional[float] = None  # calculated on session completion
     paired_session_id: Optional[int] = Field(default=None, foreign_key="workoutsession.id")
 
     user: Optional['User'] = Relationship(back_populates="sessions")
