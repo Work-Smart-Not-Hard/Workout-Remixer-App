@@ -138,8 +138,26 @@
                 datasets: [{ label: 'Sets', data: labels.map(l => grouped[l]),
                     backgroundColor: 'rgba(13,110,253,0.7)', borderRadius: 4 }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                        labels: { color: '#94a3b8' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#64748b' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#64748b' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
+                    }
+                }
+            }
         });
     }
 

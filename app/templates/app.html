@@ -1,3 +1,4 @@
+```
 {% extends "authenticated-base.html" %}
 {% from "heatmap_component.html" import muscle_heatmap %}
 {% block title %}Home{% endblock %}
@@ -11,8 +12,8 @@
 
     <div class="row mb-4">
         <div class="col">
-            <h4 class="fw-bold mb-0">Welcome back, {{ user.username }}</h4>
-            <p class="text-muted small mb-0">Here's your recent activity</p>
+            <h4 class="page-title">Welcome back, {{ user.username }}</h4>
+            <p class="page-subtitle">Here's your recent activity</p>
         </div>
         <div class="col-auto">
             <a href="/dashboard" class="btn btn-outline-primary btn-sm">Full Dashboard</a>
@@ -25,7 +26,7 @@
         <div class="col-lg-5">
             <div class="card shadow-sm p-3 h-100">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-semibold mb-0">This Week's Muscle Activity</h6>
+                    <h6 class="section-title">This Week's Muscle Activity</h6>
                     <select id="hmPeriod" class="form-select form-select-sm" style="width:auto;" onchange="reloadHeatmap()">
                         <option value="week">This Week</option>
                         <option value="month">This Month</option>
@@ -40,21 +41,21 @@
         <div class="col-lg-7">
             <div class="row g-3 mb-3">
                 <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="quickSessions">—</h2>
-                        <small class="text-muted">Workouts this week</small>
+                    <div class="card stat-card tint-indigo">
+                        <div class="stat-number" id="quickSessions">—</div>
+                        <div class="stat-label">Workouts this week</div>
                     </div>
                 </div>
                 <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="quickSets">—</h2>
-                        <small class="text-muted">Sets this week</small>
+                    <div class="card stat-card tint-green">
+                        <div class="stat-number" id="quickSets">—</div>
+                        <div class="stat-label">Sets this week</div>
                     </div>
                 </div>
                 <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="quickMinutes">—</h2>
-                        <small class="text-muted">Minutes trained</small>
+                    <div class="card stat-card tint-amber">
+                        <div class="stat-number" id="quickMinutes">—</div>
+                        <div class="stat-label">Minutes trained</div>
                     </div>
                 </div>
             </div>
@@ -62,7 +63,7 @@
             <!-- Quick actions -->
             <div class="card shadow-sm mb-3">
                 <div class="card-body">
-                    <h6 class="fw-semibold mb-3">Quick Actions</h6>
+                    <h6 class="section-title mb-3">Quick Actions</h6>
                     <div class="d-flex gap-2 flex-wrap">
                         <a href="/routines" class="btn btn-primary btn-sm">
                             <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">event_note</span>
@@ -82,7 +83,7 @@
 
             <!-- Recent workouts -->
             <div class="card shadow-sm">
-                <div class="card-header bg-white fw-semibold">Recent Workouts</div>
+                <div class="card-header bg-transparent section-title">Recent Workouts</div>
                 <div id="recentWorkouts" class="card-body p-0">
                     <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
                 </div>
@@ -140,3 +141,4 @@
     loadRecentWorkouts();
 </script>
 {% endblock %}
+```

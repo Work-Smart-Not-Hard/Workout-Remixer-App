@@ -11,7 +11,7 @@ from app.repositories.user import UserRepository
 from app.services.auth_service import AuthService
 from app.schemas.user import AdminCreate
 from app.utilities.security import encrypt_password
-from app.models.user import User
+from app.models import User
 
 app = typer.Typer()
 

@@ -7,7 +7,7 @@
 
     <div class="row mb-3">
         <div class="col-12">
-            <h4 class="fw-bold">Browse Exercises</h4>
+            <h4 class="page-title">Browse Exercises</h4>
         </div>
     </div>
 
@@ -27,7 +27,7 @@
             <!-- Equipment filter -->
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <p class="fw-semibold small mb-0">Equipment</p>
+                    <p class="meta-kicker mb-0">Equipment</p>
                     <button class="btn btn-link btn-sm p-0 text-muted" id="clearEquipBtn"
                             onclick="clearEquipment()" style="display:none;">Clear</button>
                 </div>
@@ -37,7 +37,7 @@
             <!-- Muscle filter via SVG -->
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                    <p class="fw-semibold small mb-0">Muscle Group</p>
+                    <p class="meta-kicker mb-0">Muscle Group</p>
                     <button class="btn btn-link btn-sm p-0 text-muted" onclick="clearMuscle()"
                             id="clearMuscleBtn" style="display:none;">Clear</button>
                 </div>
@@ -57,7 +57,7 @@
 
             <!-- Favourites strip -->
             <div id="favsSection" class="mb-3" style="display:none;">
-                <h6 class="fw-semibold text-warning mb-2">
+                <h6 class="section-title text-warning mb-2">
                     <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
                     Favourites on this page
                 </h6>
@@ -105,9 +105,9 @@
                         </div>
                     </div>
                     <div class="col-md-7">
-                        <h6 class="fw-bold">Secondary Muscles</h6>
+                        <h6 class="section-title">Secondary Muscles</h6>
                         <p id="modalSecondary" class="text-muted small mb-3"></p>
-                        <h6 class="fw-bold">Instructions</h6>
+                        <h6 class="section-title">Instructions</h6>
                         <ol id="modalInstructions" class="ps-3 small" style="max-height:200px;overflow-y:auto;"></ol>
                     </div>
                 </div>
@@ -472,21 +472,22 @@ function renderGrid(exercises) {
         const isFav = favouriteIds.has(exId);
         const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
         const equips = Array.isArray(ex.equipments) ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
+        const payload = encodeURIComponent(JSON.stringify(ex));
         
         return `
         <div class="col-sm-6 col-md-4">
-            <div class="card h-100 shadow-sm border-0 position-relative"
-                 role="button" onclick='openExercise(${JSON.stringify(ex)})'>
-                ${isFav ? `<span class="position-absolute top-0 end-0 m-1">
-                    <span class="material-symbols-outlined text-warning" style="font-size:1.1rem;font-variation-settings:'FILL' 1">star</span>
-                </span>` : ''}
-                <img src="${ex.gifUrl || ''}" class="card-img-top"
-                     style="height:160px;object-fit:cover;" loading="lazy" alt="${ex.name}">
-                <div class="card-body p-2">
-                    <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.82rem;">${ex.name}</p>
-                    <div>
-                        ${targets.map(m => `<span class="badge bg-success me-1" style="font-size:0.68rem">${m}</span>`).join('')}
-                        ${equips.map(e => `<span class="badge bg-secondary me-1" style="font-size:0.68rem">${e}</span>`).join('')}
+            <div class="ex-card-new position-relative"
+                 role="button" onclick="openExerciseFromEncoded('${payload}')">
+                ${isFav ? `<span class="ex-fav-star">★</span>` : ''}
+                <div class="ex-card-img-wrap">
+                    <img src="${ex.gifUrl || ''}" loading="lazy" alt="${ex.name}">
+                    <div class="ex-card-overlay"></div>
+                </div>
+                <div class="ex-card-body">
+                    <p class="ex-card-name">${ex.name}</p>
+                    <div class="ex-card-tags">
+                        ${targets.map(m => `<span class="ex-tag ex-tag-green">${m}</span>`).join('')}
+                        ${equips.map(e => `<span class="ex-tag ex-tag-gray">${e}</span>`).join('')}
                     </div>
                 </div>
             </div>
@@ -499,17 +500,39 @@ function renderFavsStrip(favExercises) {
     const grid    = document.getElementById('favsGrid');
     if (!favExercises.length) { section.style.display = 'none'; return; }
     section.style.display = '';
-    grid.innerHTML = favExercises.map(ex => `
-        <div class="col-6 col-md-3 col-lg-2">
-            <div class="card shadow-sm" role="button" onclick='openExercise(${JSON.stringify(ex)})'>
-                <img src="${ex.gifUrl || ''}" class="card-img-top"
-                     style="height:90px;object-fit:cover;" loading="lazy">
-                <div class="card-body p-1">
-                    <p class="mb-0 text-capitalize fw-semibold" style="font-size:0.72rem;">${ex.name}</p>
+    grid.innerHTML = favExercises.map(ex => {
+        const exId = ex.exerciseId || ex.id;
+        const isFav = favouriteIds.has(exId);
+        const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
+        const equips = Array.isArray(ex.equipments) ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
+        const payload = encodeURIComponent(JSON.stringify(ex));
+
+        return `
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="ex-card-new position-relative" role="button" onclick="openExerciseFromEncoded('${payload}')">
+                ${isFav ? `<span class="ex-fav-star">★</span>` : ''}
+                <div class="ex-card-img-wrap">
+                    <img src="${ex.gifUrl || ''}" loading="lazy" alt="${ex.name}">
+                    <div class="ex-card-overlay"></div>
+                </div>
+                <div class="ex-card-body">
+                    <p class="ex-card-name">${ex.name}</p>
+                    <div class="ex-card-tags">
+                        ${targets.slice(0, 2).map(m => `<span class="ex-tag ex-tag-green">${m}</span>`).join('')}
+                        ${equips.slice(0, 1).map(e => `<span class="ex-tag ex-tag-gray">${e}</span>`).join('')}
+                    </div>
                 </div>
             </div>
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
+}
+
+function openExerciseFromEncoded(encoded) {
+    try {
+        openExercise(JSON.parse(decodeURIComponent(encoded)));
+    } catch (err) {
+        console.error('Invalid exercise payload', err);
+    }
 }
 
 function showSpinner(msg) {

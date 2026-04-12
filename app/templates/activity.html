@@ -146,9 +146,11 @@
         const timeStr = dt.toLocaleTimeString('en-TT', { hour: '2-digit', minute: '2-digit' });
         const routineName = e.routine ? e.routine.name : 'Custom Workout';
 
-        const exChips = e.exercises.map(ex => `
+        const exChips = e.exercises.map(ex => {
+            const exEncoded = encodeURIComponent(JSON.stringify(ex));
+            return `
             <div class="d-flex align-items-center gap-2 py-2 border-bottom"
-                 role="button" onclick='openExDetail(${JSON.stringify(ex)})' style="cursor:pointer;">
+                 role="button" onclick="openExDetailFromEncoded('${exEncoded}')" style="cursor:pointer;">
                 ${ex.gif_url
                     ? `<img src="${ex.gif_url}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`
                     : `<div class="bg-light rounded d-flex align-items-center justify-content-center flex-shrink-0"
@@ -164,7 +166,8 @@
                     </small>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         const muscleHtml = buildMuscleBadges(e.muscle_data || {});
         const notesHtml = e.notes
@@ -180,7 +183,8 @@
                     </div>
                     <div class="d-flex gap-1">
                         <button class="btn btn-sm btn-outline-secondary"
-                                onclick="openEdit(${e.id}, ${JSON.stringify(e.notes || '')})">
+                                onclick="window.location.href='/sessions/${e.id}/edit'"
+                                title="Make changes to this workout record">
                             <span class="material-symbols-outlined" style="font-size:.9rem;vertical-align:middle">edit</span>
                         </button>
                         <button class="btn btn-sm btn-outline-danger"
@@ -218,6 +222,14 @@
                 ${notesHtml}
             </div>
         </div>`;
+    }
+
+    function openExDetailFromEncoded(encoded) {
+        try {
+            openExDetail(JSON.parse(decodeURIComponent(encoded)));
+        } catch (err) {
+            console.error('Failed to parse exercise payload', err);
+        }
     }
 
     const MUSCLE_MAP = {

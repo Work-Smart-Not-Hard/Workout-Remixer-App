@@ -11,8 +11,8 @@
 
     <div class="row mb-4 align-items-center">
         <div class="col">
-            <h4 class="fw-bold mb-0">Progress Dashboard</h4>
-            <p class="text-muted small mb-0">Your workout history at a glance</p>
+            <h4 class="page-title">Progress Dashboard</h4>
+            <p class="page-subtitle">Your workout history at a glance</p>
         </div>
         <div class="col-auto">
             <select id="periodFilter" class="form-select form-select-sm" onchange="reload()">
@@ -29,9 +29,9 @@
 
         <!-- Left: heatmap -->
         <div class="col-lg-4">
-            <div class="card shadow-sm p-3 h-100">
+            <div class="card p-3 h-100">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-semibold mb-0">Muscle Activity</h6>
+                    <h6 class="section-title">Muscle Activity</h6>
                     <small class="text-muted">Click a muscle to see history</small>
                 </div>
                 {{ muscle_heatmap(mode="stats", height="380px") }}
@@ -44,35 +44,35 @@
             <!-- Summary cards -->
             <div class="row g-3 mb-4">
                 <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="statSessions">—</h2>
-                        <small class="text-muted">Workouts</small>
+                    <div class="card stat-card tint-indigo">
+                        <div class="stat-number" id="statSessions">—</div>
+                        <div class="stat-label">Workouts</div>
                     </div>
                 </div>
                 <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="statSets">—</h2>
-                        <small class="text-muted">Total Sets</small>
+                    <div class="card stat-card tint-green">
+                        <div class="stat-number" id="statSets">—</div>
+                        <div class="stat-label">Total Sets</div>
                     </div>
                 </div>
                 <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="statDuration">—</h2>
-                        <small class="text-muted">Minutes Trained</small>
+                    <div class="card stat-card tint-amber">
+                        <div class="stat-number" id="statDuration">—</div>
+                        <div class="stat-label">Minutes Trained</div>
                     </div>
                 </div>
             </div>
 
             <!-- Sessions over time -->
-            <div class="card shadow-sm p-3 mb-4">
-                <h6 class="fw-semibold mb-3">Workouts Over Time</h6>
+            <div class="card p-3 mb-4">
+                <h6 class="section-title mb-3">Workouts Over Time</h6>
                 <canvas id="sessionsChart" height="110"></canvas>
                 <p id="noSessionsMsg" class="text-muted text-center small mt-2" style="display:none;">No workouts yet for this period.</p>
             </div>
 
             <!-- Muscle volume bar -->
-            <div class="card shadow-sm p-3">
-                <h6 class="fw-semibold mb-3">Top Muscle Groups (sets)</h6>
+            <div class="card p-3">
+                <h6 class="section-title mb-3">Top Muscle Groups (sets)</h6>
                 <canvas id="muscleChart" height="160"></canvas>
                 <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet.</p>
             </div>
@@ -80,13 +80,13 @@
     </div>
 
     <!-- Recent sessions -->
-    <div class="card shadow-sm mt-4">
-        <div class="card-header bg-white fw-semibold">Recent Workouts</div>
+    <div class="card mt-4">
+        <div class="card-header section-title">Recent Workouts</div>
         <div class="card-body p-0">
             {% if sessions %}
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                    <thead>
                         <tr><th>Date</th><th>Routine</th><th>Duration</th><th>Notes</th></tr>
                     </thead>
                     <tbody>
@@ -151,11 +151,16 @@
         const noMsg = document.getElementById('noSessionsMsg');
         const canvas = document.getElementById('sessionsChart');
         if (!dataPoints.length) {
-            noMsg.style.display = ''; canvas.style.display = 'none';
-            if (sessionsChart) { sessionsChart.destroy(); sessionsChart = null; }
+            noMsg.style.display = '';
+            canvas.style.display = 'none';
+            if (sessionsChart) {
+                sessionsChart.destroy();
+                sessionsChart = null;
+            }
             return;
         }
-        noMsg.style.display = 'none'; canvas.style.display = '';
+        noMsg.style.display = 'none';
+        canvas.style.display = '';
         const grouped = {};
         dataPoints.forEach(d => grouped[d.date] = (grouped[d.date] || 0) + d.duration);
         const labels = Object.keys(grouped).sort();
@@ -164,12 +169,39 @@
             type: 'line',
             data: {
                 labels,
-                datasets: [{ label: 'Duration (min)', data: labels.map(l => grouped[l]),
-                    borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.08)',
-                    tension: 0.3, fill: true, pointRadius: 4 }]
+                datasets: [{
+                    label: 'Duration (min)',
+                    data: labels.map(l => grouped[l]),
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99,102,241,0.10)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: '#a5b4fc',
+                    borderWidth: 2
+                }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } }
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                        labels: { color: '#94a3b8' }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#64748b' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#64748b' }
+                    }
+                }
+            }
         });
     }
 
@@ -177,21 +209,50 @@
         const noMsg = document.getElementById('noMuscleMsg');
         const canvas = document.getElementById('muscleChart');
         if (!muscleData.length) {
-            noMsg.style.display = ''; canvas.style.display = 'none';
-            if (muscleChart) { muscleChart.destroy(); muscleChart = null; }
+            noMsg.style.display = '';
+            canvas.style.display = 'none';
+            if (muscleChart) {
+                muscleChart.destroy();
+                muscleChart = null;
+            }
             return;
         }
-        noMsg.style.display = 'none'; canvas.style.display = '';
+        noMsg.style.display = 'none';
+        canvas.style.display = '';
         if (muscleChart) muscleChart.destroy();
         muscleChart = new Chart(canvas, {
             type: 'bar',
             data: {
                 labels: muscleData.map(d => d.muscle),
-                datasets: [{ label: 'Sets', data: muscleData.map(d => d.sets),
-                    backgroundColor: 'rgba(13,110,253,0.7)', borderRadius: 4 }]
+                datasets: [{
+                    label: 'Sets',
+                    data: muscleData.map(d => d.sets),
+                    backgroundColor: 'rgba(99,102,241,0.75)',
+                    borderRadius: 6,
+                    hoverBackgroundColor: 'rgba(99,102,241,0.9)'
+                }]
             },
-            options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true }, y: { grid: { display: false } } } }
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false,
+                        labels: { color: '#94a3b8' }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#64748b' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#64748b' }
+                    }
+                }
+            }
         });
     }
 
