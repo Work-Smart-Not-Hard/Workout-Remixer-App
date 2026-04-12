@@ -1,5 +1,5 @@
 from sqlmodel import Session, select, func
-from app.models.user import UserBase, User
+from app.models import UserBase, User
 from typing import Optional, Tuple
 from app.utilities.pagination import Pagination
 from app.schemas.user import UserUpdate
