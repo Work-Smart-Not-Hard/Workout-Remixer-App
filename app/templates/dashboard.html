@@ -44,7 +44,7 @@
             <!-- Summary cards -->
             <div class="row g-3 mb-4">
                 <div class="col-sm-4">
-                    <div class="card stat-card tint-indigo">
+                    <div class="card stat-card tint-cyan">
                         <div class="stat-number" id="statSessions">—</div>
                         <div class="stat-label">Workouts</div>
                     </div>
@@ -172,13 +172,13 @@
                 datasets: [{
                     label: 'Duration (min)',
                     data: labels.map(l => grouped[l]),
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99,102,241,0.06)',
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56,189,248,0.08)',
                     tension: 0.4,
                     fill: true,
                     pointRadius: 5,
                     pointHoverRadius: 5,
-                    pointBackgroundColor: '#6366f1',
+                    pointBackgroundColor: '#38bdf8',
                     pointBorderColor: 'rgba(10,13,20,0.8)',
                     pointBorderWidth: 2,
                     borderWidth: 2
@@ -231,10 +231,10 @@
                 datasets: [{
                     label: 'Sets',
                     data: muscleData.map(d => d.sets),
-                    backgroundColor: 'rgba(99,102,241,0.75)',
+                    backgroundColor: 'rgba(56,189,248,0.75)',
                     borderRadius: 6,
                     borderSkipped: false,
-                    hoverBackgroundColor: 'rgba(99,102,241,0.9)'
+                    hoverBackgroundColor: 'rgba(56,189,248,0.9)'
                 }]
             },
             options: {
