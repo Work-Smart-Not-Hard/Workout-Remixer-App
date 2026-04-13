@@ -1,186 +1,489 @@
 {% extends "base.html" %}
 
 {% block internal_css %}
-
 <style>
-    body {
-        overflow-x: hidden;
-        background-color: #f8f9fa;
-    }
+  *, *::before, *::after { box-sizing: border-box; }
 
-    #wrapper {
-        display: flex;
-    }
+  body {
+    background: #0a0d14;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(99,102,241,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(6,182,212,0.05) 0%, transparent 50%);
+    color: #e2e8f0;
+    overflow-x: hidden;
+  }
 
-    #sidebar {
-        min-width: 250px;
-        max-width: 250px;
-        min-height: 100vh;
-        transition: all 0.3s;
-        background: #1b263b;
-        color: #fff;
-    }
+  /* Layout */
+  #wrapper {
+    display: flex;
+    min-height: 100vh;
+  }
 
-    #sidebar.collapsed {
-        margin-left: -250px;
-    }
+  /* Icon rail sidebar */
+  #sidebar {
+    position: fixed;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    height: 430px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(13, 17, 23, 0.92);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 200;
+    padding: 10px 0;
+    transition: left 0.28s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
 
-    #sidebar .nav-link {
-        color: #adb5bd;
-        font-weight: 500;
-    }
+  #sidebar.collapsed {
+    left: -72px;
+  }
 
-    #sidebar .nav-link:hover,
-    #sidebar .nav-link.active {
-        background: rgba(99,102,241,0.15) !important;
-        color: #a5b4fc !important;
-        border-left: 3px solid var(--accent-indigo);
-        padding-left: calc(0.75rem - 3px);
-    }
+  /* Brand icon */
+  .sb-brand {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #6366f1, #818cf8);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 16px rgba(99,102,241,0.5);
+    margin-bottom: 8px;
+    text-decoration: none;
+  }
 
-    #content {
-        width: 100%;
-        padding: 1rem;
-        transition: all 0.3s;
-        display: flex;
-        flex-direction: column;
-        background-color: var(--bg-base)
-    }
+  .sb-brand svg {
+    width: 15px;
+    height: 15px;
+    fill: #fff;
+  }
 
-    .card {
-        border: none;
-        border-radius: 1rem;
-    }
+  /* Nav section */
+  .sb-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    padding: 0 5px;
+  }
 
-    .summary-card {
-        border-left: 5px solid #0d6efd;
-    }
+  /* Nav item */
+  .sb-item {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #475569;
+    transition: color 0.15s ease, background 0.15s ease;
+    flex-shrink: 0;
+  }
 
-    .navbar {
-        background: rgba(13,17,23,0.85) !important;
-        backdrop-filter: blur(16px);
-        border-bottom: 0.5px solid var(--border-glass) !important;
-        box-shadow: none !important;
-    }
+  .sb-item:hover {
+    color: #94a3b8;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .sb-item .material-symbols-outlined {
+    font-size: 17px;
+    font-variation-settings: 'FILL' 0, 'wght' 300;
+    transition: font-variation-settings 0.15s;
+  }
+
+  /* Active states */
+  .sb-item.active-indigo {
+    color: #818cf8;
+    background: rgba(99,102,241,0.18);
+    box-shadow: 0 0 14px rgba(99,102,241,0.25);
+  }
+  .sb-item.active-indigo .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 400;
+  }
+
+  .sb-item.active-cyan {
+    color: #67e8f9;
+    background: rgba(6,182,212,0.15);
+    box-shadow: 0 0 14px rgba(6,182,212,0.2);
+  }
+  .sb-item.active-cyan .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 400;
+  }
+
+  .sb-item.active-green {
+    color: #4ade80;
+    background: rgba(34,197,94,0.14);
+    box-shadow: 0 0 14px rgba(34,197,94,0.2);
+  }
+  .sb-item.active-green .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 400;
+  }
+
+  .sb-item.active-amber {
+    color: #fcd34d;
+    background: rgba(245,158,11,0.14);
+    box-shadow: 0 0 14px rgba(245,158,11,0.2);
+  }
+  .sb-item.active-amber .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 400;
+  }
+
+  /* Tooltip */
+  .sb-item::after {
+    content: attr(data-label);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(15, 20, 30, 0.95);
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 300;
+  }
+
+  .sb-item:hover::after {
+    opacity: 1;
+  }
+
+  /* Footer */
+  .sb-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 5px;
+    width: 100%;
+  }
+
+  .sb-logout {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #334155;
+    transition: color 0.15s ease, background 0.15s ease;
+    position: relative;
+  }
+
+  .sb-logout:hover {
+    color: #f87171;
+    background: rgba(239,68,68,0.1);
+  }
+
+  .sb-logout .material-symbols-outlined {
+    font-size: 17px;
+    font-variation-settings: 'FILL' 0, 'wght' 300;
+  }
+
+  .sb-logout::after {
+    content: 'Sign out';
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(15, 20, 30, 0.95);
+    color: #f87171;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(239,68,68,0.2);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 300;
+  }
+
+  .sb-logout:hover::after {
+    opacity: 1;
+  }
+
+  /* Main content */
+  #content {
+    flex: 1;
+    min-width: 0;
+    margin-left: 72px;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.28s cubic-bezier(.4,0,.2,1);
+  }
+
+  #content.sidebar-hidden {
+    margin-left: 0;
+  }
+
+  /* Topbar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .topbar-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.04);
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .topbar-toggle:hover {
+    background: rgba(255,255,255,0.08);
+    color: #e2e8f0;
+  }
+
+  .topbar-toggle .material-symbols-outlined { font-size: 18px; }
+
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .topbar-user {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.03);
+    text-decoration: none;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+  }
+
+  .topbar-user:hover {
+    background: rgba(255,255,255,0.06);
+    color: #e2e8f0;
+  }
+
+  .topbar-user::after {
+    content: attr(data-label);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(15, 20, 30, 0.95);
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 300;
+  }
+
+  .topbar-user:hover::after {
+    opacity: 1;
+  }
+
+  .topbar-user .material-symbols-outlined {
+    font-size: 18px;
+    font-variation-settings: 'FILL' 0, 'wght' 300;
+  }
+
+  .topbar-avatar {
+    display: none;
+  }
+
+  .topbar-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #e0e7ff;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  /* Page body */
+  .page-content {
+    flex: 1;
+    padding: 8px 24px 32px;
+  }
+
+  /* Flash alerts */
+  .alert-success {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.2);
+    color: #86efac;
+    border-radius: 10px;
+  }
+  .alert-danger {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: #fca5a5;
+    border-radius: 10px;
+  }
+
+  {% block additional_styles %}{% endblock %}
 </style>
-
-{% block additional_styles %}{% endblock %}
-
 {% endblock %}
 
 
 {% block content %}
 <div id="wrapper">
 
-    <nav id="sidebar" class="p-3 d-flex flex-column vh-100">
-        <h4 class="text-white mb-4 text-center py-4">Workout Remixer</h4>
+  <!-- Icon rail -->
+  <nav id="sidebar">
 
-        <ul class="nav nav-pills flex-column gap-2 flex-grow-1">
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/app' }}" href="/app">
-                    <span class="material-symbols-outlined me-2">home</span>
-                    Home
-                </a>
-            </li>
+    <!-- Brand -->
+    <a href="/app" class="sb-brand" data-label="Workout Remixer">
+      <svg viewBox="0 0 24 24"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+    </a>
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/dashboard' }}" href="/dashboard">
-                    <span class="material-symbols-outlined me-2">bar_chart</span>
-                    Dashboard
-                </a>
-            </li>
+    <div class="sb-nav">
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/exercises' }}" href="/exercises">
-                    <span class="material-symbols-outlined me-2">fitness_center</span>
-                    Exercises
-                </a>
-            </li>
+      <a href="/app"
+         class="sb-item {% if request.path == '/app' %}active-indigo{% endif %}"
+         data-label="Home">
+        <span class="material-symbols-outlined">home</span>
+      </a>
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/custom-exercises' }}" href="/custom-exercises">
-                    <span class="material-symbols-outlined me-2">edit_note</span>
-                    Custom Exercises
-                </a>
-            </li>
+      <a href="/dashboard"
+         class="sb-item {% if request.path == '/dashboard' %}active-cyan{% endif %}"
+         data-label="Dashboard">
+        <span class="material-symbols-outlined">bar_chart</span>
+      </a>
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/routines' }}" href="/routines">
-                    <span class="material-symbols-outlined me-2">event_note</span>
-                    Routines
-                </a>
-            </li>
+      <a href="/activity"
+         class="sb-item {% if request.path == '/activity' %}active-green{% endif %}"
+         data-label="My Activity">
+        <span class="material-symbols-outlined">history</span>
+      </a>
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/favourites' }}" href="/favourites">
-                    <span class="material-symbols-outlined me-2">star</span>
-                    Favourites
-                </a>
-            </li>
+      <!-- Training -->
+      <a href="/exercises"
+         class="sb-item {% if request.path == '/exercises' %}active-amber{% endif %}"
+         data-label="Exercises">
+        <span class="material-symbols-outlined">fitness_center</span>
+      </a>
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/explore' }}" href="/explore">
-                    <span class="material-symbols-outlined me-2">explore</span>
-                    Explore
-                </a>
-            </li>
+      <a href="/routines"
+         class="sb-item {% if request.path == '/routines' %}active-green{% endif %}"
+         data-label="Routines">
+        <span class="material-symbols-outlined">event_note</span>
+      </a>
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center {{ 'active' if request.path == '/activity' }}" href="/activity">
-                    <span class="material-symbols-outlined me-2">history</span>
-                    My Activity
-                </a>
-            </li>            
+      <a href="/custom-exercises"
+         class="sb-item {% if request.path == '/custom-exercises' %}active-indigo{% endif %}"
+         data-label="Custom Exercises">
+        <span class="material-symbols-outlined">edit_note</span>
+      </a>
 
-            <li class="nav-item mt-auto">
-                <a class="nav-link d-flex align-items-center" href="/users/{{ user.id }}/profile">
-                    <span class="material-symbols-outlined me-2">person</span>
-                    My Profile
-                </a>
-            </li>
+      <!-- Discover -->
+      <a href="/favourites"
+         class="sb-item {% if request.path == '/favourites' %}active-amber{% endif %}"
+         data-label="Favourites">
+        <span class="material-symbols-outlined">star</span>
+      </a>
 
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center text-danger" href="/logout">
-                    <span class="material-symbols-outlined me-2">logout</span>
-                    Logout
-                </a>
-            </li>
-
-        </ul>
-    </nav>
-
-    <div id="content">
-        <nav class="navbar navbar-expand-lg bg-white mb-4 px-3 rounded-3 shadow-sm">
-            <button class="btn btn-outline-secondary" id="menu-toggle">
-                <span class="material-symbols-outlined md-dark">menu</span>
-            </button>
-
-            <div class="ms-auto d-flex align-items-center gap-3">
-                <a href="/users/{{ user.id }}/profile" class="text-decoration-none fw-semibold text-dark">
-                    {{ user.username }}
-                </a>
-            </div>
-        </nav>
-
-        <div class="row">
-            <div class="col-12">
-                {% for message in get_flashed_messages(request) %}
-                    <div class="alert alert-{{ message.type }}" role="alert">{{ message.message }}</div>
-                {% endfor %}
-            </div>
-        </div>
-
-        {% block subpage_content %}{% endblock %}
+      <a href="/explore"
+         class="sb-item {% if request.path == '/explore' %}active-cyan{% endif %}"
+         data-label="Explore">
+        <span class="material-symbols-outlined">explore</span>
+      </a>
 
     </div>
 
+    <!-- Footer -->
+    <div class="sb-footer">
+      <a href="/logout" class="sb-logout">
+        <span class="material-symbols-outlined">logout</span>
+      </a>
+    </div>
+
+  </nav>
+
+  <!-- Content -->
+  <div id="content">
+
+    <div class="topbar">
+      <button class="topbar-toggle" id="menu-toggle" aria-label="Toggle sidebar">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+
+      <div class="topbar-right">
+          <a href="/users/{{ user.id }}/profile" class="topbar-user" aria-label="Profile" data-label="Profile">
+            <span class="material-symbols-outlined">person</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="page-content">
+      {% for message in get_flashed_messages(request) %}
+      <div class="alert alert-{{ message.type }} alert-dismissible fade show mb-3" role="alert">
+        {{ message.message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+
+      {% block subpage_content %}{% endblock %}
+    </div>
+
+  </div>
 </div>
 
 <script>
-    document.getElementById("menu-toggle").addEventListener("click", function () {
-        document.getElementById("sidebar").classList.toggle("collapsed");
-    });
+  const sidebar  = document.getElementById('sidebar');
+  const content  = document.getElementById('content');
+  const toggle   = document.getElementById('menu-toggle');
 
+  toggle.addEventListener('click', function () {
+    const collapsed = sidebar.classList.toggle('collapsed');
+    content.classList.toggle('sidebar-hidden', collapsed);
+  });
 </script>
 
 {% block subpage_scripts %}{% endblock %}

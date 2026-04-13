@@ -2,6 +2,58 @@
 {% from "heatmap_component.html" import muscle_heatmap %}
 {% block title %}Browse Exercises{% endblock %}
 
+{% block additional_styles %}
+.filter-shell {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 0.75rem;
+}
+
+.filter-section-title {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #475569;
+    margin-bottom: 0;
+}
+
+.filter-subtle-label {
+    font-size: 0.76rem !important;
+    color: #64748b !important;
+}
+
+.equip-pill {
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    background: rgba(255,255,255,0.03) !important;
+    color: #94a3b8 !important;
+    border-radius: 999px !important;
+    font-size: 0.72rem !important;
+    padding: 2px 8px !important;
+}
+
+.equip-pill:hover {
+    background: rgba(255,255,255,0.07) !important;
+    color: #cbd5e1 !important;
+}
+
+.equip-pill.active {
+    background: rgba(99,102,241,0.2) !important;
+    border-color: rgba(129,140,248,0.55) !important;
+    color: #e0e7ff !important;
+    box-shadow: 0 0 0 1px rgba(99,102,241,0.25) inset;
+}
+
+.page-indicator {
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    background: rgba(255,255,255,0.03) !important;
+    color: #94a3b8 !important;
+    min-width: 110px;
+    cursor: default !important;
+}
+{% endblock %}
+
 {% block subpage_content %}
 <div class="container-fluid" id="content">
 
@@ -14,7 +66,7 @@
     <div class="row g-4">
 
         <!-- Left sidebar -->
-        <div class="col-lg-3">
+        <div class="col-lg-3 filter-shell">
 
             <!-- Search -->
             <div class="input-group mb-3">
@@ -27,7 +79,7 @@
             <!-- Equipment filter -->
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <p class="meta-kicker mb-0">Equipment</p>
+                    <p class="filter-section-title">Equipment</p>
                     <button class="btn btn-link btn-sm p-0 text-muted" id="clearEquipBtn"
                             onclick="clearEquipment()" style="display:none;">Clear</button>
                 </div>
@@ -37,11 +89,11 @@
             <!-- Muscle filter via SVG -->
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                    <p class="meta-kicker mb-0">Muscle Group</p>
+                    <p class="filter-section-title">Muscle Group</p>
                     <button class="btn btn-link btn-sm p-0 text-muted" onclick="clearMuscle()"
                             id="clearMuscleBtn" style="display:none;">Clear</button>
                 </div>
-                <p class="text-muted mb-1" style="font-size:0.75rem;" id="selectedMuscleLabel">
+                <p class="filter-subtle-label mb-1" id="selectedMuscleLabel">
                     Click a muscle to filter
                 </p>
                 {{ muscle_heatmap(mode="filter", height="320px") }}
@@ -79,7 +131,7 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-center gap-2 mt-4 mb-4">
                 <button class="btn btn-outline-primary" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
-                <span class="btn btn-light disabled" id="pageIndicator"></span>
+                <span class="btn page-indicator disabled" id="pageIndicator"></span>
                 <button class="btn btn-outline-primary" id="nextBtn" onclick="nextPage()" disabled>Next</button>
             </div>
         </div>
@@ -265,18 +317,13 @@ function renderEquipmentPills() {
 
     for (const group of EQUIPMENT_GROUPS) {
         const label = document.createElement('div');
-        label.className = "w-100 text-muted mt-2 mb-1";
-        label.style.fontSize = "0.7rem";
-        label.style.textTransform = "uppercase";
-        label.style.letterSpacing = "0.05em";
+            label.className = "w-100 mt-2 mb-1 filter-section-title";
         label.textContent = group.label;
         container.appendChild(label);
 
         for (const eq of group.items) {
             const btn = document.createElement('button');
-            btn.className = "btn btn-sm btn-outline-secondary equip-pill";
-            btn.style.fontSize   = "0.72rem";
-            btn.style.padding    = "2px 8px";
+                btn.className = "btn btn-sm equip-pill";
             btn.dataset.equip    = eq;
             btn.textContent      = eq.charAt(0).toUpperCase() + eq.slice(1);
             btn.addEventListener('click', () => selectEquipment(eq));
@@ -289,8 +336,7 @@ function selectEquipment(eq) {
     selectedEquip = (selectedEquip === eq) ? "" : eq;
     document.querySelectorAll('.equip-pill').forEach(b => {
         const active = b.dataset.equip === selectedEquip;
-        b.classList.toggle('btn-primary', active);
-        b.classList.toggle('btn-outline-secondary', !active);
+        b.classList.toggle('active', active);
     });
     const clearBtn = document.getElementById('clearEquipBtn');
     if (clearBtn) clearBtn.style.display = selectedEquip ? '' : 'none';
@@ -429,8 +475,7 @@ async function clearAllFilters() {
     
     if (typeof setActiveMuscle === "function") setActiveMuscle(null);
     document.querySelectorAll('.equip-pill').forEach(b => {
-        b.classList.remove('btn-primary');
-        b.classList.add('btn-outline-secondary');
+        b.classList.remove('active');
     });
     await fetchAndRender('');
 }

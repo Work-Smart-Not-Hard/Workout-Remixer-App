@@ -153,8 +153,8 @@
                  role="button" onclick="openExDetailFromEncoded('${exEncoded}')" style="cursor:pointer;">
                 ${ex.gif_url
                     ? `<img src="${ex.gif_url}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`
-                    : `<div class="bg-light rounded d-flex align-items-center justify-content-center flex-shrink-0"
-                            style="width:40px;height:40px;">
+                    : `<div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
+                            style="width:40px;height:40px;background:rgba(255,255,255,0.07);">
                            <span class="material-symbols-outlined text-muted" style="font-size:1.2rem">fitness_center</span>
                        </div>`}
                 <div class="overflow-hidden">
@@ -204,7 +204,7 @@
                         ${e.total_sets} sets
                     </span>
                     ${e.total_volume > 0
-                        ? `<span class="badge bg-warning text-dark">
+                        ? `<span class="badge bg-warning">
                                <span class="material-symbols-outlined me-1" style="font-size:.8rem;vertical-align:middle">monitor_weight</span>
                                ${e.total_volume.toLocaleString()} kg
                            </span>`
@@ -252,8 +252,12 @@
         if (!sorted.length) return '';
 
         return sorted.map(([m, v]) => {
-            const bg = v >= 0.66 ? 'bg-danger' : v >= 0.33 ? 'bg-warning text-dark' : 'bg-secondary';
-            return `<span class="badge ${bg} me-1 text-capitalize" style="font-size:.7rem;">${m}</span>`;
+            const style = v >= 0.66
+              ? 'background:rgba(239,68,68,.18);color:#fca5a5;border:0.5px solid rgba(239,68,68,.3)'
+              : v >= 0.33
+              ? 'background:rgba(245,158,11,.18);color:#fbbf24;border:0.5px solid rgba(245,158,11,.3)'
+              : 'background:rgba(255,255,255,.08);color:#94a3b8;border:0.5px solid rgba(255,255,255,.12)';
+            return `<span style="font-size:.65rem;border-radius:6px;padding:2px 8px;font-weight:500;text-transform:capitalize;display:inline-block;margin:0 4px 4px 0;${style}">${m}</span>`;
         }).join('');
     }
 
@@ -303,7 +307,7 @@
         const stats = [];
         if (ex.sets && ex.reps) stats.push(`<span class="badge bg-primary">${ex.sets} sets × ${ex.reps} reps</span>`);
         if (ex.weight_kg) stats.push(`<span class="badge bg-success">${ex.weight_kg} kg</span>`);
-        if (ex.duration_seconds) stats.push(`<span class="badge bg-warning text-dark">${ex.duration_seconds}s</span>`);
+        if (ex.duration_seconds) stats.push(`<span class="badge bg-warning">${ex.duration_seconds}s</span>`);
         if (ex.target) stats.push(`<span class="badge bg-secondary text-capitalize">${ex.target}</span>`);
         if (ex.notes) stats.push(`<em class="text-muted small w-100 mt-1">"${escHtml(ex.notes)}"</em>`);
         document.getElementById('exDetailStats').innerHTML = stats.join(' ');
