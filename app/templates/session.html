@@ -3,8 +3,7 @@
 
 {% block additional_styles %}
 <style>
-  /* Page shell */
-  body { background: var(--bg-base); }
+  body { background: var(--bg-base, #0d1b2a); }
 
   .session-wrap {
     max-width: 680px;
@@ -12,58 +11,37 @@
     padding-bottom: 120px;
   }
 
-  /* Sticky header */
+  /* ── Sticky header ── */
   .workout-header {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--bg-surface);
-    border-bottom: 0.5px solid var(--border-glass);
+    background: rgba(17, 34, 56, 0.97);
+    border-bottom: 0.5px solid rgba(255,255,255,0.08);
     padding: 0.75rem 1rem;
     margin: -1rem -1rem 1.25rem;
+    backdrop-filter: blur(16px);
   }
-
   .routine-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-    margin: 0;
+    font-size: 1rem; font-weight: 700;
+    color: #f5f3ee; letter-spacing: -0.01em; margin: 0;
   }
+  .started-at { font-size: 0.72rem; color: #64748b; margin: 0; }
 
-  .started-at {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    margin: 0;
-  }
-
-  .timer-block {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
+  .timer-block { display: flex; align-items: center; gap: 0.5rem; }
   .timer-digits {
-    font-size: 1.5rem;
-    font-weight: 800;
+    font-size: 1.45rem; font-weight: 800;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.03em;
-    color: var(--text-primary);
-    min-width: 72px;
-    text-align: right;
+    color: #f5f3ee;
+    min-width: 72px; text-align: right;
   }
-
   .pause-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border-glass);
-    background: transparent;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 0.5px solid rgba(255,255,255,0.12);
+    background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #64748b;
     transition: background 0.12s, border-color 0.12s;
     flex-shrink: 0;
   }
@@ -71,290 +49,282 @@
   .pause-btn.paused { background: rgba(245,158,11,0.16); border-color: #f59e0b; color: #fbbf24; }
 
   .finish-btn {
-    background: var(--accent-green);
-    color: #052e16;
-    border: none;
-    border-radius: 8px;
+    background: #22c55e; color: #052e16;
+    border: none; border-radius: 8px;
     padding: 0.45rem 1.1rem;
-    font-size: 0.82rem;
-    font-weight: 700;
+    font-size: 0.82rem; font-weight: 700;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    transition: background 0.12s;
+    display: flex; align-items: center; gap: 0.3rem;
+    transition: background 0.12s, box-shadow 0.12s;
     white-space: nowrap;
+    box-shadow: 0 0 16px rgba(34,197,94,0.25);
   }
-  .finish-btn:hover { background: #22c55e; }
+  .finish-btn:hover { background: #16a34a; box-shadow: 0 0 24px rgba(34,197,94,0.40); }
 
-  /* Progress bar */
+  /* ── Progress bar — glowing fill ── */
   .progress-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 0.3rem;
   }
   .progress-track {
     height: 5px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 99px;
-    overflow: hidden;
+    background: rgba(255,255,255,0.06);
+    border-radius: 99px; overflow: hidden;
     margin-bottom: 1.25rem;
   }
   .progress-fill {
     height: 100%;
-    background: var(--accent-green);
+    background: linear-gradient(90deg, #22c55e, #4ade80);
     border-radius: 99px;
     transition: width 0.4s ease;
+    box-shadow: 0 0 8px rgba(34,197,94,0.55);
   }
 
-  /* Exercise card */
+  /* ── Exercise card ── */
   .ex-card {
-    background: var(--bg-surface);
-    border: 0.5px solid var(--border-glass);
+    background: rgba(255,255,255,0.05);
+    border: 0.5px solid rgba(255,255,255,0.09);
     border-radius: 14px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
     margin-bottom: 1rem;
     overflow: hidden;
+    transition: border-color 0.15s;
   }
-
   .ex-card-header {
     padding: 1rem 1rem 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    display: flex; align-items: center; gap: 0.75rem;
   }
-
   .ex-gif {
-    width: 52px;
-    height: 52px;
-    object-fit: cover;
-    border-radius: 10px;
-    flex-shrink: 0;
+    width: 52px; height: 52px; object-fit: cover;
+    border-radius: 10px; flex-shrink: 0;
     background: rgba(255,255,255,0.06);
   }
-
   .ex-gif-placeholder {
-    width: 52px;
-    height: 52px;
-    border-radius: 10px;
+    width: 52px; height: 52px; border-radius: 10px;
     background: rgba(255,255,255,0.06);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; color: #64748b;
   }
-
   .ex-name {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    text-transform: capitalize;
-    margin: 0 0 0.1rem;
+    font-size: 0.92rem; font-weight: 700;
+    color: #f5f3ee; text-transform: capitalize; margin: 0 0 0.1rem;
   }
+  .ex-target { font-size: 0.72rem; color: #64748b; margin: 0; }
 
-  .ex-target {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    margin: 0;
-  }
-
-  /* Rest timer badge */
+  /* ── Rest badge ── */
   .rest-badge {
-    display: none;
-    margin-left: auto;
-    flex-shrink: 0;
-    background: rgba(37,99,235,0.16);
-    border: 1px solid rgba(147,197,253,0.35);
+    display: none; margin-left: auto; flex-shrink: 0;
+    background: rgba(56,189,248,0.14);
+    border: 0.5px solid rgba(56,189,248,0.35);
     border-radius: 8px;
     padding: 0.3rem 0.7rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #93c5fd;
+    font-size: 0.75rem; font-weight: 700; color: #7dd3fc;
     font-variant-numeric: tabular-nums;
-    gap: 0.25rem;
-    align-items: center;
+    gap: 0.25rem; align-items: center;
+    transition: background 0.3s, border-color 0.3s;
   }
   .rest-badge.visible { display: flex; }
   .rest-badge.rest-done {
-    background: rgba(34,197,94,0.18);
-    border-color: rgba(134,239,172,0.45);
+    background: rgba(34,197,94,0.16);
+    border-color: rgba(134,239,172,0.40);
     color: #86efac;
   }
 
-  /* Sets table */
-  .sets-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-
+  /* ── Sets table ── */
+  .sets-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .sets-table thead th {
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: var(--text-muted);
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: #334155;
     padding: 0 0.5rem 0.5rem;
-    border-bottom: 1px solid var(--border-glass);
+    border-bottom: 0.5px solid rgba(255,255,255,0.07);
     text-align: center;
   }
-
   .sets-table thead th.col-set  { width: 40px; }
   .sets-table thead th.col-prev { width: auto; }
   .sets-table thead th.col-kg,
   .sets-table thead th.col-reps { width: 72px; }
   .sets-table thead th.col-done { width: 48px; }
-
-  .set-row td {
-    padding: 0.3rem 0.5rem;
-    vertical-align: middle;
-    text-align: center;
-  }
-
+  .set-row td { padding: 0.3rem 0.5rem; vertical-align: middle; text-align: center; }
   .set-num-cell  { font-size: 0.82rem; font-weight: 700; color: #94a3b8; }
-  .set-prev-cell { font-size: 0.75rem; color: var(--text-muted); }
+  .set-prev-cell { font-size: 0.75rem; color: #334155; }
 
   .set-input {
-    width: 58px;
-    padding: 0.3rem 0.25rem;
-    border: 1.5px solid var(--border-glass);
+    width: 58px; padding: 0.3rem 0.25rem;
+    border: 1px solid rgba(255,255,255,0.10);
     border-radius: 7px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-align: center;
-    color: var(--text-primary);
+    font-size: 0.9rem; font-weight: 600; text-align: center;
+    color: #f5f3ee;
     background: rgba(255,255,255,0.04);
-    appearance: textfield;
-    -moz-appearance: textfield;
+    appearance: textfield; -moz-appearance: textfield;
     transition: border-color 0.12s, background 0.12s;
   }
   .set-input::-webkit-inner-spin-button,
   .set-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-  .set-input:focus { outline: none; border-color: var(--accent-primary); background: rgba(255,255,255,0.08); }
-  .set-input:disabled { background: rgba(255,255,255,0.02); color: var(--text-muted); border-color: transparent; }
+  .set-input:focus {
+    outline: none;
+    border-color: #38bdf8;
+    background: rgba(56,189,248,0.07);
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+  }
+  .set-input:disabled { background: rgba(255,255,255,0.02); color: #475569; border-color: transparent; }
 
+  /* ── Check button — SEMANTIC GREEN ── */
   .set-check-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 2px solid var(--border-glass);
-    background: transparent;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
     margin: 0 auto;
     transition: all 0.15s;
-    color: transparent;
+    color: rgba(148,163,184,0.78);
   }
-  .set-check-btn:hover:not(:disabled) { border-color: var(--accent-green); background: rgba(34,197,94,0.12); }
-  .set-check-btn.done { background: var(--accent-green); border-color: var(--accent-green); color: #052e16; }
-  .set-check-btn:disabled { opacity: 0.4; cursor: default; }
-  .set-row.completed .set-num-cell { color: var(--text-muted); }
+  .set-check-btn:hover:not(:disabled) {
+    border-color: #22c55e;
+    background: rgba(34,197,94,0.10);
+    color: #22c55e;
+  }
+  .set-check-btn.done {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #052e16;
+    box-shadow: 0 0 10px rgba(34,197,94,0.40);
+  }
+  .set-check-btn:disabled {
+    opacity: 0.58;
+    color: rgba(148,163,184,0.68);
+    cursor: default;
+  }
+  .set-row.completed .set-num-cell { color: #475569; }
 
-  /* Add set button */
+  /* ── Add set button ── */
   .add-set-row td { padding: 0.5rem 1rem 1rem; }
   .add-set-btn {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1.5px dashed var(--border-glass);
-    border-radius: 8px;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    width: 100%; padding: 0.5rem;
+    border: 1px dashed rgba(255,255,255,0.10);
+    border-radius: 8px; background: transparent;
+    color: #475569; font-size: 0.78rem; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
     cursor: pointer;
     transition: border-color 0.12s, color 0.12s, background 0.12s;
   }
-  .add-set-btn:hover { border-color: var(--accent-primary); color: #7dd3fc; background: rgba(56,189,248,0.14); }
+  .add-set-btn:hover {
+    border-color: #38bdf8; color: #7dd3fc;
+    background: rgba(56,189,248,0.08);
+  }
 
-  /* Bottom finish bar */
+  /* ── Bottom finish bar ── */
   .finish-bar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: var(--bg-surface);
-    border-top: 0.5px solid var(--border-glass);
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(17,34,56,0.97);
+    border-top: 0.5px solid rgba(255,255,255,0.08);
     padding: 0.75rem 1.25rem;
-    display: flex;
-    justify-content: flex-end;
+    display: flex; justify-content: flex-end;
     z-index: 200;
+    backdrop-filter: blur(16px);
   }
   .finish-bar-btn {
-    background: var(--accent-green);
-    color: #052e16;
-    border: none;
-    border-radius: 10px;
+    background: #22c55e; color: #052e16;
+    border: none; border-radius: 10px;
     padding: 0.65rem 2rem;
-    font-size: 0.9rem;
-    font-weight: 700;
+    font-size: 0.9rem; font-weight: 700;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background 0.12s, box-shadow 0.12s;
+    box-shadow: 0 0 18px rgba(34,197,94,0.30);
   }
-  .finish-bar-btn:hover { background: #22c55e; }
+  .finish-bar-btn:hover { background: #16a34a; box-shadow: 0 0 28px rgba(34,197,94,0.50); }
 
-  /* Modal */
-  .modal-content {
-    background: var(--bg-surface);
-    border: 0.5px solid var(--border-glass);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  .modal-header  { border-bottom: 1px solid var(--border-glass); padding: 1.25rem 1.5rem 1rem; }
-  .modal-footer  { border-top: 1px solid var(--border-glass); }
-
+  /* ── Summary modal stats ── */
   .summary-stat {
     background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border-glass);
+    border: 0.5px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    text-align: center; padding: 1rem;
   }
-  .summary-stat-value {
-    font-size: 1.4rem;
-    font-weight: 800;
-  }
-  .summary-stat-label {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .summary-stat-duration {
-    background: rgba(34,197,94,0.12);
-    border-color: rgba(134,239,172,0.35);
-  }
+  .summary-stat-value { font-size: 1.4rem; font-weight: 800; }
+  .summary-stat-label { font-size: 0.68rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .summary-stat-duration { background: rgba(34,197,94,0.10); border-color: rgba(134,239,172,0.25); }
   .summary-stat-duration .summary-stat-value { color: #86efac; }
-  .summary-stat-sets {
-    background: rgba(37,99,235,0.13);
-    border-color: rgba(147,197,253,0.35);
-  }
-  .summary-stat-sets .summary-stat-value { color: #93c5fd; }
-  .summary-stat-volume {
-    background: rgba(99,102,241,0.13);
-    border-color: rgba(165,180,252,0.35);
-  }
+
+  .summary-stat-sets { background: rgba(56,189,248,0.10); border-color: rgba(147,197,253,0.25); }
+  .summary-stat-sets .summary-stat-value { color: #7dd3fc; }
+
+  .summary-stat-volume { background: rgba(99,102,241,0.10); border-color: rgba(165,180,252,0.25); }
   .summary-stat-volume .summary-stat-value { color: #a5b4fc; }
 
-  .session-notes {
-    border-radius: 10px;
-    border-color: var(--border-glass) !important;
-  }
+  .session-notes { border-radius: 10px; border-color: rgba(255,255,255,0.10) !important; }
 
   .modal-action-cancel {
-    border-radius: 10px;
-    color: var(--text-primary);
-    border: 0.5px solid var(--border-glass);
-    background: rgba(255,255,255,0.06);
+    border-radius: 10px; color: #f5f3ee;
+    border: 0.5px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.05);
   }
-  .modal-action-cancel:hover {
-    background: rgba(255,255,255,0.1);
-    color: var(--text-primary);
+  .modal-action-cancel:hover { background: rgba(255,255,255,0.09); color: #f5f3ee; }
+  .session-muted { color: #64748b !important; }
+
+  .add-ex-result {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    border: 0.5px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 0.45rem;
+    margin-bottom: 0.45rem;
+    cursor: pointer;
+    background: rgba(255,255,255,0.02);
+    transition: border-color 0.14s ease, background 0.14s ease, transform 0.14s ease;
+  }
+  .add-ex-result:hover { border-color: rgba(56,189,248,0.42); background: rgba(56,189,248,0.08); }
+  .add-ex-result.selected {
+    border-color: rgba(56,189,248,0.72);
+    background: rgba(56,189,248,0.14);
+    box-shadow: inset 0 0 0 1px rgba(56,189,248,0.35);
+    transform: translateY(-1px);
+  }
+  .add-ex-result img {
+    width: 42px;
+    height: 42px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+  .add-ex-recent-chip {
+    border: 1px solid rgba(56,189,248,0.28);
+    background: rgba(56,189,248,0.08);
+    color: #dbeafe;
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  .add-ex-recent-chip:hover {
+    border-color: rgba(125,211,252,0.6);
+    background: rgba(56,189,248,0.16);
+    color: #e0f2fe;
+  }
+  .add-ex-selected {
+    border: 1px dashed rgba(56,189,248,0.35);
+    background: rgba(56,189,248,0.06);
+    border-radius: 8px;
+    padding: 0.42rem 0.55rem;
+    font-size: 0.75rem;
+    color: #cbd5e1;
   }
 
-  .session-muted {
-    color: var(--text-muted) !important;
+  @media (max-width: 768px) {
+    .workout-header {
+      margin: -1rem -0.5rem 1rem;
+      padding: 0.65rem 0.7rem;
+    }
+    .finish-btn {
+      padding: 0.4rem 0.7rem;
+      font-size: 0.76rem;
+    }
+    .timer-digits { font-size: 1.2rem; min-width: 56px; }
+    .finish-bar { padding: 0.65rem 0.8rem; }
+    .finish-bar-btn { width: 100%; }
   }
 </style>
 {% endblock %}
@@ -382,10 +352,10 @@
     </div>
   </div>
 
-  <!-- Progress -->
+  <!-- Progress bar -->
   <div class="progress-row">
-    <small class="session-muted" style="font-size:0.72rem;">Progress</small>
-    <small class="session-muted" style="font-size:0.72rem;" id="progressLabel">
+    <small class="session-muted" style="font-size:.72rem;">Progress</small>
+    <small class="session-muted" style="font-size:.72rem;" id="progressLabel">
       0 / {{ exercises|length }} exercises
     </small>
   </div>
@@ -396,7 +366,7 @@
   {% for message in get_flashed_messages(request) %}
   <div class="alert alert-{{ message.type }} alert-dismissible mb-3">
     {{ message.message }}
-    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
   {% endfor %}
 
@@ -448,6 +418,16 @@
   </div>
   {% endfor %}
 
+  <div class="card p-3 mt-2" style="border-style:dashed;">
+    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+      <div>
+        <p class="mb-1 fw-semibold" style="font-size:.86rem;">Need to add another exercise?</p>
+        <p class="session-muted mb-0" style="font-size:.74rem;">Update your routine, then continue this workout.</p>
+      </div>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addExerciseModal">Add Exercise</button>
+    </div>
+  </div>
+
 </div>
 
 <!-- Fixed bottom bar -->
@@ -463,25 +443,25 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title fw-bold">Finish Workout 💪</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" action="/api/sessions/{{ session.id }}/complete">
         <div class="modal-body p-4">
           <div class="d-flex gap-3 mb-4">
-            <div class="text-center flex-grow-1 p-3 rounded-3 summary-stat summary-stat-duration">
+            <div class="flex-grow-1 summary-stat summary-stat-duration">
               <div class="summary-stat-value" id="summaryDuration">—</div>
               <div class="summary-stat-label">Duration</div>
             </div>
-            <div class="text-center flex-grow-1 p-3 rounded-3 summary-stat summary-stat-sets">
+            <div class="flex-grow-1 summary-stat summary-stat-sets">
               <div class="summary-stat-value" id="summarySets">—</div>
               <div class="summary-stat-label">Sets Done</div>
             </div>
-            <div class="text-center flex-grow-1 p-3 rounded-3 summary-stat summary-stat-volume">
+            <div class="flex-grow-1 summary-stat summary-stat-volume">
               <div class="summary-stat-value" id="summaryVolume">—</div>
               <div class="summary-stat-label">Volume (kg)</div>
             </div>
           </div>
-          <label class="form-label fw-semibold" style="font-size:0.85rem;">
+          <label class="form-label fw-semibold" style="font-size:.85rem;">
             Session Notes <span class="session-muted fw-normal">(optional)</span>
           </label>
           <textarea name="notes" class="form-control session-notes" rows="3"
@@ -489,14 +469,78 @@
         </div>
         <div class="modal-footer px-4 pb-4 border-0 pt-0">
           <button type="button" class="btn fw-semibold modal-action-cancel" data-bs-dismiss="modal">Keep Going</button>
-          <button type="submit" class="btn btn-success fw-bold px-4" style="border-radius:10px;">
-            Complete Workout
-          </button>
+          <button type="submit" class="btn btn-success fw-bold px-4" style="border-radius:10px;">Complete Workout</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<!-- Add Exercise Modal -->
+<div class="modal fade" id="addExerciseModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Add Exercise To This Workout</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group mb-2">
+          <input type="text" id="addExSearch" class="form-control" placeholder="Search exercise...">
+          <button class="btn btn-primary" type="button" onclick="searchAddExercises()">
+            <span class="material-symbols-outlined" style="font-size:1rem">search</span>
+          </button>
+        </div>
+        <div id="addExRecentWrap" class="mb-2 d-none">
+          <p class="session-muted mb-1" style="font-size:.72rem;">Recent picks</p>
+          <div id="addExRecent" class="d-flex flex-wrap gap-1"></div>
+        </div>
+        <div id="addExSelectedHint" class="add-ex-selected mb-2">
+          No exercise selected.
+        </div>
+        <div id="addExResults" style="max-height:260px;overflow-y:auto;"></div>
+        <hr>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Sets</label>
+            <input type="number" id="addExSets" class="form-control form-control-sm" min="1" value="3">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Reps</label>
+            <input type="number" id="addExReps" class="form-control form-control-sm" min="1" value="10">
+          </div>
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Duration (s)</label>
+            <input type="number" id="addExDuration" class="form-control form-control-sm" min="0" placeholder="Optional">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Rest (s)</label>
+            <input type="number" id="addExRest" class="form-control form-control-sm" min="0" value="60">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn modal-action-cancel" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="submitAddExerciseToSession()">Add Exercise</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="POST" action="/api/sessions/{{ session.id }}/add-exercise" id="addExerciseForm" style="display:none;">
+  <input type="hidden" name="exercise_id" id="formAddExerciseId">
+  <input type="hidden" name="exercise_name" id="formAddExerciseName">
+  <input type="hidden" name="exercise_body_parts" id="formAddExerciseBodyParts">
+  <input type="hidden" name="exercise_equipments" id="formAddExerciseEquipments">
+  <input type="hidden" name="exercise_target_muscles" id="formAddExerciseTargetMuscles">
+  <input type="hidden" name="exercise_gif_url" id="formAddExerciseGifUrl">
+  <input type="hidden" name="sets" id="formAddSets">
+  <input type="hidden" name="reps" id="formAddReps">
+  <input type="hidden" name="duration_seconds" id="formAddDuration">
+  <input type="hidden" name="rest_seconds" id="formAddRest">
+</form>
 {% endblock %}
 
 {% block subpage_scripts %}
@@ -516,11 +560,13 @@ const EXERCISES = [
   {% endfor %}
 ];
 
-//State
-const exState   = {};   // reId → { sets: [{kg, reps, prev, checked}], history: [] }
-const restTimers = {};
+let addExerciseResults = [];
+let selectedAddExercise = null;
+let selectedAddExerciseIndex = -1;
+const ADD_EX_RECENT_KEY = 'session_add_ex_recent_v1';
 
-//Workout timer
+const exState    = {};
+const restTimers = {};
 let elapsed = 0;
 let paused  = false;
 
@@ -535,11 +581,9 @@ function fmtTime(s) {
   const h  = Math.floor(s / 3600);
   const m  = Math.floor((s % 3600) / 60);
   const ss = s % 60;
-  return h > 0
-    ? `${pad(h)}:${pad(m)}:${pad(ss)}`
-    : `${pad(m)}:${pad(ss)}`;
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(ss)}` : `${pad(m)}:${pad(ss)}`;
 }
-function pad(n) { return String(n).padStart(2, '0'); }
+function pad(n) { return String(n).padStart(2,'0'); }
 
 function togglePause() {
   paused = !paused;
@@ -547,7 +591,6 @@ function togglePause() {
   document.getElementById('pauseIcon').textContent = paused ? 'play_arrow' : 'pause';
 }
 
-//History fetch
 async function fetchHistory(exerciseDbId) {
   try {
     const r = await fetch(`/api/exercises/${encodeURIComponent(exerciseDbId)}/history?period=all`);
@@ -559,49 +602,31 @@ async function fetchHistory(exerciseDbId) {
 
 function getPrevLabel(history, setIndex) {
   if (!history.length) return null;
-
-  //Group entries by session_id (integer). Entries are already ordered by (completed_at, SessionExercise.id) from the backend, so within each
-  //group the order reflects the actual set sequence.
   const bySess = {};
   for (const h of history) {
-    const key = h.session_id ?? h.date; // fallback to date for older data
+    const key = h.session_id ?? h.date;
     if (!bySess[key]) bySess[key] = [];
     bySess[key].push(h);
   }
-
-  //The highest numeric session_id is the most recent completed session.
   const sessionKeys = Object.keys(bySess);
-  const latestKey   = sessionKeys.reduce((a, b) =>
-    Number(a) > Number(b) ? a : b
-  );
-  const lastSessionSets = bySess[latestKey];
-
-  //If the previous session had fewer sets than setIndex, return null
-  //(no previous data for this set — the user is going beyond their record).
-  const entry = lastSessionSets[setIndex];
+  const latestKey   = sessionKeys.reduce((a,b) => Number(a) > Number(b) ? a : b);
+  const entry       = bySess[latestKey][setIndex];
   if (!entry) return null;
-
   const parts = [];
-  if (entry.weight_kg != null && entry.weight_kg > 0)
-    parts.push(`${entry.weight_kg}kg`);
-  if (entry.reps != null && entry.reps > 0)
-    parts.push(`×${entry.reps}`);
+  if (entry.weight_kg != null && entry.weight_kg > 0) parts.push(`${entry.weight_kg}kg`);
+  if (entry.reps      != null && entry.reps      > 0) parts.push(`×${entry.reps}`);
   return parts.length ? parts.join(' ') : null;
 }
 
-//Init
 async function init() {
   for (const ex of EXERCISES) {
     exState[ex.reId] = { sets: [], history: [] };
     exState[ex.reId].history = await fetchHistory(ex.exerciseDbId);
-
     const n = Math.max(1, ex.targetSets);
     for (let i = 0; i < n; i++) {
       exState[ex.reId].sets.push({
-        kg:      '',
-        reps:    ex.targetReps > 0 ? ex.targetReps : '',
-        prev:    getPrevLabel(exState[ex.reId].history, i),
-        checked: false,
+        kg: '', reps: ex.targetReps > 0 ? ex.targetReps : '',
+        prev: getPrevLabel(exState[ex.reId].history, i), checked: false,
       });
     }
     renderSets(ex.reId, ex.exerciseIntId, ex.restSeconds);
@@ -609,56 +634,48 @@ async function init() {
   updateProgress();
 }
 
-//Render sets tbody
 function renderSets(reId, exerciseIntId, restSeconds) {
   const tbody = document.getElementById(`setsBody_${reId}`);
   if (!tbody) return;
   tbody.innerHTML = exState[reId].sets.map((set, i) => `
     <tr class="set-row ${set.checked ? 'completed' : ''}" id="setRow_${reId}_${i}">
-      <td class="set-num-cell">${i + 1}</td>
+      <td class="set-num-cell">${i+1}</td>
       <td class="set-prev-cell">${set.prev || '—'}</td>
       <td>
         <input type="number" class="set-input" id="setKg_${reId}_${i}"
                value="${set.kg}" placeholder="0" min="0" step="0.5"
                ${set.checked ? 'disabled' : ''}
-               onchange="exState[${reId}].sets[${i}].kg = this.value">
+               onchange="exState[${reId}].sets[${i}].kg=this.value">
       </td>
       <td>
         <input type="number" class="set-input" id="setReps_${reId}_${i}"
                value="${set.reps}" placeholder="0" min="0"
                ${set.checked ? 'disabled' : ''}
-               onchange="exState[${reId}].sets[${i}].reps = this.value">
+               onchange="exState[${reId}].sets[${i}].reps=this.value">
       </td>
       <td>
         <button class="set-check-btn ${set.checked ? 'done' : ''}"
                 onclick="toggleSet(${reId}, ${exerciseIntId}, ${i}, ${restSeconds})"
-                title="${set.checked ? 'Undo set' : 'Mark set done'}">
+                title="${set.checked ? 'Undo' : 'Mark done'}">
           <span class="material-symbols-outlined" style="font-size:1rem;">
-            ${set.checked ? 'check' : ''}
+            check
           </span>
         </button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
 
-//Add set
 function addSet(reId, exerciseIntId, exerciseDbId, restSeconds) {
-  const idx  = exState[reId].sets.length;
+  const idx = exState[reId].sets.length;
   exState[reId].sets.push({
-    kg:      '',
-    reps:    '',
-    prev:    getPrevLabel(exState[reId].history, idx),
-    checked: false,
+    kg:'', reps:'',
+    prev: getPrevLabel(exState[reId].history, idx), checked: false,
   });
   renderSets(reId, exerciseIntId, restSeconds);
 }
 
-//Toggle set done
 async function toggleSet(reId, exerciseIntId, setIndex, restSeconds) {
-  const set  = exState[reId].sets[setIndex];
-
-  // Snapshot live input values
+  const set    = exState[reId].sets[setIndex];
   const kgEl   = document.getElementById(`setKg_${reId}_${setIndex}`);
   const repsEl = document.getElementById(`setReps_${reId}_${setIndex}`);
   if (kgEl)   set.kg   = kgEl.value;
@@ -669,18 +686,15 @@ async function toggleSet(reId, exerciseIntId, setIndex, restSeconds) {
     renderSets(reId, exerciseIntId, restSeconds);
     updateProgress();
     updateSummary();
-
-    // Log this single set to backend
     try {
       const fd = new FormData();
       fd.append('exercise_id',    exerciseIntId);
       fd.append('sets_completed', 1);
       if (set.reps) fd.append('reps_completed', set.reps);
       if (set.kg)   fd.append('weight_kg',      set.kg);
-      fd.append('notes', '');
-      await fetch(`/api/sessions/${SESSION_ID}/log`, { method: 'POST', body: fd });
-    } catch (e) { console.warn('Log failed', e); }
-
+      fd.append('notes','');
+      await fetch(`/api/sessions/${SESSION_ID}/log`, { method:'POST', body:fd });
+    } catch(e) { console.warn('Log failed', e); }
     startRest(reId, restSeconds);
   } else {
     set.checked = false;
@@ -691,17 +705,14 @@ async function toggleSet(reId, exerciseIntId, setIndex, restSeconds) {
   }
 }
 
-//Rest timer
 function startRest(reId, seconds) {
   clearRest(reId);
   const badge   = document.getElementById(`restBadge_${reId}`);
   const counter = document.getElementById(`restCount_${reId}`);
   if (!badge || !counter) return;
-
   let rem = seconds;
   counter.textContent = rem;
   badge.className = 'rest-badge visible';
-
   restTimers[reId] = setInterval(() => {
     rem--;
     counter.textContent = rem;
@@ -718,16 +729,14 @@ function clearRest(reId) {
   if (restTimers[reId]) { clearInterval(restTimers[reId]); delete restTimers[reId]; }
 }
 
-//Progress
 function updateProgress() {
   const total = EXERCISES.length;
   const done  = EXERCISES.filter(ex => exState[ex.reId]?.sets.some(s => s.checked)).length;
   const pct   = total ? Math.round(done / total * 100) : 0;
-  document.getElementById('progressBar').style.width  = pct + '%';
+  document.getElementById('progressBar').style.width   = pct + '%';
   document.getElementById('progressLabel').textContent = `${done} / ${total} exercises`;
 }
 
-//Modal summary
 function updateSummary() {
   let totalSets = 0, totalVolume = 0;
   for (const ex of EXERCISES) {
@@ -742,10 +751,218 @@ function updateSummary() {
   document.getElementById('summaryDuration').textContent = fmtTime(elapsed);
   document.getElementById('summarySets').textContent     = totalSets;
   document.getElementById('summaryVolume').textContent   =
-    totalVolume > 0 ? totalVolume.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—';
+    totalVolume > 0 ? totalVolume.toLocaleString(undefined, { maximumFractionDigits:1 }) : '—';
 }
 
 document.getElementById('completeModal').addEventListener('show.bs.modal', updateSummary);
+
+document.getElementById('addExerciseModal').addEventListener('shown.bs.modal', () => {
+  renderRecentAddExercises();
+  searchAddExercises();
+});
+
+document.getElementById('addExSearch').addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    moveAddExerciseSelection(e.key === 'ArrowDown' ? 1 : -1);
+    return;
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (selectedAddExerciseIndex >= 0) {
+      submitAddExerciseToSession();
+      return;
+    }
+    searchAddExercises();
+  }
+});
+
+document.getElementById('addExResults').addEventListener('click', (e) => {
+  const item = e.target.closest('[data-add-index]');
+  if (!item) return;
+  const idx = Number(item.getAttribute('data-add-index'));
+  setSelectedAddExercise(idx, true);
+});
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function addExerciseUid(ex) {
+  return String(ex?.exerciseId || ex?.id || '').trim();
+}
+
+function getRecentAddExercises() {
+  try {
+    const raw = localStorage.getItem(ADD_EX_RECENT_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentAddExercise(ex) {
+  const uid = addExerciseUid(ex);
+  if (!uid) return;
+  const recent = getRecentAddExercises().filter((item) => addExerciseUid(item) !== uid);
+  recent.unshift(ex);
+  localStorage.setItem(ADD_EX_RECENT_KEY, JSON.stringify(recent.slice(0, 6)));
+}
+
+function renderRecentAddExercises() {
+  const wrap = document.getElementById('addExRecentWrap');
+  const root = document.getElementById('addExRecent');
+  const recent = getRecentAddExercises();
+  if (!recent.length) {
+    wrap.classList.add('d-none');
+    root.innerHTML = '';
+    return;
+  }
+  wrap.classList.remove('d-none');
+  root.innerHTML = recent.map((ex) => {
+    const payload = encodeURIComponent(JSON.stringify(ex));
+    return `<button type="button" class="add-ex-recent-chip" onclick="selectAddExercise('${payload}')">${escapeHtml(ex.name || 'exercise')}</button>`;
+  }).join('');
+}
+
+function updateAddExerciseHint() {
+  const hint = document.getElementById('addExSelectedHint');
+  if (!selectedAddExercise) {
+    hint.textContent = 'No exercise selected.';
+    return;
+  }
+  const target = Array.isArray(selectedAddExercise.targetMuscles)
+    ? selectedAddExercise.targetMuscles[0]
+    : (selectedAddExercise.target || 'General');
+  const exId = addExerciseUid(selectedAddExercise) || 'n/a';
+  hint.textContent = `Selected: ${selectedAddExercise.name || 'Exercise'} (${target}) • ${exId}`;
+}
+
+function setSelectedAddExercise(index, shouldScroll) {
+  if (!Array.isArray(addExerciseResults) || !addExerciseResults.length) {
+    selectedAddExercise = null;
+    selectedAddExerciseIndex = -1;
+    updateAddExerciseHint();
+    return;
+  }
+  const clamped = Math.min(Math.max(index, 0), addExerciseResults.length - 1);
+  selectedAddExerciseIndex = clamped;
+  selectedAddExercise = addExerciseResults[clamped] || null;
+  document.querySelectorAll('#addExResults .add-ex-result').forEach((el) => {
+    el.classList.toggle('selected', Number(el.getAttribute('data-add-index')) === selectedAddExerciseIndex);
+  });
+  if (shouldScroll) {
+    const target = document.querySelector(`#addExResults .add-ex-result[data-add-index="${selectedAddExerciseIndex}"]`);
+    if (target) target.scrollIntoView({ block: 'nearest' });
+  }
+  updateAddExerciseHint();
+}
+
+function moveAddExerciseSelection(step) {
+  if (!addExerciseResults.length) return;
+  const next = selectedAddExerciseIndex < 0
+    ? 0
+    : (selectedAddExerciseIndex + step + addExerciseResults.length) % addExerciseResults.length;
+  setSelectedAddExercise(next, true);
+}
+
+async function searchAddExercises() {
+  const q = (document.getElementById('addExSearch').value || '').trim();
+  const resultsEl = document.getElementById('addExResults');
+  resultsEl.innerHTML = '<p class="session-muted small mb-0">Searching...</p>';
+
+  try {
+    const params = new URLSearchParams({ limit: '30' });
+    if (q) params.set('search', q);
+    const res = await fetch(`/api/exercises?${params}`);
+    const json = await res.json();
+    addExerciseResults = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []);
+
+    if (!addExerciseResults.length) {
+      selectedAddExercise = null;
+      selectedAddExerciseIndex = -1;
+      updateAddExerciseHint();
+      resultsEl.innerHTML = '<p class="session-muted small mb-0">No exercises found.</p>';
+      return;
+    }
+
+    addExerciseResults = addExerciseResults.slice(0, 20);
+    const savedUid = addExerciseUid(selectedAddExercise);
+    selectedAddExerciseIndex = addExerciseResults.findIndex((ex) => addExerciseUid(ex) === savedUid);
+    if (selectedAddExerciseIndex < 0) selectedAddExerciseIndex = 0;
+
+    resultsEl.innerHTML = addExerciseResults.map((ex, i) => {
+      const exId = ex.exerciseId || ex.id || '';
+      const target = Array.isArray(ex.targetMuscles) ? ex.targetMuscles[0] : (ex.target || '');
+      return `
+        <div class="add-ex-result ${i === selectedAddExerciseIndex ? 'selected' : ''}" data-add-index="${i}">
+          ${ex.gifUrl ? `<img src="${escapeHtml(ex.gifUrl)}" alt="${escapeHtml(ex.name)}">` : '<div class="ex-gif-placeholder"><span class="material-symbols-outlined" style="font-size:1.1rem">fitness_center</span></div>'}
+          <div class="overflow-hidden">
+            <p class="mb-0 fw-semibold text-truncate" style="font-size:.8rem;text-transform:capitalize;">${escapeHtml(ex.name)}</p>
+            <small class="session-muted text-truncate d-block">${escapeHtml(target || 'General')} · ${escapeHtml(exId)}</small>
+          </div>
+        </div>`;
+    }).join('');
+
+    setSelectedAddExercise(selectedAddExerciseIndex, false);
+  } catch {
+    selectedAddExercise = null;
+    selectedAddExerciseIndex = -1;
+    updateAddExerciseHint();
+    resultsEl.innerHTML = '<p class="text-danger small mb-0">Could not fetch exercises.</p>';
+  }
+}
+
+function selectAddExercise(encoded) {
+  try {
+    const ex = JSON.parse(decodeURIComponent(encoded));
+    selectedAddExercise = ex;
+    selectedAddExerciseIndex = addExerciseResults.findIndex((item) => addExerciseUid(item) === addExerciseUid(ex));
+  } catch {
+    selectedAddExercise = null;
+    selectedAddExerciseIndex = -1;
+  }
+  if (selectedAddExerciseIndex >= 0) {
+    setSelectedAddExercise(selectedAddExerciseIndex, true);
+    return;
+  }
+  document.querySelectorAll('#addExResults .add-ex-result').forEach((el) => {
+    el.classList.remove('selected');
+  });
+  updateAddExerciseHint();
+}
+
+function submitAddExerciseToSession() {
+  if (!selectedAddExercise) {
+    alert('Select an exercise first.');
+    return;
+  }
+
+  const ex = selectedAddExercise;
+  saveRecentAddExercise(ex);
+  const bodyParts = Array.isArray(ex.bodyParts) ? ex.bodyParts : (ex.bodyPart ? [ex.bodyPart] : []);
+  const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
+  const equips = Array.isArray(ex.equipments) ? ex.equipments : (ex.equipment ? [ex.equipment] : []);
+
+  document.getElementById('formAddExerciseId').value = ex.exerciseId || ex.id || '';
+  document.getElementById('formAddExerciseName').value = ex.name || 'Exercise';
+  document.getElementById('formAddExerciseBodyParts').value = bodyParts.join(',');
+  document.getElementById('formAddExerciseEquipments').value = equips.join(',');
+  document.getElementById('formAddExerciseTargetMuscles').value = targets.join(',');
+  document.getElementById('formAddExerciseGifUrl').value = ex.gifUrl || '';
+  document.getElementById('formAddSets').value = document.getElementById('addExSets').value || '';
+  document.getElementById('formAddReps').value = document.getElementById('addExReps').value || '';
+  document.getElementById('formAddDuration').value = document.getElementById('addExDuration').value || '';
+  document.getElementById('formAddRest').value = document.getElementById('addExRest').value || '60';
+
+  document.getElementById('addExerciseForm').submit();
+}
 
 init();
 </script>

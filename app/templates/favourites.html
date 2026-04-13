@@ -4,6 +4,24 @@
 {% block additional_styles %}
 .ex-card-new {
     border-radius: 16px;
+    border-color: rgba(245,158,11,0.48) !important;
+    box-shadow: 0 0 0 1px rgba(245,158,11,0.22) inset;
+}
+
+.ex-saved-chip {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 2;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.42);
+    border-radius: 999px;
+    padding: 3px 8px;
 }
 
 .ex-card-img-wrap {
@@ -58,10 +76,13 @@
 {% block subpage_content %}
 <div class="container-fluid">
 
-    <div class="row mb-4">
+    <div class="row mb-4 align-items-center">
         <div class="col">
             <h4 class="fw-bold mb-0">Favourite Exercises</h4>
-            <p class="text-muted small mb-0">Your saved exercises for quick access</p>
+            <p class="text-muted small mb-0">Your saved movement library, ready for quick add-ins</p>
+        </div>
+        <div class="col-auto">
+            <a href="/exercises" class="btn btn-outline-primary btn-sm">Browse Exercises</a>
         </div>
     </div>
 
@@ -75,13 +96,15 @@
             'bodyPart': fav.body_part,
             'target': fav.target,
             'equipment': fav.equipment,
+            'secondaryMuscles': [],
+            'instructions': [],
             'targetMuscles': [fav.target] if fav.target else [],
             'equipments': [fav.equipment] if fav.equipment else []
         } %}
         <div class="col-sm-6 col-md-4 col-lg-3">
             <div class="ex-card-new position-relative" role="button"
                  onclick="openExerciseFromEncoded('{{ payload | tojson | urlencode }}')">
-                <span class="ex-fav-star">★</span>
+                <span class="ex-saved-chip">Saved</span>
                 <div class="ex-card-img-wrap">
                     {% if fav.gif_url %}
                     <img src="{{ fav.gif_url }}" loading="lazy" alt="{{ fav.name }}">
@@ -109,10 +132,9 @@
     </div>
     {% else %}
     <div class="text-center py-5 text-muted">
-        <span class="material-symbols-outlined" style="font-size:3rem">favorite</span>
-        <p class="mt-2">No favourites yet.<br>
-            <a href="/exercises">Browse exercises</a> and star the ones you love.
-        </p>
+        <span class="material-symbols-outlined" style="font-size:3rem">bookmark</span>
+        <p class="mt-2">No saved exercises yet.</p>
+        <a href="/exercises" class="btn btn-primary btn-sm mt-1">Start Browsing</a>
     </div>
     {% endif %}
 
@@ -127,8 +149,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-5 text-center">
+                <div class="row g-3">
+                    <div class="col-md-6 text-center">
                         <div class="exercise-preview-shell">
                             <img id="modalGif" src="" alt="" class="img-fluid rounded">
                         </div>
@@ -138,21 +160,26 @@
                             <span class="badge bg-secondary" id="modalEquipment"></span>
                         </div>
                     </div>
-                    <div class="col-md-7 d-flex flex-column justify-content-center">
-                        <p class="text-muted small">Open the full stats page to see your logged history for this exercise.</p>
+                    <div class="col-md-6">
+                        <h6 class="section-title">Secondary Muscles</h6>
+                        <p id="modalSecondary" class="text-muted small mb-3">None listed</p>
+                        <h6 class="section-title">Instructions</h6>
+                        <ol id="modalInstructions" class="ps-3 small mb-0">
+                            <li>No instruction steps available for this saved entry.</li>
+                        </ol>
                     </div>
                 </div>
             </div>
             <div class="modal-footer flex-wrap gap-2">
-                <button id="unfavBtn" class="btn btn-warning">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star_off</span>
-                    Remove Favourite
+                <button id="unfavBtn" class="btn btn-outline-warning">
+                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bookmark_remove</span>
+                    Remove Saved
                 </button>
                 <a id="viewStatsBtn" href="#" class="btn btn-outline-info">
                     <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span>
                     View Stats
                 </a>
-                <a href="/exercises" class="btn btn-outline-primary">Browse More</a>
+                <a href="/exercises" class="btn btn-primary">Browse More</a>
             </div>
         </div>
     </div>
@@ -170,6 +197,11 @@
         document.getElementById('modalBodyPart').textContent = exercise.bodyPart || exercise.body_part || '';
         document.getElementById('modalTarget').textContent = exercise.target || '';
         document.getElementById('modalEquipment').textContent = exercise.equipment || '';
+        document.getElementById('modalSecondary').textContent = (exercise.secondaryMuscles || []).join(', ') || 'None listed';
+        const steps = Array.isArray(exercise.instructions) ? exercise.instructions : [];
+        document.getElementById('modalInstructions').innerHTML = steps.length
+            ? steps.map((s) => `<li>${String(s).replace(/^Step:\d+\s*/, '')}</li>`).join('')
+            : '<li>No instruction steps available for this saved entry.</li>';
         document.getElementById('viewStatsBtn').href = `/exercises/${currentExId}`;
         new bootstrap.Modal(document.getElementById('exerciseModal')).show();
     }

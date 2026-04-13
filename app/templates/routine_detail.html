@@ -110,6 +110,49 @@
   }
   .ex-list-meta { font-size: 0.72rem; color: var(--text-muted); margin: 0; }
 
+  .inline-meta-form {
+    border: 1px solid var(--border-glass);
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 0.75rem;
+    margin-top: 0.7rem;
+  }
+
+  .ex-inline-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(64px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+  }
+
+  .ex-inline-grid label {
+    display: block;
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+  }
+
+  .ex-inline-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.55rem;
+  }
+
+  @media (max-width: 768px) {
+    .ex-inline-grid {
+      grid-template-columns: repeat(2, minmax(64px, 1fr));
+    }
+
+    .ex-inline-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
   .routine-panel {
     border-radius: 1rem;
     border: 0.5px solid var(--border-glass);
@@ -161,6 +204,22 @@
         <span class="badge bg-info">Remixed</span>
         {% endif %}
       </div>
+      {% if routine.owner_id == user.id %}
+      <form method="POST" action="/api/routines/{{ routine.id }}/edit" class="inline-meta-form">
+        <input type="hidden" name="name" value="{{ routine.name }}">
+        <div class="mb-2">
+          <label class="form-label small fw-semibold mb-1">Routine Bio</label>
+          <textarea name="description" rows="2" class="form-control form-control-sm" placeholder="Add routine context, cues, or goals">{{ routine.description or '' }}</textarea>
+        </div>
+        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+          <div class="form-check m-0">
+            <input type="checkbox" name="is_public" value="true" class="form-check-input" id="inlinePublic" {% if routine.is_public %}checked{% endif %}>
+            <label class="form-check-label small" for="inlinePublic">Public routine</label>
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm">Save Metadata</button>
+        </div>
+      </form>
+      {% endif %}
     </div>
 
     {% if routine.owner_id == user.id %}
@@ -168,15 +227,12 @@
       {% if exercises %}
       <form method="POST" action="/api/sessions/start">
         <input type="hidden" name="routine_id" value="{{ routine.id }}">
-        <button type="submit" class="btn btn-success btn-sm fw-semibold">
+        <button type="submit" class="btn btn-success fw-semibold px-3">
           <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">play_arrow</span>
-          Start Workout
+          Start Workout Now
         </button>
       </form>
       {% endif %}
-      <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal">
-        Edit
-      </button>
       <form method="POST" action="/api/routines/{{ routine.id }}/delete"
             onsubmit="return confirm('Delete this routine?')">
         <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
@@ -222,10 +278,37 @@
               <p class="ex-list-name">{{ re.exercise.name }}</p>
               <p class="ex-list-meta">
                 {% if re.sets and re.reps %}{{ re.sets }} sets × {{ re.reps }} reps{% endif %}
-                {% if re.duration_seconds %}{{ re.duration_seconds }}s{% endif %}
+                {% if re.duration_seconds %} · {{ re.duration_seconds }}s duration{% endif %}
                 {% if re.rest_seconds %}· {{ re.rest_seconds }}s rest{% endif %}
-                {% if re.notes %}<br><em class="fst-italic">{{ re.notes }}</em>{% endif %}
               </p>
+              {% if routine.owner_id == user.id %}
+              <form method="POST" action="/api/routines/exercises/{{ re.id }}/edit" class="mt-2">
+                <div class="ex-inline-grid">
+                  <div>
+                    <label>Sets</label>
+                    <input type="number" name="sets" class="form-control form-control-sm" min="1" value="{{ re.sets or '' }}">
+                  </div>
+                  <div>
+                    <label>Reps</label>
+                    <input type="number" name="reps" class="form-control form-control-sm" min="1" value="{{ re.reps or '' }}">
+                  </div>
+                  <div>
+                    <label>Duration</label>
+                    <input type="number" name="duration_seconds" class="form-control form-control-sm" min="0" value="{{ re.duration_seconds or '' }}">
+                  </div>
+                  <div>
+                    <label>Rest</label>
+                    <input type="number" name="rest_seconds" class="form-control form-control-sm" min="0" value="{{ re.rest_seconds or 60 }}">
+                  </div>
+                </div>
+                <div class="ex-inline-actions">
+                  <input type="text" name="notes" class="form-control form-control-sm" value="{{ re.notes or '' }}" placeholder="Optional note for this movement">
+                  <button type="submit" class="btn btn-outline-primary btn-sm">Save</button>
+                </div>
+              </form>
+              {% elif re.notes %}
+              <p class="ex-list-meta mt-1"><em class="fst-italic">{{ re.notes }}</em></p>
+              {% endif %}
             </div>
 
             {% if routine.owner_id == user.id %}
@@ -290,7 +373,7 @@
             <p class="routine-muted mb-1" style="font-size:0.72rem;" id="rdSelectedMuscleLabel">
               Click a muscle to filter
             </p>
-            {{ muscle_heatmap(mode="filter", height="260px") }}
+            {{ muscle_heatmap(mode="filter", height="260px", show_legend=False, instance_id="routine-filter") }}
           </div>
 
           <!-- Row 2: Scrollable exercises -->
@@ -306,40 +389,6 @@
     {% endif %}
 
   </div><!-- /row -->
-</div>
-
-<!-- Edit Routine Modal -->
-<div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold">Edit Routine</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="POST" action="/api/routines/{{ routine.id }}/edit">
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label fw-semibold small">Name</label>
-            <input type="text" name="name" class="form-control" value="{{ routine.name }}" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold small">Description</label>
-            <textarea name="description" class="form-control" rows="3">{{ routine.description or '' }}</textarea>
-          </div>
-          <div class="form-check">
-            <input type="checkbox" name="is_public" value="true"
-                   class="form-check-input" id="isPublic"
-                   {% if routine.is_public %}checked{% endif %}>
-            <label class="form-check-label small" for="isPublic">Make this routine public</label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn modal-action-cancel" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>
 
 <!-- Create Custom Exercise Modal -->

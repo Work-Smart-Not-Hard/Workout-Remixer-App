@@ -235,3 +235,40 @@ async def remove_exercise(
         url=request.url_for("routine_detail_view", routine_id=routine_id),
         status_code=status.HTTP_303_SEE_OTHER,
     )
+
+
+@api_router.post("/routines/exercises/{routine_exercise_id}/edit")
+async def edit_routine_exercise(
+    request: Request,
+    routine_exercise_id: int,
+    user: AuthDep,
+    db: SessionDep,
+    sets: Optional[int] = Form(default=None),
+    reps: Optional[int] = Form(default=None),
+    duration_seconds: Optional[int] = Form(default=None),
+    rest_seconds: Optional[int] = Form(default=None),
+    notes: str = Form(default=""),
+):
+    repo = RoutineRepository(db)
+    re = repo.get_routine_exercise(routine_exercise_id)
+    if not re:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    routine = repo.get_by_id(re.routine_id)
+    if not routine or routine.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your routine")
+
+    re.sets = sets if sets and sets > 0 else None
+    re.reps = reps if reps and reps > 0 else None
+    re.duration_seconds = duration_seconds if duration_seconds and duration_seconds > 0 else None
+    re.rest_seconds = rest_seconds if rest_seconds is not None and rest_seconds >= 0 else 60
+    cleaned_notes = (notes or "").strip()
+    re.notes = cleaned_notes or None
+    db.add(re)
+    db.commit()
+
+    flash(request, "Exercise settings updated.")
+    return RedirectResponse(
+        url=request.url_for("routine_detail_view", routine_id=re.routine_id),
+        status_code=status.HTTP_303_SEE_OTHER,
+    )

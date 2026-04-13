@@ -140,6 +140,56 @@ async def log_exercise(
                             status_code=status.HTTP_303_SEE_OTHER)
 
 
+@api_router.post("/sessions/{session_id}/add-exercise")
+async def add_exercise_to_active_session(
+    request: Request,
+    session_id: int,
+    user: AuthDep,
+    db: SessionDep,
+    exercise_id: str = Form(),
+    exercise_name: str = Form(),
+    exercise_body_parts: str = Form(default=""),
+    exercise_equipments: str = Form(default=""),
+    exercise_target_muscles: str = Form(default=""),
+    exercise_gif_url: str = Form(default=""),
+    sets: Optional[int] = Form(default=None),
+    reps: Optional[int] = Form(default=None),
+    duration_seconds: Optional[int] = Form(default=None),
+    rest_seconds: Optional[int] = Form(default=60),
+    notes: str = Form(default=""),
+):
+    repo = get_repo(db)
+    session = repo.get_by_id(session_id)
+    if not session or session.user_id != user.id:
+        flash(request, "Not your session.", "danger")
+        return RedirectResponse(url=request.url_for("routines_view"),
+                                status_code=status.HTTP_303_SEE_OTHER)
+
+    routine_repo = RoutineRepository(db)
+    exercise = routine_repo.upsert_exercise_ref({
+        "exerciseId": exercise_id,
+        "name": exercise_name,
+        "bodyParts": exercise_body_parts.split(",") if exercise_body_parts else [],
+        "equipments": exercise_equipments.split(",") if exercise_equipments else [],
+        "targetMuscles": exercise_target_muscles.split(",") if exercise_target_muscles else [],
+        "gifUrl": exercise_gif_url,
+    })
+
+    routine_repo.add_exercise(
+        routine_id=session.routine_id,
+        exercise_id=exercise.id,
+        sets=sets,
+        reps=reps,
+        duration_seconds=duration_seconds,
+        rest_seconds=rest_seconds,
+        notes=(notes or "").strip() or None,
+    )
+
+    flash(request, f'"{exercise_name}" added to this workout.', "success")
+    return RedirectResponse(url=request.url_for("session_view", session_id=session_id),
+                            status_code=status.HTTP_303_SEE_OTHER)
+
+
 @api_router.post("/sessions/{session_id}/complete")
 async def complete_session(
     request: Request,

@@ -1,4 +1,4 @@
-{% macro muscle_heatmap(mode="display", height="420px") %}
+{% macro muscle_heatmap(mode="display", height="420px", show_legend=True, instance_id="main") %}
 <style>
   /* Base SVG Styles */
   .heatmap-svg {
@@ -34,7 +34,7 @@
 
   /* Tooltip styling */
   .hm-tooltip-box {
-    position: fixed;
+    position: absolute;
     background: rgba(8, 15, 30, 0.95);
     border: 1px solid rgba(56, 189, 248, 0.28);
     color: #fff;
@@ -45,6 +45,7 @@
     display: none;
     pointer-events: none;
     z-index: 9999;
+    max-width: 220px;
     text-transform: capitalize;
     box-shadow: 0 10px 28px rgba(0,0,0,0.4), 0 0 0 1px rgba(148, 163, 184, 0.08) inset;
   }
@@ -59,7 +60,7 @@
   }
 </style>
 
-<div class="heatmap-wrapper position-relative" style="width:100%;">
+<div class="heatmap-wrapper position-relative" data-hm-instance="{{ instance_id }}" style="width:100%;">
   <div class="d-flex flex-wrap gap-3 justify-content-center">
 
     <!-- FRONT -->
@@ -308,6 +309,7 @@
     </svg>
   </div>
 
+  {% if show_legend %}
   <!-- Legend -->
   <div class="d-flex flex-wrap justify-content-center gap-3 mt-3 text-secondary" style="font-size:0.8rem;">
     <span><span class="legend-dot" style="background:#2b3035; border: 1px solid #1a1d20;"></span> Not trained</span>
@@ -315,9 +317,10 @@
     <span><span class="legend-dot" style="background:#22c55e; box-shadow:0 0 10px rgba(34,197,94,0.32);"></span> Moderate</span>
     <span><span class="legend-dot" style="background:#f59e0b; box-shadow:0 0 10px rgba(245,158,11,0.34);"></span> Heavy</span>
   </div>
+  {% endif %}
 
   <!-- Tooltip -->
-  <div id="hm-tooltip" class="hm-tooltip-box"></div>
+  <div id="hm-tooltip-{{ instance_id }}" class="hm-tooltip-box"></div>
 </div>
 
 <script>
@@ -349,7 +352,7 @@
     return '#f59e0b';
   }
 
-  function initHeatmap(data) {
+  function initHeatmap(data, instanceId) {
     const svgData = {};
     for (const [apiMuscle, intensity] of Object.entries(data)) {
       const svgMuscle = MUSCLE_MAP[apiMuscle.toLowerCase()];
@@ -358,21 +361,74 @@
       }
     }
 
-    document.querySelectorAll('.hm-group').forEach(g => {
-      const muscle = g.getAttribute('data-muscle');
-      const color = getHeatColor(svgData[muscle] || 0);
-      if (color) g.querySelectorAll('path').forEach(p => p.style.fill = color);
+    const wrappers = instanceId
+      ? Array.from(document.querySelectorAll(`.heatmap-wrapper[data-hm-instance="${instanceId}"]`))
+      : Array.from(document.querySelectorAll('.heatmap-wrapper[data-hm-instance]'));
 
-      // Tooltip logic
-      const tooltip = document.getElementById('hm-tooltip');
-      g.addEventListener('mousemove', e => {
-        tooltip.style.display = 'block';
-        tooltip.style.left = e.clientX + 15 + 'px';
-        tooltip.style.top = e.clientY + 15 + 'px';
-        const pct = svgData[muscle] ? Math.round(svgData[muscle] * 100) + '% intensity' : 'Not trained recently';
-        tooltip.textContent = muscle + ' — ' + pct;
+    wrappers.forEach((wrapper) => {
+      wrapper._hmData = svgData;
+      const tooltip = wrapper.querySelector('.hm-tooltip-box');
+      if (!tooltip) return;
+
+      const positionTooltip = (evt) => {
+        const rect = wrapper.getBoundingClientRect();
+        const isCompact = window.matchMedia('(max-width: 768px)').matches;
+        const margin = isCompact ? 6 : 10;
+        const offset = isCompact ? 8 : 14;
+        const x = evt.clientX - rect.left;
+        const y = evt.clientY - rect.top;
+
+        // Prefer bottom-right placement, then flip when near wrapper edges.
+        let left = x + offset;
+        let top = y + offset;
+
+        if (left + tooltip.offsetWidth + margin > rect.width) {
+          left = x - tooltip.offsetWidth - offset;
+        }
+        if (top + tooltip.offsetHeight + margin > rect.height) {
+          top = y - tooltip.offsetHeight - offset;
+        }
+
+        const maxLeft = Math.max(margin, rect.width - tooltip.offsetWidth - margin);
+        const maxTop = Math.max(margin, rect.height - tooltip.offsetHeight - margin);
+        left = Math.min(Math.max(margin, left), maxLeft);
+        top = Math.min(Math.max(margin, top), maxTop);
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+      };
+
+      wrapper.querySelectorAll('.hm-group').forEach((g) => {
+        const muscle = g.getAttribute('data-muscle');
+        const value = wrapper._hmData[muscle] || 0;
+        const color = getHeatColor(value);
+
+        g.querySelectorAll('path').forEach((p) => {
+          p.style.fill = color || '';
+        });
+
+        if (g.dataset.hmBound === '1') return;
+        g.dataset.hmBound = '1';
+
+        g.addEventListener('mousemove', (e) => {
+          const live = wrapper._hmData || {};
+          const liveVal = live[muscle] || 0;
+          tooltip.style.display = 'block';
+          const pct = liveVal ? Math.round(liveVal * 100) + '% intensity' : 'Not trained recently';
+          tooltip.textContent = muscle + ' — ' + pct;
+          positionTooltip(e);
+        });
+
+        g.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+        });
       });
-      g.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+
+      if (wrapper.dataset.hmLeaveBound !== '1') {
+        wrapper.dataset.hmLeaveBound = '1';
+        wrapper.addEventListener('mouseleave', () => {
+          tooltip.style.display = 'none';
+        });
+      }
     });
   }
 

@@ -9,260 +9,308 @@
 {% block subpage_content %}
 <div class="container-fluid">
 
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h4 class="page-title">Progress Dashboard</h4>
-            <p class="page-subtitle">Your workout history at a glance</p>
+  <!-- Page header -->
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <h4 class="page-title">Progress Dashboard</h4>
+      <p class="page-subtitle">Your workout history at a glance</p>
+    </div>
+    <div class="col-auto">
+      <div class="chart-period-group" id="globalPeriod">
+        <button class="chart-period active" data-period="week"    onclick="setPeriod('week', this)">Week</button>
+        <button class="chart-period"        data-period="month"   onclick="setPeriod('month', this)">Month</button>
+        <button class="chart-period"        data-period="6months" onclick="setPeriod('6months', this)">6M</button>
+        <button class="chart-period"        data-period="year"    onclick="setPeriod('year', this)">Year</button>
+        <button class="chart-period"        data-period="all"     onclick="setPeriod('all', this)">All</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Left: heatmap -->
+    <div class="col-lg-4">
+      <div class="card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="section-title">Muscle Activity</h6>
+          <small class="text-muted" style="font-size:.72rem;">Click a muscle for history</small>
         </div>
-        <div class="col-auto">
-            <select id="periodFilter" class="form-select form-select-sm" onchange="reload()">
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="6months">Last 6 Months</option>
-                <option value="year">This Year</option>
-                <option value="all">All Time</option>
-            </select>
-        </div>
+        {{ muscle_heatmap(mode="stats", height="380px", instance_id="dashboard") }}
+      </div>
     </div>
 
-    <div class="row g-4">
+    <!-- Right: stats + charts -->
+    <div class="col-lg-8">
 
-        <!-- Left: heatmap -->
-        <div class="col-lg-4">
-            <div class="card p-3 h-100">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="section-title">Muscle Activity</h6>
-                    <small class="text-muted">Click a muscle to see history</small>
-                </div>
-                {{ muscle_heatmap(mode="stats", height="380px") }}
-            </div>
+      <!-- Summary stat cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+          <div class="card stat-card tint-cyan">
+            <div class="stat-number" id="statSessions">—</div>
+            <div class="stat-label">Workouts</div>
+          </div>
         </div>
-
-        <!-- Right: stats + charts -->
-        <div class="col-lg-8">
-
-            <!-- Summary cards -->
-            <div class="row g-3 mb-4">
-                <div class="col-sm-4">
-                    <div class="card stat-card tint-cyan">
-                        <div class="stat-number" id="statSessions">—</div>
-                        <div class="stat-label">Workouts</div>
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="card stat-card tint-green">
-                        <div class="stat-number" id="statSets">—</div>
-                        <div class="stat-label">Total Sets</div>
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="card stat-card tint-amber">
-                        <div class="stat-number" id="statDuration">—</div>
-                        <div class="stat-label">Minutes Trained</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sessions over time -->
-            <div class="card p-3 mb-4">
-                <h6 class="section-title mb-3">Workouts Over Time</h6>
-                <canvas id="sessionsChart" height="110"></canvas>
-                <p id="noSessionsMsg" class="text-muted text-center small mt-2" style="display:none;">No workouts yet for this period.</p>
-            </div>
-
-            <!-- Muscle volume bar -->
-            <div class="card p-3">
-                <h6 class="section-title mb-3">Top Muscle Groups (sets)</h6>
-                <canvas id="muscleChart" height="160"></canvas>
-                <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet.</p>
-            </div>
+        <div class="col-sm-4">
+          <div class="card stat-card tint-green">
+            <div class="stat-number" id="statSets">—</div>
+            <div class="stat-label">Total Sets</div>
+          </div>
         </div>
+        <div class="col-sm-4">
+          <div class="card stat-card tint-amber">
+            <div class="stat-number" id="statDuration">—</div>
+            <div class="stat-label">Minutes Trained</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sessions over time — chart shell -->
+      <div class="card chart-card mb-4">
+        <div class="chart-card-header">
+          <div>
+            <p class="chart-title">Workouts Over Time</p>
+            <p class="chart-subtitle">Session duration per workout</p>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div class="chart-skeleton" id="sessionsChartSkeleton">
+            <div class="skel-bar" style="height:35%"></div>
+            <div class="skel-bar" style="height:60%"></div>
+            <div class="skel-bar" style="height:45%"></div>
+            <div class="skel-bar" style="height:80%"></div>
+            <div class="skel-bar" style="height:55%"></div>
+            <div class="skel-bar" style="height:70%"></div>
+            <div class="skel-bar" style="height:40%"></div>
+          </div>
+          <canvas id="sessionsChart" height="110" style="display:none;"></canvas>
+          <p id="noSessionsMsg" class="text-muted text-center small mt-2" style="display:none;">No workouts yet for this period.</p>
+        </div>
+      </div>
+
+      <!-- Muscle volume bar — chart shell -->
+      <div class="card chart-card">
+        <div class="chart-card-header">
+          <div>
+            <p class="chart-title">Top Muscle Groups</p>
+            <p class="chart-subtitle">Volume by sets performed</p>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div class="chart-skeleton" id="muscleChartSkeleton">
+            <div class="skel-bar" style="height:100%"></div>
+            <div class="skel-bar" style="height:82%"></div>
+            <div class="skel-bar" style="height:68%"></div>
+            <div class="skel-bar" style="height:55%"></div>
+            <div class="skel-bar" style="height:40%"></div>
+            <div class="skel-bar" style="height:28%"></div>
+          </div>
+          <canvas id="muscleChart" height="160" style="display:none;"></canvas>
+          <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet.</p>
+        </div>
+      </div>
+
     </div>
+  </div>
 
-    <!-- Recent sessions -->
-    <div class="card mt-4">
-        <div class="card-header section-title">Recent Workouts</div>
-        <div class="card-body p-0">
-            {% if sessions %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr><th>Date</th><th>Routine</th><th>Duration</th><th>Notes</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for s in sessions[:20] %}
-                        <tr>
-                            <td>{{ s.completed_at.strftime('%b %d, %Y') if s.completed_at else '—' }}</td>
-                            <td><a href="/routines/{{ s.routine_id }}" class="text-decoration-none">Routine #{{ s.routine_id }}</a></td>
-                            <td>{{ s.duration_minutes or '—' }} min</td>
-                            <td class="text-muted small">{{ s.notes or '—' }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5 text-muted">
-                <span class="material-symbols-outlined" style="font-size:3rem">bar_chart</span>
-                <p class="mt-2">No workouts yet. Start a routine to begin tracking!</p>
-            </div>
-            {% endif %}
-        </div>
+  <!-- Recent sessions table -->
+  <div class="card mt-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span class="section-title">Recent Workouts</span>
     </div>
+    <div class="card-body p-0">
+      {% if sessions %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr><th>Date</th><th>Routine</th><th>Duration</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            {% for s in sessions[:20] %}
+            <tr>
+              <td>{{ s.completed_at.strftime('%b %d, %Y') if s.completed_at else '—' }}</td>
+              <td>
+                <a href="/routines/{{ s.routine_id }}" class="text-decoration-none" style="color:var(--accent-cyan-lt,#7dd3fc);">
+                  {{ s.routine.name if s.routine else 'Routine #' ~ s.routine_id }}
+                </a>
+              </td>
+              <td>
+                {% if s.duration_minutes %}
+                <span class="pill pill-active">{{ s.duration_minutes }} min</span>
+                {% else %}—{% endif %}
+              </td>
+              <td class="text-muted small">{{ s.notes or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <span class="material-symbols-outlined" style="font-size:2.5rem;opacity:.4;">bar_chart</span>
+        <p class="mt-2 small">No workouts yet. Start a routine to begin tracking!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
 
 </div>
 {% endblock %}
 
 {% block subpage_scripts %}
 <script>
-    let sessionsChart = null;
-    let muscleChart = null;
+  let sessionsChart = null;
+  let muscleChart   = null;
+  let currentPeriod = 'week';
 
-    function getPeriod() {
-        return document.getElementById('periodFilter').value;
-    }
-
-    async function reload() {
-        await Promise.all([loadStats(), loadHeatmap()]);
-    }
-
-    async function loadHeatmap() {
-        const res = await fetch(`/api/dashboard/heatmap?period=${getPeriod()}`);
-        const data = await res.json();
-        initHeatmap(data);
-    }
-
-    async function loadStats() {
-        const res = await fetch(`/api/dashboard/stats?period=${getPeriod()}`);
-        const data = await res.json();
-        document.getElementById('statSessions').textContent = data.total_sessions;
-        document.getElementById('statSets').textContent = data.total_sets;
-        document.getElementById('statDuration').textContent = data.total_duration;
-        renderSessionsChart(data.sessions_over_time);
-        renderMuscleChart(data.muscle_volume);
-    }
-
-    // Clicking a muscle on the heatmap opens the muscle history page
-    function onMuscleClick(muscleName) {
-        window.location.href = `/dashboard/muscle/${encodeURIComponent(muscleName)}?period=${getPeriod()}`;
-    }
-
-    function renderSessionsChart(dataPoints) {
-        const noMsg = document.getElementById('noSessionsMsg');
-        const canvas = document.getElementById('sessionsChart');
-        if (!dataPoints.length) {
-            noMsg.style.display = '';
-            canvas.style.display = 'none';
-            if (sessionsChart) {
-                sessionsChart.destroy();
-                sessionsChart = null;
-            }
-            return;
-        }
-        noMsg.style.display = 'none';
-        canvas.style.display = '';
-        const grouped = {};
-        dataPoints.forEach(d => grouped[d.date] = (grouped[d.date] || 0) + d.duration);
-        const labels = Object.keys(grouped).sort();
-        if (sessionsChart) sessionsChart.destroy();
-        sessionsChart = new Chart(canvas, {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Duration (min)',
-                    data: labels.map(l => grouped[l]),
-                    borderColor: '#38bdf8',
-                    backgroundColor: 'rgba(56,189,248,0.08)',
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 5,
-                    pointHoverRadius: 5,
-                    pointBackgroundColor: '#38bdf8',
-                    pointBorderColor: 'rgba(10,13,20,0.8)',
-                    pointBorderWidth: 2,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false,
-                        labels: { color: '#475569', font: { size: 11 } }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#334155', font: { size: 11 } },
-                        grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                        border: { display: false }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: { color: '#334155', font: { size: 11 } },
-                        grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                        border: { display: false }
-                    }
-                }
-            }
-        });
-    }
-
-    function renderMuscleChart(muscleData) {
-        const noMsg = document.getElementById('noMuscleMsg');
-        const canvas = document.getElementById('muscleChart');
-        if (!muscleData.length) {
-            noMsg.style.display = '';
-            canvas.style.display = 'none';
-            if (muscleChart) {
-                muscleChart.destroy();
-                muscleChart = null;
-            }
-            return;
-        }
-        noMsg.style.display = 'none';
-        canvas.style.display = '';
-        if (muscleChart) muscleChart.destroy();
-        muscleChart = new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels: muscleData.map(d => d.muscle),
-                datasets: [{
-                    label: 'Sets',
-                    data: muscleData.map(d => d.sets),
-                    backgroundColor: 'rgba(56,189,248,0.75)',
-                    borderRadius: 6,
-                    borderSkipped: false,
-                    hoverBackgroundColor: 'rgba(56,189,248,0.9)'
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false,
-                        labels: { color: '#475569', font: { size: 11 } }
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: { color: '#334155', font: { size: 11 } },
-                        grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                        border: { display: false }
-                    },
-                    y: {
-                        ticks: { color: '#334155', font: { size: 11 } },
-                        grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                        border: { display: false }
-                    }
-                }
-            }
-        });
-    }
-
+  function setPeriod(period, btn) {
+    currentPeriod = period;
+    document.querySelectorAll('#globalPeriod .chart-period').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
     reload();
+  }
+
+  async function reload() {
+    await Promise.all([loadStats(), loadHeatmap()]);
+  }
+
+  async function loadHeatmap() {
+    const res  = await fetch(`/api/dashboard/heatmap?period=${currentPeriod}`);
+    const data = await res.json();
+    initHeatmap(data);
+  }
+
+  async function loadStats() {
+    const res  = await fetch(`/api/dashboard/stats?period=${currentPeriod}`);
+    const data = await res.json();
+    document.getElementById('statSessions').textContent = data.total_sessions;
+    document.getElementById('statSets').textContent     = data.total_sets;
+    document.getElementById('statDuration').textContent = data.total_duration;
+    renderSessionsChart(data.sessions_over_time);
+    renderMuscleChart(data.muscle_volume);
+  }
+
+  function onMuscleClick(muscleName) {
+    window.location.href = `/dashboard/muscle/${encodeURIComponent(muscleName)}?period=${currentPeriod}`;
+  }
+
+  function showSkeleton(id, canvasId) {
+    const sk = document.getElementById(id);
+    const cv = document.getElementById(canvasId);
+    if (sk) sk.classList.remove('hidden');
+    if (cv) cv.style.display = 'none';
+  }
+  function hideSkeleton(id, canvasId) {
+    const sk = document.getElementById(id);
+    const cv = document.getElementById(canvasId);
+    if (sk) sk.classList.add('hidden');
+    if (cv) cv.style.display = '';
+  }
+
+  function renderSessionsChart(dataPoints) {
+    const noMsg = document.getElementById('noSessionsMsg');
+    const canvas = document.getElementById('sessionsChart');
+    if (!dataPoints.length) {
+      noMsg.style.display = '';
+      canvas.style.display = 'none';
+      showSkeleton('sessionsChartSkeleton', 'sessionsChart');
+      if (sessionsChart) { sessionsChart.destroy(); sessionsChart = null; }
+      return;
+    }
+    noMsg.style.display = 'none';
+    hideSkeleton('sessionsChartSkeleton', 'sessionsChart');
+
+    const grouped = {};
+    dataPoints.forEach(d => grouped[d.date] = (grouped[d.date] || 0) + d.duration);
+    const labels = Object.keys(grouped).sort();
+
+    if (sessionsChart) sessionsChart.destroy();
+    sessionsChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Duration (min)',
+          data: labels.map(l => grouped[l]),
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56,189,248,0.07)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#38bdf8',
+          pointBorderColor: 'rgba(6,13,20,0.9)',
+          pointBorderWidth: 2,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            ticks: { color: '#334155', font: { size: 11 } },
+            grid:  { color: 'rgba(255,255,255,0.035)', drawBorder: false },
+            border:{ display: false }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#334155', font: { size: 11 } },
+            grid:  { color: 'rgba(255,255,255,0.035)', drawBorder: false },
+            border:{ display: false }
+          }
+        }
+      }
+    });
+  }
+
+  function renderMuscleChart(muscleData) {
+    const noMsg = document.getElementById('noMuscleMsg');
+    const canvas = document.getElementById('muscleChart');
+    if (!muscleData.length) {
+      noMsg.style.display = '';
+      canvas.style.display = 'none';
+      showSkeleton('muscleChartSkeleton', 'muscleChart');
+      if (muscleChart) { muscleChart.destroy(); muscleChart = null; }
+      return;
+    }
+    noMsg.style.display = 'none';
+    hideSkeleton('muscleChartSkeleton', 'muscleChart');
+
+    if (muscleChart) muscleChart.destroy();
+    muscleChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: muscleData.map(d => d.muscle),
+        datasets: [{
+          label: 'Sets',
+          data: muscleData.map(d => d.sets),
+          backgroundColor: 'rgba(56,189,248,0.70)',
+          borderRadius: 5,
+          borderSkipped: false,
+          hoverBackgroundColor: 'rgba(56,189,248,0.90)',
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { color: '#334155', font: { size: 11 } },
+            grid:  { color: 'rgba(255,255,255,0.035)', drawBorder: false },
+            border:{ display: false }
+          },
+          y: {
+            ticks: { color: '#475569', font: { size: 11 } },
+            grid:  { color: 'rgba(255,255,255,0.035)', drawBorder: false },
+            border:{ display: false }
+          }
+        }
+      }
+    });
+  }
+
+  reload();
 </script>
 {% endblock %}
