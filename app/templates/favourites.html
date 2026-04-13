@@ -1,6 +1,60 @@
 {% extends "authenticated-base.html" %}
 {% block title %}Favourite Exercises{% endblock %}
 
+{% block additional_styles %}
+.ex-card-new {
+    border-radius: 16px;
+}
+
+.ex-card-img-wrap {
+    height: auto;
+    min-height: 160px;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    padding: 9px;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.ex-card-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 6px;
+}
+
+.ex-card-overlay {
+    display: none;
+}
+
+.exercise-preview-shell {
+    min-height: 260px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+#modalGif {
+    width: 100%;
+    max-height: 340px;
+    object-fit: contain;
+    object-position: center;
+    border-radius: 14px;
+    background: rgba(248,250,252,0.94);
+    padding: 8px;
+}
+{% endblock %}
+
 {% block subpage_content %}
 <div class="container-fluid">
 
@@ -14,27 +68,38 @@
     {% if favourites %}
     <div class="row g-3">
         {% for fav in favourites %}
+        {% set payload = {
+            'exerciseId': fav.exercise_id,
+            'name': fav.name,
+            'gifUrl': fav.gif_url,
+            'bodyPart': fav.body_part,
+            'target': fav.target,
+            'equipment': fav.equipment,
+            'targetMuscles': [fav.target] if fav.target else [],
+            'equipments': [fav.equipment] if fav.equipment else []
+        } %}
         <div class="col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 shadow-sm" role="button"
-                 onclick="openExercise('{{ fav.exercise_id }}', '{{ fav.name }}', '{{ fav.gif_url or '' }}', '{{ fav.body_part or '' }}', '{{ fav.target or '' }}', '{{ fav.equipment or '' }}')">
-                {% if fav.gif_url %}
-                <img src="{{ fav.gif_url }}" class="card-img-top" alt="{{ fav.name }}"
-                     style="height:180px; object-fit:cover;" loading="lazy">
-                {% else %}
-                <div class="d-flex align-items-center justify-content-center" style="height:180px;background:rgba(255,255,255,0.05);border-radius:12px 12px 0 0;">
-                    <span class="material-symbols-outlined text-muted" style="font-size:3rem">fitness_center</span>
+            <div class="ex-card-new position-relative" role="button"
+                 onclick="openExerciseFromEncoded('{{ payload | tojson | urlencode }}')">
+                <span class="ex-fav-star">★</span>
+                <div class="ex-card-img-wrap">
+                    {% if fav.gif_url %}
+                    <img src="{{ fav.gif_url }}" loading="lazy" alt="{{ fav.name }}">
+                    {% else %}
+                    <div class="d-flex align-items-center justify-content-center w-100 h-100">
+                        <span class="material-symbols-outlined text-muted" style="font-size:2rem">fitness_center</span>
+                    </div>
+                    {% endif %}
+                    <div class="ex-card-overlay"></div>
                 </div>
-                {% endif %}
-                <div class="card-body p-2">
-                    <p class="fw-semibold mb-1 text-capitalize" style="font-size:0.85rem;">
-                        {{ fav.name }}
-                    </p>
-                    <div>
+                <div class="ex-card-body">
+                    <p class="ex-card-name">{{ fav.name }}</p>
+                    <div class="ex-card-tags">
                         {% if fav.equipment %}
-                        <span class="badge bg-secondary me-1" style="font-size:0.7rem">{{ fav.equipment }}</span>
+                        <span class="ex-tag ex-tag-gray">{{ fav.equipment }}</span>
                         {% endif %}
                         {% if fav.target %}
-                        <span class="badge bg-success" style="font-size:0.7rem">{{ fav.target }}</span>
+                        <span class="ex-tag ex-tag-green">{{ fav.target }}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -64,7 +129,9 @@
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-5 text-center">
-                        <img id="modalGif" src="" alt="" class="img-fluid rounded" style="max-height:260px;">
+                        <div class="exercise-preview-shell">
+                            <img id="modalGif" src="" alt="" class="img-fluid rounded">
+                        </div>
                         <div class="mt-2">
                             <span class="badge bg-primary me-1" id="modalBodyPart"></span>
                             <span class="badge bg-success me-1" id="modalTarget"></span>
@@ -96,15 +163,23 @@
 <script>
     let currentExId = null;
 
-    function openExercise(exerciseId, name, gifUrl, bodyPart, target, equipment) {
-        currentExId = exerciseId;
-        document.getElementById('modalExerciseName').textContent = name;
-        document.getElementById('modalGif').src = gifUrl || '';
-        document.getElementById('modalBodyPart').textContent = bodyPart || '';
-        document.getElementById('modalTarget').textContent = target || '';
-        document.getElementById('modalEquipment').textContent = equipment || '';
-        document.getElementById('viewStatsBtn').href = `/exercises/${exerciseId}`;
+    function openExercise(exercise) {
+        currentExId = exercise.exerciseId || exercise.exercise_id || '';
+        document.getElementById('modalExerciseName').textContent = exercise.name || '';
+        document.getElementById('modalGif').src = exercise.gifUrl || exercise.gif_url || '';
+        document.getElementById('modalBodyPart').textContent = exercise.bodyPart || exercise.body_part || '';
+        document.getElementById('modalTarget').textContent = exercise.target || '';
+        document.getElementById('modalEquipment').textContent = exercise.equipment || '';
+        document.getElementById('viewStatsBtn').href = `/exercises/${currentExId}`;
         new bootstrap.Modal(document.getElementById('exerciseModal')).show();
+    }
+
+    function openExerciseFromEncoded(encoded) {
+        try {
+            openExercise(JSON.parse(decodeURIComponent(encoded)));
+        } catch (err) {
+            console.error('Invalid exercise payload', err);
+        }
     }
 
     document.getElementById('unfavBtn').addEventListener('click', async () => {

@@ -1,6 +1,88 @@
 {% extends "authenticated-base.html" %}
 {% block title %}My Routines{% endblock %}
 
+{% block additional_styles %}
+.routine-card {
+    border-radius: 16px;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.routine-media {
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+    height: 56%;
+    min-height: 190px;
+    position: relative;
+}
+
+.routine-gif-marquee {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.routine-gif-track {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    height: 100%;
+    padding: 10px 14px;
+    white-space: nowrap;
+}
+
+.routine-gif-marquee.ready .routine-gif-track {
+    animation: routine-marquee var(--marquee-duration, 26s) linear infinite;
+}
+
+.routine-gif-marquee:hover .routine-gif-track {
+    animation-play-state: paused;
+}
+
+.routine-gif-item {
+    width: 170px;
+    height: 170px;
+    border-radius: 14px;
+    object-fit: contain;
+    background: #ffffff;
+    padding: 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    flex: 0 0 auto;
+}
+
+.routine-media-fallback {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.routine-submeta {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.routine-card .card-body {
+    flex: 1;
+    min-height: 0;
+}
+
+.routine-card .card-footer {
+    margin-top: auto;
+}
+
+@keyframes routine-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+{% endblock %}
+
 {% block subpage_content %}
 <div class="container-fluid">
 
@@ -24,7 +106,32 @@
     <div class="row g-3">
         {% for routine in routines %}
         <div class="col-sm-6 col-lg-4">
-            <div class="card h-100 shadow-sm stat-card tint-indigo" style="text-align:left;">
+            <div class="card h-100 shadow-sm stat-card tint-indigo routine-card" style="text-align:left;">
+                <div class="routine-media">
+                    {% set gif_count = namespace(value=0) %}
+                    {% for re in routine.exercises %}
+                        {% if re.exercise and re.exercise.gif_url %}
+                            {% set gif_count.value = gif_count.value + 1 %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if gif_count.value > 0 %}
+                    <div class="routine-gif-marquee" data-gif-count="{{ gif_count.value }}">
+                        <div class="routine-gif-track">
+                            {% for re in routine.exercises %}
+                                {% if re.exercise and re.exercise.gif_url %}
+                                <img src="{{ re.exercise.gif_url }}" loading="lazy" alt="{{ re.exercise.name }}" class="routine-gif-item">
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="routine-media-fallback">
+                        <span class="material-symbols-outlined" style="font-size:1.2rem;">movie</span>
+                        No exercise previews yet
+                    </div>
+                    {% endif %}
+                </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h5 class="card-title fw-bold mb-0">{{ routine.name }}</h5>
@@ -39,6 +146,9 @@
                     {% endif %}
                     <p class="text-muted small mb-0">
                         Created {{ routine.created_at.strftime('%b %d, %Y') }}
+                    </p>
+                    <p class="routine-submeta mb-0 mt-1">
+                        {{ routine.exercises|length }} exercise{{ '' if routine.exercises|length == 1 else 's' }}
                     </p>
                 </div>
                 <div class="card-footer bg-transparent d-flex gap-2">
@@ -94,4 +204,22 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block subpage_scripts %}
+<script>
+document.querySelectorAll('.routine-gif-marquee').forEach((marquee) => {
+    const track = marquee.querySelector('.routine-gif-track');
+    if (!track) return;
+
+    const items = [...track.children];
+    if (items.length <= 1) return;
+
+    // Duplicate sequence once for seamless loop.
+    items.forEach((item) => track.appendChild(item.cloneNode(true)));
+    const duration = Math.max(14, items.length * 3.2);
+    marquee.style.setProperty('--marquee-duration', `${duration}s`);
+    marquee.classList.add('ready');
+});
+</script>
 {% endblock %}

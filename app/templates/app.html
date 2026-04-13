@@ -2,6 +2,126 @@
 {% from "heatmap_component.html" import muscle_heatmap %}
 {% block title %}Home{% endblock %}
 
+{% block additional_styles %}
+<style>
+    .home-calendar-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+    }
+
+    .calendar-nav-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.03);
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .calendar-nav-btn:hover {
+        color: #e2e8f0;
+        background: rgba(255,255,255,0.08);
+    }
+
+    .calendar-month-label {
+        font-size: 0.96rem;
+        font-weight: 600;
+        color: #cbd5e1;
+    }
+
+    .workout-calendar {
+        margin-top: 0.75rem;
+        width: 100%;
+    }
+
+    .calendar-weekdays,
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .calendar-weekdays div {
+        text-align: center;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #64748b;
+        padding: 4px 0;
+    }
+
+    .calendar-day {
+        height: 42px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.07);
+        background: rgba(255,255,255,0.02);
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.86rem;
+        position: relative;
+    }
+
+    .calendar-card {
+        max-width: 520px;
+    }
+
+    .calendar-day.is-today {
+        border-color: rgba(129,140,248,0.55);
+        color: #c7d2fe;
+    }
+
+    .calendar-day.has-workout {
+        background: linear-gradient(180deg, rgba(251,113,133,0.16), rgba(244,63,94,0.08));
+        border-color: rgba(251,113,133,0.48);
+        color: #ffe4e6;
+        font-weight: 600;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .calendar-day-fire {
+        position: absolute;
+        right: 2px;
+        bottom: 1px;
+        font-size: 13px;
+        line-height: 1;
+        color: #fb7185;
+        text-shadow: 0 0 10px rgba(251,113,133,0.55);
+        font-variation-settings: 'FILL' 1, 'wght' 400;
+        pointer-events: none;
+    }
+
+    .calendar-day.is-empty {
+        background: transparent;
+        border-color: transparent;
+    }
+
+    .calendar-legend {
+        margin-top: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: #64748b;
+        font-size: 0.8rem;
+    }
+
+    .calendar-fire {
+        font-size: 0.95rem;
+        line-height: 1;
+        color: #fb7185;
+        text-shadow: 0 0 8px rgba(251,113,133,0.45);
+        font-variation-settings: 'FILL' 1, 'wght' 400;
+    }
+</style>
+{% endblock %}
+
 {% block external_js %}
 <script src="{{ url_for('static', path='js/app.js')}}"></script>
 {% endblock %}
@@ -63,7 +183,7 @@
     <div class="row g-4">
 
         <!-- Weekly snapshot -->
-        <div class="col-lg-5">
+        <div class="col-lg-6">
             <div class="card shadow-sm p-3 h-100">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="section-title">Weekly Snapshot</h6>
@@ -78,32 +198,31 @@
             </div>
         </div>
 
-        <!-- Quick actions + recent workouts -->
-        <div class="col-lg-7">
-            <div class="card shadow-sm mb-3">
+        <div class="col-lg-6 d-flex justify-content-lg-end">
+            <div class="card shadow-sm calendar-card w-100">
                 <div class="card-body">
-                    <h6 class="section-title mb-3">Quick Actions</h6>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <a href="/routines" class="btn btn-primary btn-sm">
-                            <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">event_note</span>
-                            My Routines
-                        </a>
-                        <a href="/exercises" class="btn btn-outline-primary btn-sm">
-                            <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">fitness_center</span>
-                            Browse Exercises
-                        </a>
-                        <a href="/explore" class="btn btn-outline-secondary btn-sm">
-                            <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">explore</span>
-                            Explore
-                        </a>
+                    <div class="home-calendar-head">
+                        <h6 class="section-title mb-0">Workout Calendar</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="calendar-nav-btn" id="calendarPrev" type="button" aria-label="Previous month">
+                                <span class="material-symbols-outlined" style="font-size:16px;">chevron_left</span>
+                            </button>
+                            <span class="calendar-month-label" id="calendarMonthLabel">Month</span>
+                            <button class="calendar-nav-btn" id="calendarNext" type="button" aria-label="Next month">
+                                <span class="material-symbols-outlined" style="font-size:16px;">chevron_right</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="card shadow-sm">
-                <div class="card-header bg-transparent section-title">Recent Workouts</div>
-                <div id="recentWorkouts" class="card-body p-0">
-                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                    <div class="workout-calendar">
+                        <div class="calendar-weekdays">
+                            <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                        </div>
+                        <div class="calendar-grid mt-1" id="workoutCalendarGrid"></div>
+                    </div>
+                    <div class="calendar-legend">
+                        <span class="material-symbols-outlined calendar-fire">local_fire_department</span>
+                        Workout completed
+                    </div>
                 </div>
             </div>
         </div>
@@ -133,29 +252,95 @@
         document.getElementById('quickMinutes').textContent = data.total_duration;
     }
 
-    async function loadRecentWorkouts() {
-        const res = await fetch('/api/dashboard/stats?period=month');
-        const data = await res.json();
-        const el = document.getElementById('recentWorkouts');
-        if (!data.sessions_over_time.length) {
-            el.innerHTML = `<div class="text-center py-4 text-muted small">No workouts yet. <a href="/routines">Start one!</a></div>`;
-            return;
+    const workoutDateMap = new Map();
+    let calendarDate = new Date();
+
+    function toIsoDate(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function formatMonthLabel(date) {
+        return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(date);
+    }
+
+    function renderCalendar() {
+        const grid = document.getElementById('workoutCalendarGrid');
+        const label = document.getElementById('calendarMonthLabel');
+        if (!grid || !label) return;
+
+        const year = calendarDate.getFullYear();
+        const month = calendarDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startWeekday = firstDay.getDay();
+
+        label.textContent = formatMonthLabel(firstDay);
+        grid.innerHTML = '';
+
+        for (let i = 0; i < startWeekday; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'calendar-day is-empty';
+            grid.appendChild(empty);
         }
-        // Group by date and show last 5 unique days
-        const days = [...new Set(data.sessions_over_time.map(s => s.date))].reverse().slice(0, 5);
-        el.innerHTML = `<ul class="list-group list-group-flush">` +
-            days.map(d => `
-                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                    <span class="small fw-semibold">${d}</span>
-                    <span class="badge bg-primary rounded-pill">
-                        ${data.sessions_over_time.filter(s => s.date === d).reduce((a,s) => a + s.duration, 0)} min
-                    </span>
-                </li>
-            `).join('') + `</ul>`;
+
+        const todayIso = toIsoDate(new Date());
+        for (let day = 1; day <= daysInMonth; day++) {
+            const cellDate = new Date(year, month, day);
+            const iso = toIsoDate(cellDate);
+            const info = workoutDateMap.get(iso);
+
+            const cell = document.createElement('div');
+            cell.className = 'calendar-day';
+            cell.textContent = String(day);
+            if (iso === todayIso) cell.classList.add('is-today');
+            if (info) {
+                cell.classList.add('has-workout');
+                cell.title = `${info.sessions} workout${info.sessions > 1 ? 's' : ''} • ${info.minutes} min`;
+                const marker = document.createElement('span');
+                marker.className = 'material-symbols-outlined calendar-day-fire';
+                marker.textContent = 'local_fire_department';
+                cell.appendChild(marker);
+            }
+            grid.appendChild(cell);
+        }
+    }
+
+    async function loadWorkoutCalendarData() {
+        let offset = 0;
+        const limit = 50;
+
+        while (true) {
+            const res = await fetch(`/api/activity/feed?offset=${offset}&limit=${limit}`);
+            const entries = await res.json();
+            if (!Array.isArray(entries) || entries.length === 0) break;
+
+            entries.forEach((entry) => {
+                if (!entry.completed_at) return;
+                const iso = String(entry.completed_at).slice(0, 10);
+                const prev = workoutDateMap.get(iso) || { sessions: 0, minutes: 0 };
+                prev.sessions += 1;
+                prev.minutes += Number(entry.duration_minutes || 0);
+                workoutDateMap.set(iso, prev);
+            });
+
+            if (entries.length < limit) break;
+            offset += limit;
+            if (offset > 600) break;
+        }
     }
 
     reloadHeatmap();
     loadQuickStats();
-    loadRecentWorkouts();
+
+    document.getElementById('calendarPrev')?.addEventListener('click', () => {
+        calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1);
+        renderCalendar();
+    });
+    document.getElementById('calendarNext')?.addEventListener('click', () => {
+        calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1);
+        renderCalendar();
+    });
+
+    loadWorkoutCalendarData().then(renderCalendar);
 </script>
 {% endblock %}

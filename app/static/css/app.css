@@ -21,6 +21,32 @@ body {
   color: #e2e8f0;
 }
 
+/* Global scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(129,140,248,0.42) rgba(15,20,30,0.45);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(15,20,30,0.45);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(129,140,248,0.62), rgba(99,102,241,0.52));
+  border-radius: 999px;
+  border: 2px solid rgba(15,20,30,0.45);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(165,180,252,0.78), rgba(129,140,248,0.64));
+}
+
 /* Shared type scale */
 .page-title {
   font-size: clamp(1.45rem, 1.15rem + 1vw, 1.95rem);

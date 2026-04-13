@@ -9,8 +9,30 @@ from app.models.models import User
 from app.utilities.flash import flash
 from . import router, templates, api_router
 
+SECONDARY_MUSCLE_WEIGHT = 0.5
 
-def _build_session_entry(db, session: WorkoutSession) -> dict:
+
+def _muscle_buckets(exercise: Exercise) -> tuple[set[str], set[str]]:
+    primary = set()
+    if exercise.target:
+        primary.add(exercise.target.strip().lower())
+    if exercise.body_part:
+        primary.add(exercise.body_part.strip().lower())
+
+    secondary = set()
+    for m in str(exercise.secondary_muscles or "").split(","):
+        key = m.strip().lower()
+        if key:
+            secondary.add(key)
+
+    secondary -= primary
+    return primary, secondary
+
+
+async def _build_session_entry(
+    db,
+    session: WorkoutSession,
+) -> dict:
     logged = db.exec(
         select(SessionExercise)
         .where(SessionExercise.session_id == session.id)
@@ -23,7 +45,7 @@ def _build_session_entry(db, session: WorkoutSession) -> dict:
             exercise_groups[se.exercise_id].append(se)
 
     exercises = []
-    muscle_sets: dict[str, int] = {}
+    muscle_sets: dict[str, float] = {}
     total_sets = 0
     total_volume = 0.0
 
@@ -52,9 +74,11 @@ def _build_session_entry(db, session: WorkoutSession) -> dict:
             "notes": agg_notes,
         })
 
-        for muscle in filter(None, [ex.target, ex.body_part]):
-            key = muscle.lower().strip()
-            muscle_sets[key] = muscle_sets.get(key, 0) + agg_sets
+        primary, secondary = _muscle_buckets(ex)
+        for muscle in primary:
+            muscle_sets[muscle] = muscle_sets.get(muscle, 0) + agg_sets
+        for muscle in secondary:
+            muscle_sets[muscle] = muscle_sets.get(muscle, 0) + (agg_sets * SECONDARY_MUSCLE_WEIGHT)
 
         total_sets += agg_sets
         if agg_weight and agg_sets and agg_reps:
@@ -105,7 +129,10 @@ async def get_my_activity(
         .offset(offset)
         .limit(limit)
     ).all()
-    return [_build_session_entry(db, s) for s in sessions]
+    entries = []
+    for s in sessions:
+        entries.append(await _build_session_entry(db, s))
+    return entries
 
 
 @api_router.get("/activity/stats")
@@ -144,7 +171,10 @@ async def get_user_activity(
         .offset(offset)
         .limit(limit)
     ).all()
-    return [_build_session_entry(db, s) for s in sessions]
+    entries = []
+    for s in sessions:
+        entries.append(await _build_session_entry(db, s))
+    return entries
 
 
 @api_router.get("/users/{profile_user_id}/activity/stats")
@@ -180,7 +210,7 @@ async def get_user_activity_stats(
 
     sessions = db.exec(query.order_by(WorkoutSession.completed_at)).all()
 
-    muscle_sets: dict[str, int] = {}
+    muscle_sets: dict[str, float] = {}
     total_sets = 0
     for s in sessions:
         logged = db.exec(
@@ -188,9 +218,14 @@ async def get_user_activity_stats(
         ).all()
         for se in logged:
             ex = db.get(Exercise, se.exercise_id) if se.exercise_id else None
-            if ex and ex.target:
-                muscle_sets[ex.target] = muscle_sets.get(ex.target, 0) + (se.sets_completed or 0)
-                total_sets += se.sets_completed or 0
+            if ex:
+                sets = se.sets_completed or 0
+                total_sets += sets
+                primary, secondary = _muscle_buckets(ex)
+                for muscle in primary:
+                    muscle_sets[muscle] = muscle_sets.get(muscle, 0) + sets
+                for muscle in secondary:
+                    muscle_sets[muscle] = muscle_sets.get(muscle, 0) + (sets * SECONDARY_MUSCLE_WEIGHT)
 
     heatmap = {}
     if muscle_sets:

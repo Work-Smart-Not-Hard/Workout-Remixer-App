@@ -6,12 +6,15 @@ Usage:
     python -m app.cli create-admin --username admin --email admin@example.com --password secret
 """
 import typer
+import asyncio
+from sqlmodel import select
 from app.database import get_cli_session
 from app.repositories.user import UserRepository
 from app.services.auth_service import AuthService
 from app.schemas.user import AdminCreate
 from app.utilities.security import encrypt_password
-from app.models import User
+from app.models import User, Exercise
+from app.services.exercisedb_service import ExerciseDBService
 
 app = typer.Typer()
 
@@ -78,6 +81,47 @@ def list_users():
             return
         rows = [[u.id, u.username, u.email, u.role] for u in users]
         typer.echo(tabulate(rows, headers=["ID", "Username", "Email", "Role"]))
+
+
+@app.command("backfill-secondary-muscles")
+def backfill_secondary_muscles():
+    """Backfill Exercise.secondary_muscles from ExerciseDB in one offline pass."""
+
+    async def _fetch_lookup() -> dict[str, str]:
+        service = ExerciseDBService()
+        items = await service._fetch_all_exercises()
+        lookup: dict[str, str] = {}
+        for item in items:
+            ex_id = str(item.get("exerciseId") or item.get("id") or "").strip()
+            if not ex_id:
+                continue
+            secondary = ",".join(
+                sorted({
+                    str(m).strip().lower()
+                    for m in (item.get("secondaryMuscles") or [])
+                    if str(m).strip()
+                })
+            )
+            lookup[ex_id] = secondary
+        return lookup
+
+    typer.echo("Fetching ExerciseDB cache for secondary muscles...")
+    lookup = asyncio.run(_fetch_lookup())
+    typer.echo(f"Loaded {len(lookup)} ExerciseDB records.")
+
+    with get_cli_session() as db:
+        exercises = db.exec(select(Exercise)).all()
+        updated = 0
+        for ex in exercises:
+            secondary = lookup.get(ex.exercise_id, "")
+            secondary_value = secondary or None
+            if ex.secondary_muscles != secondary_value:
+                ex.secondary_muscles = secondary_value
+                db.add(ex)
+                updated += 1
+        db.commit()
+
+    typer.echo(f"Backfill complete. Updated {updated} local exercises.")
 
 
 if __name__ == "__main__":
