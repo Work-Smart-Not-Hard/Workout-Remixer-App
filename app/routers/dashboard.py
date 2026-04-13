@@ -20,6 +20,11 @@ def _get_cutoff(period: str):
     }.get(period)
 
 
+def _get_day_start():
+    now = datetime.now(timezone.utc)
+    return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 def _muscle_buckets(exercise: Exercise) -> tuple[set[str], set[str]]:
     primary = set()
     if exercise.target:
@@ -100,6 +105,14 @@ async def dashboard_stats(user: AuthDep, db: SessionDep, period: str = "all"):
         query = query.where(WorkoutSession.completed_at >= cutoff)
     sessions = db.exec(query.order_by(WorkoutSession.completed_at)).all()
 
+    today_cutoff = _get_day_start()
+    today_query = select(WorkoutSession).where(
+        WorkoutSession.user_id == user.id,
+        WorkoutSession.completed_at != None,
+        WorkoutSession.completed_at >= today_cutoff,
+    )
+    today_sessions = db.exec(today_query.order_by(WorkoutSession.completed_at)).all()
+
     sessions_over_time = [
         {"date": s.completed_at.strftime("%Y-%m-%d"), "duration": s.duration_minutes or 0}
         for s in sessions
@@ -123,6 +136,13 @@ async def dashboard_stats(user: AuthDep, db: SessionDep, period: str = "all"):
         "total_sessions": len(sessions),
         "total_sets": total_sets,
         "total_duration": sum(s.duration_minutes or 0 for s in sessions),
+        "today_sessions": len(today_sessions),
+        "today_sets": sum(
+            (se.sets_completed or 0)
+            for s in today_sessions
+            for se in db.exec(select(SessionExercise).where(SessionExercise.session_id == s.id)).all()
+        ),
+        "today_duration": sum(s.duration_minutes or 0 for s in today_sessions),
         "sessions_over_time": sessions_over_time,
         "muscle_volume": sorted(
             [{"muscle": k, "sets": round(v, 2)} for k, v in muscle_volume.items()],

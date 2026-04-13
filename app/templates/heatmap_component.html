@@ -16,13 +16,15 @@
     transition: fill 0.3s ease, filter 0.2s ease, stroke 0.2s ease; 
   }
   .hm-group:hover path { 
-    filter: brightness(1.12) saturate(1.4) drop-shadow(0 0 6px rgba(56,189,248,0.28)); 
+    fill: #3b4248;
+    stroke: #67e8f9;
+    stroke-width: 2.5px;
     {% if mode != "display" %}cursor: pointer;{% endif %}
   }
   .hm-active path { 
     stroke: #e0f2fe !important; 
-    stroke-width: 6px !important;
-    filter: drop-shadow(0 0 8px rgba(56,189,248,0.5)) drop-shadow(0 0 14px rgba(34,211,238,0.24));
+    stroke-width: 5px !important;
+    fill: #3b4248 !important;
   }
 
   /* Visual-only body parts (no hover, no tooltips) */

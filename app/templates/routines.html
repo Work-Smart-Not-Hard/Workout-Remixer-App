@@ -2,67 +2,122 @@
 {% block title %}My Routines{% endblock %}
 
 {% block additional_styles %}
-.routine-card {
-  border-radius: 16px;
-  overflow: hidden;
-  aspect-ratio: 1 / 1;
-  display: flex;
-  flex-direction: column;
-}
-.routine-media {
-  border-bottom: none;
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
-  height: 56%;
-  min-height: 190px;
-  position: relative;
-}
-.routine-gif-marquee {
-  width: 100%; height: 100%;
-  overflow: hidden; position: relative;
-}
-.routine-gif-track {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  height: 100%;
-  padding: 10px 14px;
-  white-space: nowrap;
-}
-.routine-gif-marquee.ready .routine-gif-track {
-  animation: routine-marquee var(--marquee-duration, 26s) linear infinite;
-}
-.routine-gif-marquee:hover .routine-gif-track { animation-play-state: paused; }
-.routine-gif-item {
-  width: 170px; height: 170px;
-  border-radius: 12px;
-  object-fit: contain;
-  background: #ffffff;
-  padding: 6px;
-  border: none;
-  flex: 0 0 auto;
-}
-.routine-media-fallback {
-  height: 100%;
-  display: flex; align-items: center; justify-content: center;
-  color: rgba(255,255,255,0.18);
-  gap: 0.5rem;
-  font-size: 0.85rem;
-}
-.routine-submeta { font-size: 0.75rem; color: rgba(255,255,255,0.35); }
-.routine-card .card-body  { flex: 1; min-height: 0; }
-.routine-card .card-footer{ margin-top: auto; }
-@keyframes routine-marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
+<style>
+  /* ── Routine Card ── */
+  .routine-card {
+    border-radius: 18px !important;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease !important;
+    position: relative;
+    min-height: 340px;
+  }
+  .routine-card:hover {
+    transform: translateY(-6px) scale(1.01) !important;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(34,211,238,0.22) !important;
+  }
+
+  /* Media strip */
+  .routine-media {
+    height: 180px; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    flex-shrink: 0;
+  }
+
+  /* Overlay gradient on media */
+  .routine-media-overlay {
+    position: absolute; inset: 0; z-index: 2;
+    background: linear-gradient(to bottom, transparent 50%, rgba(8,15,30,0.95) 100%);
+  }
+
+  /* Marquee */
+  .routine-gif-marquee {
+    width: 100%; height: 100%;
+    overflow: hidden; position: relative;
+  }
+  .routine-gif-track {
+    display: inline-flex; align-items: center;
+    gap: 10px; height: 100%; padding: 8px 12px;
+    white-space: nowrap;
+  }
+  .routine-gif-marquee.ready .routine-gif-track {
+    animation: routine-marquee var(--marquee-duration, 26s) linear infinite;
+  }
+  .routine-gif-marquee:hover .routine-gif-track { animation-play-state: paused; }
+  .routine-gif-item {
+    width: 160px; height: 160px; border-radius: 10px;
+    object-fit: contain; background: #fff; padding: 4px;
+    border: none; flex: 0 0 auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .routine-media-fallback {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.14); gap: 0.5rem; font-size: 0.85rem;
+  }
+
+  @keyframes routine-marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* Exercise count badge on media */
+  .routine-ex-count {
+    position: absolute; top: 10px; left: 10px; z-index: 3;
+    background: rgba(8,15,30,0.7); backdrop-filter: blur(8px);
+    border: 0.5px solid rgba(255,255,255,0.12);
+    color: var(--text-secondary); font-size: 0.7rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .routine-visibility-badge {
+    position: absolute; top: 10px; right: 10px; z-index: 3;
+  }
+
+  /* Body */
+  .routine-card .card-body { flex: 1; padding: 1rem 1.1rem 0.75rem; }
+  .routine-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.95rem; font-weight: 700;
+    color: var(--text-primary); margin: 0 0 0.3rem;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .routine-desc {
+    font-size: 0.78rem; color: var(--text-muted);
+    margin: 0 0 0.5rem; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .routine-created {
+    font-size: 0.68rem; color: var(--text-ghost); margin: 0;
+  }
+
+  /* Footer */
+  .routine-card .card-footer {
+    padding: 0.75rem 1.1rem;
+    display: flex; gap: 0.5rem; background: transparent !important;
+    border-top: 0.5px solid rgba(255,255,255,0.05) !important;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 5rem 2rem;
+    color: var(--text-muted);
+  }
+  .empty-state-icon {
+    width: 72px; height: 72px; border-radius: 20px; margin: 0 auto 1.25rem;
+    background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; color: rgba(255,255,255,0.22);
+  }
+</style>
 {% endblock %}
 
 {% block subpage_content %}
 <div class="container-fluid">
 
-  <div class="row mb-4 align-items-center">
+  <!-- Header -->
+  <div class="row mb-4 align-items-center animate-slide-up">
     <div class="col">
-      <h4 class="fw-bold mb-0">My Routines</h4>
+      <h4 class="page-title">My Routines</h4>
+      <p class="page-subtitle">Manage and launch your training programs</p>
     </div>
     <div class="col-auto">
       <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
@@ -73,19 +128,35 @@
   </div>
 
   {% for message in get_flashed_messages(request) %}
-  <div class="alert alert-{{ message.type }}" role="alert">{{ message.message }}</div>
+  <div class="alert alert-{{ message.type }} animate-slide-up" role="alert">{{ message.message }}</div>
   {% endfor %}
 
   {% if routines %}
   <div class="row g-3">
     {% for routine in routines %}
-    <div class="col-sm-6 col-lg-4">
-      <div class="card h-100 shadow-sm stat-card tint-cyan routine-card" style="text-align:left;">
+    <div class="col-sm-6 col-lg-4 animate-slide-up stagger-{{ loop.index if loop.index <= 6 else 6 }}">
+      <div class="card routine-card card-glow-hover">
+
+        <!-- Media strip -->
         <div class="routine-media">
+          <span class="routine-ex-count">
+            <span class="material-symbols-outlined" style="font-size:.75rem;vertical-align:middle">fitness_center</span>
+            {{ routine.exercises|length }} exercise{{ '' if routine.exercises|length == 1 else 's' }}
+          </span>
+          <span class="routine-visibility-badge">
+            {% if routine.is_public %}
+            <span class="pill pill-complete" style="font-size:.62rem;padding:2px 8px;">Public</span>
+            {% else %}
+            <span class="pill pill-muted" style="font-size:.62rem;padding:2px 8px;">Private</span>
+            {% endif %}
+          </span>
+          <div class="routine-media-overlay"></div>
+
           {% set gif_count = namespace(value=0) %}
           {% for re in routine.exercises %}
             {% if re.exercise and re.exercise.gif_url %}{% set gif_count.value = gif_count.value + 1 %}{% endif %}
           {% endfor %}
+
           {% if gif_count.value > 0 %}
           <div class="routine-gif-marquee" data-gif-count="{{ gif_count.value }}">
             <div class="routine-gif-track">
@@ -98,51 +169,58 @@
           </div>
           {% else %}
           <div class="routine-media-fallback">
-            <span class="material-symbols-outlined" style="font-size:1.2rem;">movie</span>
-            No previews yet
+            <span class="material-symbols-outlined" style="font-size:2.5rem;opacity:.35">movie</span>
           </div>
           {% endif %}
         </div>
+
+        <!-- Body -->
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <h5 class="card-title fw-bold mb-0" style="font-size:.95rem;">{{ routine.name }}</h5>
-            {% if routine.is_public %}
-            <span class="pill pill-brand">Public</span>
-            {% else %}
-            <span class="pill pill-muted">Private</span>
-            {% endif %}
-          </div>
+          <p class="routine-name">{{ routine.name }}</p>
           {% if routine.description %}
-          <p class="card-text text-muted small">{{ routine.description }}</p>
+          <p class="routine-desc">{{ routine.description }}</p>
+          {% else %}
+          <p class="routine-desc" style="color:var(--text-ghost);">No description yet.</p>
           {% endif %}
-          <p class="text-muted small mb-0">Created {{ routine.created_at.strftime('%b %d, %Y') }}</p>
-          <p class="routine-submeta mb-0 mt-1">
-            {{ routine.exercises|length }} exercise{{ '' if routine.exercises|length == 1 else 's' }}
-          </p>
+          <p class="routine-created">Created {{ routine.created_at.strftime('%b %d, %Y') }}</p>
         </div>
-        <div class="card-footer bg-transparent d-flex gap-2">
+
+        <!-- Actions -->
+        <div class="card-footer">
           {% if routine.exercises|length > 0 %}
           <form method="POST" action="/api/sessions/start" class="flex-grow-1">
             <input type="hidden" name="routine_id" value="{{ routine.id }}">
-            <button type="submit" class="btn btn-success btn-sm w-100">Start Workout</button>
+            <button type="submit" class="btn btn-success btn-sm w-100 fw-semibold">
+              <span class="material-symbols-outlined me-1" style="font-size:.85rem;vertical-align:middle">play_arrow</span>
+              Start
+            </button>
           </form>
           {% endif %}
           <a href="/routines/{{ routine.id }}" class="btn btn-outline-primary btn-sm flex-grow-1">View</a>
           <form method="POST" action="/api/routines/{{ routine.id }}/delete"
                 onsubmit="return confirm('Delete this routine?')">
             <button type="submit" class="btn btn-outline-danger btn-sm">
-              <span class="material-symbols-outlined" style="font-size:1rem">delete</span>
+              <span class="material-symbols-outlined" style="font-size:.9rem">delete</span>
             </button>
           </form>
         </div>
+
       </div>
     </div>
     {% endfor %}
   </div>
+
   {% else %}
-  <div class="text-center py-5 text-muted">
-    <span class="material-symbols-outlined" style="font-size:3rem;opacity:.4;">fitness_center</span>
-    <p class="mt-2">No routines yet. Create your first one!</p>
+  <div class="empty-state animate-fade-in">
+    <div class="empty-state-icon">
+      <span class="material-symbols-outlined">fitness_center</span>
+    </div>
+    <h5 class="fw-semibold mb-2" style="color:var(--text-secondary);">No routines yet</h5>
+    <p class="small mb-4">Create your first workout routine to get started.</p>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+      <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:middle">add</span>
+      Create Routine
+    </button>
   </div>
   {% endif %}
 
@@ -150,32 +228,30 @@
 
 <!-- Create Routine Modal -->
 <div class="modal fade" id="createModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content text-secondary">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">New Routine</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="/api/routines" onsubmit="this.querySelector('button[type=submit]').disabled = true;">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" required
-                               placeholder="e.g. Push Day">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description <span class="text-muted">(optional)</span></label>
-                        <textarea name="description" class="form-control" rows="3"
-                                  placeholder="What's this routine about?"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create</button>
-                </div>
-            </form>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-3 px-4">
+        <h5 class="modal-title fw-bold" style="font-family:'Space Grotesk',sans-serif;">New Routine</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/api/routines" onsubmit="this.querySelector('button[type=submit]').disabled=true">
+        <div class="modal-body px-4">
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="e.g. Push Day, Leg Day…">
+          </div>
+          <div class="mb-1">
+            <label class="form-label fw-semibold small">Description <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+            <textarea name="description" class="form-control" rows="3" placeholder="What's this routine about?"></textarea>
+          </div>
         </div>
+        <div class="modal-footer px-4">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary px-4">Create Routine</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -186,8 +262,8 @@ document.querySelectorAll('.routine-gif-marquee').forEach((marquee) => {
   if (!track) return;
   const items = [...track.children];
   if (items.length <= 1) return;
-  items.forEach((item) => track.appendChild(item.cloneNode(true)));
-  const duration = Math.max(14, items.length * 3.2);
+  items.forEach(item => track.appendChild(item.cloneNode(true)));
+  const duration = Math.max(14, items.length * 3.5);
   marquee.style.setProperty('--marquee-duration', `${duration}s`);
   marquee.classList.add('ready');
 });
