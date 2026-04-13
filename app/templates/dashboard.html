@@ -9,22 +9,21 @@
 {% block subpage_content %}
 <div class="container-fluid">
 
-  <!-- Page header -->
-  <div class="row mb-4 align-items-center">
-    <div class="col">
-      <h4 class="page-title">Progress Dashboard</h4>
-      <p class="page-subtitle">Your workout history at a glance</p>
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h4 class="page-title">Progress Dashboard</h4>
+            <p class="page-subtitle">Your workout history at a glance</p>
+        </div>
+        <div class="col-auto">
+            <select id="periodFilter" class="form-select form-select-sm" onchange="reload()">
+                <option value="week" class="bg-dark">This Week</option>
+                <option value="month" class="bg-dark">This Month</option>
+                <option value="6months" class="bg-dark">Last 6 Months</option>
+                <option value="year" class="bg-dark">This Year</option>
+                <option value="all" class="bg-dark">All Time</option>
+            </select>
+        </div>
     </div>
-    <div class="col-auto">
-      <div class="chart-period-group" id="globalPeriod">
-        <button class="chart-period active" data-period="week"    onclick="setPeriod('week', this)">Week</button>
-        <button class="chart-period"        data-period="month"   onclick="setPeriod('month', this)">Month</button>
-        <button class="chart-period"        data-period="6months" onclick="setPeriod('6months', this)">6M</button>
-        <button class="chart-period"        data-period="year"    onclick="setPeriod('year', this)">Year</button>
-        <button class="chart-period"        data-period="all"     onclick="setPeriod('all', this)">All</button>
-      </div>
-    </div>
-  </div>
 
   <div class="row g-4">
 
@@ -87,30 +86,17 @@
         </div>
       </div>
 
-      <!-- Muscle volume bar — chart shell -->
-      <div class="card chart-card">
-        <div class="chart-card-header">
-          <div>
-            <p class="chart-title">Top Muscle Groups</p>
-            <p class="chart-subtitle">Volume by sets performed</p>
-          </div>
+            <!-- Muscle volume bar -->
+            <div class="row justify-content-center">
+                <div class="card w-50 p-3">
+                    <h6 class="section-title mb-3">Top Muscle Groups (sets)</h6>
+                    <canvas id="muscleChart" height="160"></canvas>
+                    <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet.</p>
+                </div>
+            </div>
+            
         </div>
-        <div class="chart-body">
-          <div class="chart-skeleton" id="muscleChartSkeleton">
-            <div class="skel-bar" style="height:100%"></div>
-            <div class="skel-bar" style="height:82%"></div>
-            <div class="skel-bar" style="height:68%"></div>
-            <div class="skel-bar" style="height:55%"></div>
-            <div class="skel-bar" style="height:40%"></div>
-            <div class="skel-bar" style="height:28%"></div>
-          </div>
-          <canvas id="muscleChart" height="160" style="display:none;"></canvas>
-          <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet.</p>
-        </div>
-      </div>
-
     </div>
-  </div>
 
   <!-- Recent sessions table -->
   <div class="card mt-4">
@@ -263,53 +249,33 @@
     });
   }
 
-  function renderMuscleChart(muscleData) {
-    const noMsg = document.getElementById('noMuscleMsg');
-    const canvas = document.getElementById('muscleChart');
-    if (!muscleData.length) {
-      noMsg.style.display = '';
-      canvas.style.display = 'none';
-      showSkeleton('muscleChartSkeleton', 'muscleChart');
-      if (muscleChart) { muscleChart.destroy(); muscleChart = null; }
-      return;
-    }
-    noMsg.style.display = 'none';
-    hideSkeleton('muscleChartSkeleton', 'muscleChart');
-
-    if (muscleChart) muscleChart.destroy();
-    muscleChart = new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels: muscleData.map(d => d.muscle),
-        datasets: [{
-          label: 'Sets',
-          data: muscleData.map(d => d.sets),
-          backgroundColor: 'rgba(56,189,248,0.70)',
-          borderRadius: 5,
-          borderSkipped: false,
-          hoverBackgroundColor: 'rgba(56,189,248,0.90)',
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: {
-            beginAtZero: true,
-            ticks: { color: '#334155', font: { size: 11 } },
-            grid:  { color: 'rgba(255,255,255,0.035)', drawBorder: false },
-            border:{ display: false }
-          },
-          y: {
-            ticks: { color: '#475569', font: { size: 11 } },
-            grid:  { color: 'rgba(255,255,255,0.035)', drawBorder: false },
-            border:{ display: false }
-          }
+    function renderMuscleChart(muscleData) {
+        const noMsg = document.getElementById('noMuscleMsg');
+        const canvas = document.getElementById('muscleChart');
+        if (!muscleData.length) {
+            noMsg.style.display = '';
+            canvas.style.display = 'none';
+            if (muscleChart) {
+                muscleChart.destroy();
+                muscleChart = null;
+            }
+            return;
         }
-      }
-    });
-  }
+        noMsg.style.display = 'none';
+        canvas.style.display = '';
+        if (muscleChart) muscleChart.destroy();
+        muscleChart = new Chart(canvas, {
+            type: 'pie',
+            data: {
+                labels: muscleData.map(d => d.muscle),
+                datasets: [{
+                    label: 'Sets',
+                    data: muscleData.map(d => d.sets),
+                    borderWidth: 1,
+                }]
+            },
+        });
+    }
 
   reload();
 </script>

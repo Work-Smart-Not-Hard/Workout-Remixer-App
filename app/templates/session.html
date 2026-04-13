@@ -440,7 +440,7 @@
 <!-- Complete Modal -->
 <div class="modal fade" id="completeModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content text-secondary">
       <div class="modal-header">
         <h5 class="modal-title fw-bold">Finish Workout 💪</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -656,9 +656,9 @@ function renderSets(reId, exerciseIntId, restSeconds) {
       <td>
         <button class="set-check-btn ${set.checked ? 'done' : ''}"
                 onclick="toggleSet(${reId}, ${exerciseIntId}, ${i}, ${restSeconds})"
-                title="${set.checked ? 'Undo' : 'Mark done'}">
-          <span class="material-symbols-outlined" style="font-size:1rem;">
-            check
+                title="${set.checked ? 'Undo set' : 'Mark set done'}">
+          <span class="material-symbols-outlined" style="font-size:1.7rem;">
+            ${set.checked ? 'check' : ''}
           </span>
         </button>
       </td>
