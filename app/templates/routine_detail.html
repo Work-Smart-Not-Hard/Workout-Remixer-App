@@ -169,7 +169,7 @@
       <form method="POST" action="/api/sessions/start">
         <input type="hidden" name="routine_id" value="{{ routine.id }}">
         <button type="submit" class="btn btn-success btn-sm fw-semibold">
-          <span class="material-symbols-outlined me-1" style="font-size:0.9rem;vertical-align:middle">play_arrow</span>
+          <span class="material-symbols-outlined me-1" style="font-size:1.5rem;vertical-align:middle">play_arrow</span>
           Start Workout
         </button>
       </form>
@@ -198,7 +198,7 @@
     <!-- Left: exercise list -->
     <div class="{% if routine.owner_id == user.id %}col-lg-5{% else %}col-12{% endif %}">
       <div class="card shadow-sm routine-panel">
-        <div class="card-header routine-panel-header fw-semibold d-flex align-items-center justify-content-between">
+        <div class="card-header routine-panel-header fw-semibold text-secondary d-flex align-items-center justify-content-between">
           <span>
             Exercises
             <span class="badge bg-primary ms-1">{{ exercises|length }}</span>
@@ -254,10 +254,10 @@
     <div class="col-lg-7">
       <div class="card shadow-sm routine-panel">
         <div class="card-header routine-panel-header d-flex align-items-center justify-content-between">
-          <span class="fw-semibold">Add Exercise</span>
+          <span class="fw-semibold text-secondary">Add Exercise</span>
           <button class="btn btn-outline-primary btn-sm"
                   data-bs-toggle="modal" data-bs-target="#createCustomExModal">
-            <span class="material-symbols-outlined me-1" style="font-size:0.85rem;vertical-align:middle">add</span>
+            <span class="material-symbols-outlined me-1" style="font-size:1.2rem;vertical-align:middle">add</span>
             Create Custom
           </button>
         </div>
@@ -311,7 +311,7 @@
 <!-- Edit Routine Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content text-secondary">
       <div class="modal-header">
         <h5 class="modal-title fw-bold">Edit Routine</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -389,7 +389,7 @@
 <!-- Add Exercise (sets/reps) Modal -->
 <div class="modal fade" id="addExModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content text-secondary">
       <div class="modal-header">
         <h5 class="modal-title fw-bold text-capitalize" id="addExName"></h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>

@@ -47,8 +47,8 @@
         {% if is_own %}
         <div class="collapse" id="settingsPanel">
             <div class="card-body border-top">
-                <form method="POST" action="/api/users/privacy">
-                    <p class="fw-semibold small mb-2">Account Privacy</p>
+                <form method="POST" action="/api/users/privacy" class="text-secondary">
+                    <p class="fw-semibold small mb-2 ">Account Privacy</p>
                     <div class="d-flex gap-4 flex-wrap align-items-center">
                         <div class="form-check mb-0">
                             <input class="form-check-input" type="radio" name="privacy_level"
@@ -301,7 +301,7 @@
                            <span class="material-symbols-outlined text-muted" style="font-size:1.1rem">fitness_center</span>
                        </div>`}
                 <div class="overflow-hidden">
-                    <p class="mb-0 fw-semibold text-capitalize text-truncate" style="font-size:.82rem;">${ex.name}</p>
+                    <p class="mb-0 fw-semibold text-capitalize text-truncate text-secondary" style="font-size:.82rem;">${ex.name}</p>
                     <small class="text-muted">
                         ${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ''}
                         ${ex.weight_kg ? ` · ${ex.weight_kg} kg` : ''}

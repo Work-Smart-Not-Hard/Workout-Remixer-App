@@ -11,7 +11,7 @@
         </div>
         <div class="col-auto">
             <a href="/routines" class="btn btn-primary btn-sm">
-                <span class="material-symbols-outlined me-1" style="font-size:.9rem;vertical-align:middle">add</span>
+                <span class="material-symbols-outlined me-1" style="font-size:1.2rem;vertical-align:middle">add</span>
                 Start Workout
             </a>
         </div>
@@ -40,7 +40,7 @@
 <!-- Edit Notes Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content text-secondary">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold">Edit Session Notes</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -60,7 +60,7 @@
 <!-- Delete Confirm Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
-        <div class="modal-content">
+        <div class="modal-content text-secondary">
             <div class="modal-body text-center py-4">
                 <span class="material-symbols-outlined text-danger" style="font-size:3rem">delete_forever</span>
                 <h6 class="fw-bold mt-2">Delete this workout?</h6>
@@ -77,7 +77,7 @@
 <!-- Exercise Detail Modal -->
 <div class="modal fade" id="exDetailModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content text-secondary">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold text-capitalize" id="exDetailName"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -158,7 +158,7 @@
                            <span class="material-symbols-outlined text-muted" style="font-size:1.2rem">fitness_center</span>
                        </div>`}
                 <div class="overflow-hidden">
-                    <p class="mb-0 fw-semibold text-capitalize text-truncate" style="font-size:.82rem;">${ex.name}</p>
+                    <p class="mb-0 fw-semibold text-capitalize text-truncate text-secondary" style="font-size:.82rem;">${ex.name}</p>
                     <small class="text-muted">
                         ${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ''}
                         ${ex.weight_kg ? ` · ${ex.weight_kg} kg` : ''}

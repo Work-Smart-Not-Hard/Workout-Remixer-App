@@ -16,11 +16,11 @@
         </div>
         <div class="col-auto">
             <select id="periodFilter" class="form-select form-select-sm" onchange="reload()">
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="6months">Last 6 Months</option>
-                <option value="year">This Year</option>
-                <option value="all">All Time</option>
+                <option value="week" class="bg-dark">This Week</option>
+                <option value="month" class="bg-dark">This Month</option>
+                <option value="6months" class="bg-dark">Last 6 Months</option>
+                <option value="year" class="bg-dark">This Year</option>
+                <option value="all" class="bg-dark">All Time</option>
             </select>
         </div>
     </div>
@@ -71,11 +71,14 @@
             </div>
 
             <!-- Muscle volume bar -->
-            <div class="card p-3">
-                <h6 class="section-title mb-3">Top Muscle Groups (sets)</h6>
-                <canvas id="muscleChart" height="160"></canvas>
-                <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet.</p>
+            <div class="row justify-content-center">
+                <div class="card w-50 p-3">
+                    <h6 class="section-title mb-3">Top Muscle Groups (sets)</h6>
+                    <canvas id="muscleChart" height="160"></canvas>
+                    <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet.</p>
+                </div>
             </div>
+            
         </div>
     </div>
 
@@ -225,7 +228,7 @@
         canvas.style.display = '';
         if (muscleChart) muscleChart.destroy();
         muscleChart = new Chart(canvas, {
-            type: 'bar',
+            type: 'pie',
             data: {
                 labels: muscleData.map(d => d.muscle),
                 datasets: [{
@@ -237,29 +240,29 @@
                     hoverBackgroundColor: 'rgba(56,189,248,0.9)'
                 }]
             },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false,
-                        labels: { color: '#475569', font: { size: 11 } }
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: { color: '#334155', font: { size: 11 } },
-                        grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                        border: { display: false }
-                    },
-                    y: {
-                        ticks: { color: '#334155', font: { size: 11 } },
-                        grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                        border: { display: false }
-                    }
-                }
-            }
+            // options: {
+            //     indexAxis: 'y',
+            //     responsive: true,
+            //     plugins: {
+            //         legend: {
+            //             display: false,
+            //             labels: { color: '#475569', font: { size: 11 } }
+            //         }
+            //     },
+            //     scales: {
+            //         x: {
+            //             beginAtZero: true,
+            //             ticks: { color: '#334155', font: { size: 11 } },
+            //             grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+            //             border: { display: false }
+            //         },
+            //         y: {
+            //             ticks: { color: '#334155', font: { size: 11 } },
+            //             grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+            //             border: { display: false }
+            //         }
+            //     }
+            // }
         });
     }
 

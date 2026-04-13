@@ -11,8 +11,8 @@
     <!-- Header loaded by JS -->
     <div class="row mb-4 align-items-start">
         <div class="col">
-            <a href="/exercises" class="text-muted text-decoration-none small">
-                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">arrow_back</span>
+            <a href="/exercises" class="text-secondary text-decoration-none small">
+                <span class="material-symbols-outlined" style="font-size:1.2rem;vertical-align:middle">arrow_back</span>
                 Exercises
             </a>
             <h4 class="fw-bold mt-1 mb-0 text-capitalize" id="exName">Loading...</h4>
@@ -23,10 +23,10 @@
         </div>
         <div class="col-auto">
             <select id="periodFilter" class="form-select form-select-sm" onchange="loadHistory()">
-                <option value="all">All Time</option>
-                <option value="6months">Last 6 Months</option>
-                <option value="month">Last Month</option>
-                <option value="week">Last Week</option>
+                <option value="all" class="bg-dark">All Time</option>
+                <option value="6months" class="bg-dark">Last 6 Months</option>
+                <option value="month" class="bg-dark">Last Month</option>
+                <option value="week" class="bg-dark">Last Week</option>
             </select>
         </div>
     </div>
@@ -35,19 +35,19 @@
     <div class="row g-3 mb-4">
         <div class="col-sm-4">
             <div class="card shadow-sm text-center p-3">
-                <h2 class="fw-bold mb-0" id="statSets">—</h2>
+                <h2 class="fw-bold mb-0 text-secondary" id="statSets">—</h2>
                 <small class="text-muted">Total Sets Logged</small>
             </div>
         </div>
         <div class="col-sm-4">
             <div class="card shadow-sm text-center p-3">
-                <h2 class="fw-bold mb-0" id="statBestWeight">—</h2>
+                <h2 class="fw-bold mb-0 text-secondary" id="statBestWeight">—</h2>
                 <small class="text-muted">Best Weight (kg)</small>
             </div>
         </div>
         <div class="col-sm-4">
             <div class="card shadow-sm text-center p-3">
-                <h2 class="fw-bold mb-0" id="statBestDate">—</h2>
+                <h2 class="fw-bold mb-0 text-secondary" id="statBestDate">—</h2>
                 <small class="text-muted">Date of Best</small>
             </div>
         </div>
@@ -64,7 +64,7 @@
 
     <!-- History table -->
     <div class="card shadow-sm">
-        <div class="card-header fw-semibold">History</div>
+        <div class="card-header fw-semibold text-secondary">History</div>
         <div class="card-body p-0">
             <div id="historyBody">
                 <div class="text-center py-4">
