@@ -52,8 +52,8 @@
   .equip-pill {
     font-size: 0.72rem;
     padding: 0.2rem 0.65rem;
-    border-radius: 99px;
-    border: 1.5px solid var(--border-glass);
+    .equip-pill:hover  { border-color: var(--accent-primary); color: #7dd3fc; background: rgba(56,189,248,0.12); }
+    .equip-pill.active { border-color: var(--accent-primary); color: #e0f2fe; background: rgba(56,189,248,0.24); }
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
@@ -61,8 +61,8 @@
     white-space: nowrap;
     flex: 0 0 auto;
   }
-  .equip-pill:hover  { border-color: var(--accent-indigo); color: #a5b4fc; background: rgba(99,102,241,0.12); }
-  .equip-pill.active { border-color: var(--accent-indigo); color: #e0e7ff; background: rgba(99,102,241,0.3); }
+  .equip-pill:hover  { border-color: var(--accent-primary); color: #7dd3fc; background: rgba(56,189,248,0.12); }
+  .equip-pill.active { border-color: var(--accent-primary); color: #e0f2fe; background: rgba(56,189,248,0.24); }
 
   .filter-row-shell {
     border: 1px solid var(--border-glass);
