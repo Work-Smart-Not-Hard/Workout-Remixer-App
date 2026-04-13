@@ -26,6 +26,7 @@ class Exercise(SQLModel, table=True):
     body_part: str
     equipment: str
     target: str
+    secondary_muscles: Optional[str] = None  # comma-separated, lowercased
     gif_url: Optional[str] = None
 
     routine_exercises: list['RoutineExercise'] = Relationship(back_populates="exercise")

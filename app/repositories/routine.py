@@ -108,6 +108,14 @@ class RoutineRepository:
         ).all()
 
     def upsert_exercise_ref(self, exercise_data: dict) -> Exercise:
+        secondary = ",".join(
+            sorted({
+                str(m).strip().lower()
+                for m in (exercise_data.get("secondaryMuscles") or [])
+                if str(m).strip()
+            })
+        ) or None
+
         existing = self.db.exec(
             select(Exercise).where(Exercise.exercise_id == exercise_data["exerciseId"])
         ).one_or_none()
@@ -118,8 +126,14 @@ class RoutineRepository:
                 body_part=exercise_data["bodyParts"][0] if exercise_data.get("bodyParts") else "",
                 equipment=exercise_data["equipments"][0] if exercise_data.get("equipments") else "",
                 target=exercise_data["targetMuscles"][0] if exercise_data.get("targetMuscles") else "",
+                secondary_muscles=secondary,
                 gif_url=exercise_data.get("gifUrl"),
             )
+            self.db.add(existing)
+            self.db.commit()
+            self.db.refresh(existing)
+        elif secondary and existing.secondary_muscles != secondary:
+            existing.secondary_muscles = secondary
             self.db.add(existing)
             self.db.commit()
             self.db.refresh(existing)

@@ -3,7 +3,6 @@
 {% block title %}{{ routine.name }}{% endblock %}
 
 {% block additional_styles %}
-<style>
   /* Exercise search results */
   .ex-result-item {
     display: flex;
@@ -43,10 +42,12 @@
   /* Equipment pills */
   .equip-scroller {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.35rem;
-    max-height: 130px;
-    overflow-y: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
   }
   .equip-pill {
     font-size: 0.72rem;
@@ -58,17 +59,30 @@
     cursor: pointer;
     transition: all 0.12s;
     white-space: nowrap;
+    flex: 0 0 auto;
   }
   .equip-pill:hover  { border-color: var(--accent-indigo); color: #a5b4fc; background: rgba(99,102,241,0.12); }
   .equip-pill.active { border-color: var(--accent-indigo); color: #e0e7ff; background: rgba(99,102,241,0.3); }
 
-  .equip-group-label {
-    width: 100%;
-    font-size: 0.62rem;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: var(--text-muted);
-    padding: 0.2rem 0 0;
+  .filter-row-shell {
+    border: 1px solid var(--border-glass);
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    padding: 0.55rem;
+  }
+
+  .muscle-row-shell {
+    border: 1px solid var(--border-glass);
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    padding: 0.5rem;
+  }
+
+  .results-row-shell {
+    border: 1px solid var(--border-glass);
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    padding: 0.5rem;
   }
 
   /* Routine exercise list */
@@ -110,9 +124,8 @@
   }
 
   .routine-muted { color: var(--text-muted) !important; }
-  .clear-filters-btn { font-size: 0.75rem; display: none; }
+  .clear-filters-btn { font-size: 0.75rem; display: inline-flex; }
   .active-chips { min-height: 0; }
-  .pane-hidden { display: none; }
   .results-pane { max-height: 360px; overflow-y: auto; }
 
   .modal-action-cancel {
@@ -124,11 +137,6 @@
     color: var(--text-primary);
     background: rgba(255,255,255,0.1);
   }
-
-  /* Muscle filter toggle */
-  #musclePaneWrap { display: none; }
-  #musclePaneWrap.open { display: block; }
-</style>
 {% endblock %}
 
 {% block subpage_content %}
@@ -260,48 +268,38 @@
           <div class="input-group mb-3">
             <input type="text" id="exSearch" class="form-control"
                    placeholder="Search exercises…">
-            <button class="btn btn-primary" onclick="doSearch()">
+            <button type="button" class="btn btn-primary" onclick="doSearch()">
               <span class="material-symbols-outlined" style="font-size:0.9rem;">search</span>
             </button>
           </div>
 
-          <!-- Filter row: Equipment toggle + Muscle toggle -->
-          <div class="d-flex gap-2 align-items-center mb-2 flex-wrap">
-            <button class="btn btn-sm btn-outline-secondary" onclick="togglePane('equipment')" id="equipToggle">
-              <span class="material-symbols-outlined me-1" style="font-size:0.8rem;vertical-align:middle">fitness_center</span>
-              Equipment
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="togglePane('muscle')" id="muscleToggle">
-              <span class="material-symbols-outlined me-1" style="font-size:0.8rem;vertical-align:middle">sports_gymnastics</span>
-              Muscle
-            </button>
-                <button class="btn btn-sm btn-link routine-muted p-0 ms-auto clear-filters-btn" onclick="clearAllFilters()"
+          <div class="d-flex align-items-center mb-2">
+            <button type="button" class="btn btn-sm btn-link routine-muted p-0 ms-auto clear-filters-btn" onclick="clearAllFilters()"
                   id="clearAllBtn">Clear all</button>
+          </div>
+
+          <div class="filter-row-shell mb-3">
+            <div class="equip-scroller" id="equipmentPills"></div>
           </div>
 
           <!-- Active chips -->
           <div id="activeChips" class="d-flex flex-wrap gap-1 mb-2 active-chips"></div>
 
-          <!-- Equipment pane -->
-          <div id="equipPane" class="mb-3 pane-hidden">
-            <div class="equip-scroller" id="equipmentPills"></div>
-          </div>
-
-          <!-- Muscle pane -->
-          <div id="musclePane" class="mb-3 pane-hidden">
+          <!-- Row 1: Muscle SVG -->
+          <div class="muscle-row-shell mb-3">
             <p class="routine-muted mb-1" style="font-size:0.72rem;" id="rdSelectedMuscleLabel">
               Click a muscle to filter
             </p>
             {{ muscle_heatmap(mode="filter", height="260px") }}
           </div>
 
-          <!-- Result count -->
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <small class="routine-muted" id="exResultCount" style="font-size:0.72rem;"></small>
+          <!-- Row 2: Scrollable exercises -->
+          <div class="results-row-shell">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <small class="routine-muted" id="exResultCount" style="font-size:0.72rem;"></small>
+            </div>
+            <div id="exResults" class="results-pane"></div>
           </div>
-
-          <!-- Results -->
-          <div id="exResults" class="results-pane"></div>
         </div>
       </div>
     </div>
@@ -496,50 +494,37 @@ let localFiltered = [];
 let selectedEquip = "";
 let selectedSvg   = "";
 let currentSearch = "";
-let activePane    = "";   
 
-//Pane toggling
-function togglePane(name) {
-  const equipPane  = document.getElementById('equipPane');
-  const musclePane = document.getElementById('musclePane');
-  const equipToggle  = document.getElementById('equipToggle');
-  const muscleToggle = document.getElementById('muscleToggle');
+function normalizeText(value) {
+  return String(value || '').toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
-  if (activePane === name) {
-    // Close
-    activePane = "";
-    equipPane.style.display  = 'none';
-    musclePane.style.display = 'none';
-    equipToggle.classList.remove('btn-primary');  equipToggle.classList.add('btn-outline-secondary');
-    muscleToggle.classList.remove('btn-primary'); muscleToggle.classList.add('btn-outline-secondary');
-  } else {
-    activePane = name;
-    equipPane.style.display  = name === 'equipment' ? '' : 'none';
-    musclePane.style.display = name === 'muscle'    ? '' : 'none';
-    equipToggle.classList.toggle('btn-primary',         name === 'equipment');
-    equipToggle.classList.toggle('btn-outline-secondary', name !== 'equipment');
-    muscleToggle.classList.toggle('btn-primary',        name === 'muscle');
-    muscleToggle.classList.toggle('btn-outline-secondary', name !== 'muscle');
-  }
+function resolveSvgMuscleKey(value) {
+  const normalized = normalizeText(value);
+  if (SVG_TO_API[normalized]) return normalized;
+  const found = Object.keys(SVG_TO_API).find((key) => normalizeText(key) === normalized);
+  return found || normalized;
 }
 
 //Equipment pills
 function renderEquipmentPills() {
   const container = document.getElementById('equipmentPills');
   container.innerHTML = '';
+
+  const allEquipment = [];
   for (const group of EQUIPMENT_GROUPS) {
-    const lbl = document.createElement('div');
-    lbl.className = 'equip-group-label';
-    lbl.textContent = group.label;
-    container.appendChild(lbl);
     for (const eq of group.items) {
-      const btn = document.createElement('button');
-      btn.className   = `equip-pill ${selectedEquip === eq ? 'active' : ''}`;
-      btn.dataset.equip = eq;
-      btn.textContent = eq.charAt(0).toUpperCase() + eq.slice(1);
-      btn.addEventListener('click', () => selectEquipment(eq));
-      container.appendChild(btn);
+      if (!allEquipment.includes(eq)) allEquipment.push(eq);
     }
+  }
+
+  for (const eq of allEquipment) {
+    const btn = document.createElement('button');
+    btn.className = `equip-pill ${selectedEquip === eq ? 'active' : ''}`;
+    btn.dataset.equip = eq;
+    btn.textContent = eq.charAt(0).toUpperCase() + eq.slice(1);
+    btn.addEventListener('click', () => selectEquipment(eq));
+    container.appendChild(btn);
   }
 }
 
@@ -552,14 +537,15 @@ function selectEquipment(eq) {
 
 //Muscle SVG click (called by heatmap component)
 function onMuscleClick(svgMuscle) {
-  if (selectedSvg === svgMuscle) {
+  const resolvedMuscle = resolveSvgMuscleKey(svgMuscle);
+  if (selectedSvg === resolvedMuscle) {
     selectedSvg = '';
     if (typeof setActiveMuscle === 'function') setActiveMuscle(null);
     document.getElementById('rdSelectedMuscleLabel').textContent = 'Click a muscle to filter';
   } else {
-    selectedSvg = svgMuscle;
-    if (typeof setActiveMuscle === 'function') setActiveMuscle(svgMuscle);
-    const label = (SVG_TO_API[svgMuscle] || [svgMuscle])[0];
+    selectedSvg = resolvedMuscle;
+    if (typeof setActiveMuscle === 'function') setActiveMuscle(resolvedMuscle);
+    const label = (SVG_TO_API[resolvedMuscle] || [resolvedMuscle])[0];
     document.getElementById('rdSelectedMuscleLabel').textContent =
       'Filtering: ' + label.charAt(0).toUpperCase() + label.slice(1);
   }
@@ -643,8 +629,15 @@ async function doSearch(attempt = 1) {
 
 function applyLocalFilters() {
   const acceptable = selectedSvg
-    ? (SVG_TO_API[selectedSvg] || []).map(s => s.toLowerCase())
+    ? (SVG_TO_API[selectedSvg] || []).map(normalizeText)
     : [];
+
+  const fuzzyMatchAny = (haystack, needles) => {
+    if (!needles.length) return true;
+    return needles.some((needle) =>
+      haystack.some((h) => h.includes(needle) || needle.includes(h))
+    );
+  };
 
   localFiltered = allFetched.filter(ex => {
     const equips  = Array.isArray(ex.equipments)     ? ex.equipments    : (ex.equipment  ? [ex.equipment]  : []);
@@ -652,12 +645,15 @@ function applyLocalFilters() {
     const sec     = Array.isArray(ex.secondaryMuscles)? ex.secondaryMuscles : [];
     const bps     = Array.isArray(ex.bodyParts)      ? ex.bodyParts     : (ex.bodyPart   ? [ex.bodyPart]   : []);
 
+    const equipNorm = equips.map(normalizeText).filter(Boolean);
+    const muscleNorm = [...targets, ...sec, ...bps].map(normalizeText).filter(Boolean);
+
     if (selectedEquip) {
-      if (!equips.map(e => String(e).toLowerCase()).includes(selectedEquip.toLowerCase())) return false;
+      const needle = normalizeText(selectedEquip);
+      if (!equipNorm.some((e) => e.includes(needle) || needle.includes(e))) return false;
     }
     if (acceptable.length) {
-      const all = [...targets, ...sec, ...bps].map(m => String(m).toLowerCase());
-      if (!acceptable.some(a => all.includes(a))) return false;
+      if (!fuzzyMatchAny(muscleNorm, acceptable.map(normalizeText))) return false;
     }
     return true;
   });
@@ -686,7 +682,8 @@ function renderResults() {
     const customBadge = ex.isCustom
       ? `<span class="badge bg-warning ms-1" style="font-size:.6rem;vertical-align:middle;">Custom</span>` : '';
 
-    return `<div class="ex-result-item" onclick='selectExercise(${JSON.stringify(ex)})'>
+    const payload = encodeURIComponent(JSON.stringify(ex));
+    return `<div class="ex-result-item" onclick="selectExerciseFromEncoded('${payload}')">
       ${imgSrc
         ? `<img src="${imgSrc}" loading="lazy" alt="">`
         : `<div class="ex-result-placeholder">
@@ -718,6 +715,14 @@ function showSpinner(msg) {
      </div>`;
 }
 
+function selectExerciseFromEncoded(encoded) {
+  try {
+    selectExercise(JSON.parse(decodeURIComponent(encoded)));
+  } catch (err) {
+    console.error('Invalid exercise payload', err);
+  }
+}
+
 //Select exercise → open add modal
 function selectExercise(ex) {
   const exId    = ex.exerciseId || ex.id;
@@ -744,5 +749,8 @@ document.getElementById('exSearch')?.addEventListener('keydown', e => {
 //Boot
 renderEquipmentPills();
 doSearch();
+
+// Ensure heatmap component can call this reliably
+window.onMuscleClick = onMuscleClick;
 </script>
 {% endblock %}

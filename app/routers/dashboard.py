@@ -1,10 +1,12 @@
 from fastapi.responses import HTMLResponse
 from fastapi import Request
-from sqlmodel import select, or_
+from sqlmodel import select
 from datetime import datetime, timezone, timedelta
 from app.dependencies import SessionDep, AuthDep
 from app.models import WorkoutSession, SessionExercise, Exercise
 from . import router, templates, api_router
+
+SECONDARY_MUSCLE_WEIGHT = 0.5
 
 
 def _get_cutoff(period: str):
@@ -16,6 +18,23 @@ def _get_cutoff(period: str):
         "6months": now - timedelta(days=180),
         "year":    now - timedelta(days=365),
     }.get(period)
+
+
+def _muscle_buckets(exercise: Exercise) -> tuple[set[str], set[str]]:
+    primary = set()
+    if exercise.target:
+        primary.add(exercise.target.strip().lower())
+    if exercise.body_part:
+        primary.add(exercise.body_part.strip().lower())
+
+    secondary = set()
+    for m in str(exercise.secondary_muscles or "").split(","):
+        key = m.strip().lower()
+        if key:
+            secondary.add(key)
+
+    secondary -= primary
+    return primary, secondary
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -51,14 +70,18 @@ async def heatmap_data(user: AuthDep, db: SessionDep, period: str = "week"):
         query = query.where(WorkoutSession.completed_at >= cutoff)
     sessions = db.exec(query).all()
 
-    muscle_sets: dict[str, int] = {}
+    muscle_sets: dict[str, float] = {}
     for s in sessions:
         logged = db.exec(select(SessionExercise).where(SessionExercise.session_id == s.id)).all()
         for se in logged:
             ex = db.get(Exercise, se.exercise_id)
-            if ex and ex.target:
-                key = ex.target.lower()
-                muscle_sets[key] = muscle_sets.get(key, 0) + (se.sets_completed or 1)
+            if ex:
+                sets = se.sets_completed or 1
+                primary, secondary = _muscle_buckets(ex)
+                for muscle in primary:
+                    muscle_sets[muscle] = muscle_sets.get(muscle, 0) + sets
+                for muscle in secondary:
+                    muscle_sets[muscle] = muscle_sets.get(muscle, 0) + (sets * SECONDARY_MUSCLE_WEIGHT)
 
     if not muscle_sets:
         return {}
@@ -81,7 +104,7 @@ async def dashboard_stats(user: AuthDep, db: SessionDep, period: str = "all"):
         {"date": s.completed_at.strftime("%Y-%m-%d"), "duration": s.duration_minutes or 0}
         for s in sessions
     ]
-    muscle_volume: dict[str, int] = {}
+    muscle_volume: dict[str, float] = {}
     total_sets = 0
     for s in sessions:
         logged = db.exec(select(SessionExercise).where(SessionExercise.session_id == s.id)).all()
@@ -89,8 +112,12 @@ async def dashboard_stats(user: AuthDep, db: SessionDep, period: str = "all"):
             sets = se.sets_completed or 0
             total_sets += sets
             ex = db.get(Exercise, se.exercise_id)
-            if ex and ex.target:
-                muscle_volume[ex.target] = muscle_volume.get(ex.target, 0) + sets
+            if ex:
+                primary, secondary = _muscle_buckets(ex)
+                for muscle in primary:
+                    muscle_volume[muscle] = muscle_volume.get(muscle, 0) + sets
+                for muscle in secondary:
+                    muscle_volume[muscle] = muscle_volume.get(muscle, 0) + (sets * SECONDARY_MUSCLE_WEIGHT)
 
     return {
         "total_sessions": len(sessions),
@@ -98,7 +125,7 @@ async def dashboard_stats(user: AuthDep, db: SessionDep, period: str = "all"):
         "total_duration": sum(s.duration_minutes or 0 for s in sessions),
         "sessions_over_time": sessions_over_time,
         "muscle_volume": sorted(
-            [{"muscle": k, "sets": v} for k, v in muscle_volume.items()],
+            [{"muscle": k, "sets": round(v, 2)} for k, v in muscle_volume.items()],
             key=lambda x: x["sets"], reverse=True
         )[:10],
     }
@@ -108,51 +135,56 @@ async def dashboard_stats(user: AuthDep, db: SessionDep, period: str = "all"):
 async def muscle_history_api(muscle_name: str, user: AuthDep, db: SessionDep, period: str = "all"):
     cutoff = _get_cutoff(period)
 
-    exercises = db.exec(
-        select(Exercise).where(
-            or_(
-                Exercise.target.ilike(f"%{muscle_name}%"),
-                Exercise.body_part.ilike(f"%{muscle_name}%"),
-            )
-        )
-    ).all()
-
-    if not exercises:
-        return {"entries": [], "total_sets": 0, "exercises": []}
-
-    exercise_ids = {ex.id for ex in exercises}
-    exercise_map = {ex.id: ex for ex in exercises}
-
+    muscle_key = muscle_name.strip().lower()
     query = (
         select(SessionExercise, WorkoutSession)
         .join(WorkoutSession, WorkoutSession.id == SessionExercise.session_id)
         .where(WorkoutSession.user_id == user.id)
-        .where(SessionExercise.exercise_id.in_(exercise_ids))
+        .where(SessionExercise.exercise_id != None)
         .where(WorkoutSession.completed_at != None)
     )
     if cutoff:
         query = query.where(WorkoutSession.completed_at >= cutoff)
 
     rows = db.exec(query.order_by(WorkoutSession.completed_at.desc())).all()
-    entries = [
-        {
-            "date": session.completed_at.strftime("%Y-%m-%d"),
-            "exercise_name": exercise_map[se.exercise_id].name,
-            "exercise_db_id": exercise_map[se.exercise_id].exercise_id,
-            "sets": se.sets_completed,
-            "reps": se.reps_completed,
-            "weight_kg": se.weight_kg,
-            "duration_seconds": se.duration_seconds,
-            "notes": se.notes,
-        }
-        for se, session in rows
-        if se.exercise_id in exercise_map
-    ]
+    exercise_map: dict[int, Exercise] = {}
+    matched_exercises: dict[int, Exercise] = {}
+    entries = []
+
+    for se, session in rows:
+        ex = exercise_map.get(se.exercise_id)
+        if ex is None:
+            ex = db.get(Exercise, se.exercise_id)
+            if not ex:
+                continue
+            exercise_map[se.exercise_id] = ex
+
+        primary, secondary = _muscle_buckets(ex)
+        muscles = primary.union(secondary)
+        if not any(muscle_key in m or m in muscle_key for m in muscles):
+            continue
+
+        matched_exercises[ex.id] = ex
+        entries.append(
+            {
+                "date": session.completed_at.strftime("%Y-%m-%d"),
+                "exercise_name": ex.name,
+                "exercise_db_id": ex.exercise_id,
+                "sets": se.sets_completed,
+                "reps": se.reps_completed,
+                "weight_kg": se.weight_kg,
+                "duration_seconds": se.duration_seconds,
+                "notes": se.notes,
+            }
+        )
 
     return {
         "entries": entries,
         "total_sets": sum(e["sets"] or 0 for e in entries),
-        "exercises": [{"name": e.name, "exercise_id": e.exercise_id} for e in exercises[:10]],
+        "exercises": [
+            {"name": e.name, "exercise_id": e.exercise_id}
+            for e in list(matched_exercises.values())[:10]
+        ],
     }
 
 

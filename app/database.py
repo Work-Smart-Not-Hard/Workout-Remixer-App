@@ -1,5 +1,6 @@
 import logging
 from sqlmodel import SQLModel, Session, create_engine
+from sqlalchemy import inspect, text
 from app.config import get_settings
 from contextlib import contextmanager
 
@@ -16,6 +17,36 @@ engine = create_engine(
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+    _ensure_exercise_columns()
+
+
+def _ensure_exercise_columns():
+    inspector = inspect(engine)
+    try:
+        table_names = inspector.get_table_names()
+    except Exception as e:
+        logger.warning(f"Schema inspection failed: {e}")
+        return
+
+    if "exercise" not in table_names:
+        return
+
+    try:
+        columns = {c["name"] for c in inspector.get_columns("exercise")}
+    except Exception as e:
+        logger.warning(f"Could not inspect exercise columns: {e}")
+        return
+
+    if "secondary_muscles" in columns:
+        return
+
+    # Safe additive migration for both SQLite and PostgreSQL.
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE exercise ADD COLUMN secondary_muscles VARCHAR"))
+        logger.info("Added missing column: exercise.secondary_muscles")
+    except Exception as e:
+        logger.warning(f"Could not add exercise.secondary_muscles column automatically: {e}")
 
 def drop_all():
     SQLModel.metadata.drop_all(bind=engine)

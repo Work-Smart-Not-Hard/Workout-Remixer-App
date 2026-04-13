@@ -7,7 +7,41 @@
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 14px;
-    padding: 0.75rem;
+    padding: 0.85rem;
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    max-height: calc(100vh - 120px);
+    overflow: auto;
+    scrollbar-width: thin;
+}
+
+.search-shell {
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.search-shell .form-control {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    height: 34px;
+    padding-left: 10px;
+}
+
+.search-shell .btn {
+    height: 34px;
+    width: 34px;
+    border-radius: 9px !important;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .filter-section-title {
@@ -33,6 +67,57 @@
     padding: 2px 8px !important;
 }
 
+.equipment-groups {
+    display: grid;
+    gap: 0.4rem;
+    max-height: 220px;
+    overflow: auto;
+    scrollbar-gutter: stable;
+    padding-right: 2px;
+}
+
+.equip-group {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.02);
+    padding: 0.4rem 0.45rem;
+}
+
+.equip-group > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.equip-group > summary::-webkit-details-marker {
+    display: none;
+}
+
+.equip-group > summary::after {
+    content: '+';
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.equip-group[open] > summary::after {
+    content: '\2212';
+}
+
+.equip-pill-wrap {
+    margin-top: 0.45rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
 .equip-pill:hover {
     background: rgba(255,255,255,0.07) !important;
     color: #cbd5e1 !important;
@@ -52,10 +137,101 @@
     min-width: 110px;
     cursor: default !important;
 }
+
+.page-numbers {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.page-num-btn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.03);
+    color: #94a3b8;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.page-num-btn:hover {
+    border-color: rgba(129,140,248,0.5);
+    color: #c7d2fe;
+}
+
+.page-num-btn.active {
+    border-color: rgba(129,140,248,0.7);
+    background: rgba(99,102,241,0.25);
+    color: #e0e7ff;
+}
+
+.page-num-ellipsis {
+    color: #64748b;
+    font-size: 0.85rem;
+    padding: 0 2px;
+}
+
+/* Exercise card media fit */
+.ex-card-new {
+    border-radius: 16px;
+}
+
+.ex-card-img-wrap {
+    height: auto;
+    min-height: 160px;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    padding: 9px;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.ex-card-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 6px;
+}
+
+.ex-card-overlay {
+    display: none;
+}
+
+/* Modal media fit */
+.exercise-preview-shell {
+    min-height: 260px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+#modalGif {
+    width: 100%;
+    max-height: 340px;
+    object-fit: contain;
+    object-position: center;
+    border-radius: 14px;
+    background: rgba(248,250,252,0.94);
+    padding: 8px;
+}
 {% endblock %}
 
 {% block subpage_content %}
-<div class="container-fluid" id="content">
+<div class="container-fluid">
 
     <div class="row mb-3">
         <div class="col-12">
@@ -66,24 +242,16 @@
     <div class="row g-4">
 
         <!-- Left sidebar -->
-        <div class="col-lg-3 filter-shell">
+        <div class="col-lg-3">
+
+            <div class="filter-shell">
 
             <!-- Search -->
-            <div class="input-group mb-3">
+            <div class="search-shell mb-3">
                 <input type="text" id="searchInput" class="form-control" placeholder="Search exercises...">
-                <button class="btn btn-primary" onclick="doSearch()">
+                <button class="btn btn-primary" type="button" onclick="doSearch()">
                     <span class="material-symbols-outlined" style="font-size:1rem">search</span>
                 </button>
-            </div>
-
-            <!-- Equipment filter -->
-            <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <p class="filter-section-title">Equipment</p>
-                    <button class="btn btn-link btn-sm p-0 text-muted" id="clearEquipBtn"
-                            onclick="clearEquipment()" style="display:none;">Clear</button>
-                </div>
-                <div id="equipmentPills" class="d-flex flex-wrap gap-1"></div>
             </div>
 
             <!-- Muscle filter via SVG -->
@@ -99,9 +267,20 @@
                 {{ muscle_heatmap(mode="filter", height="320px") }}
             </div>
 
+            <!-- Equipment filter -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <p class="filter-section-title">Equipment</p>
+                    <button class="btn btn-link btn-sm p-0 text-muted" id="clearEquipBtn"
+                            onclick="clearEquipment()" style="display:none;">Clear</button>
+                </div>
+                <div id="equipmentPills" class="equipment-groups"></div>
+            </div>
+
             <button class="btn btn-outline-secondary btn-sm w-100 mt-2" onclick="clearAllFilters()">
                 Clear All Filters
             </button>
+            </div>
         </div>
 
         <!-- ── Right: results ────────────────────────────────── -->
@@ -113,7 +292,7 @@
                     <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
                     Favourites on this page
                 </h6>
-                <div class="row g-2" id="favsGrid"></div>
+                <div class="row g-3" id="favsGrid"></div>
                 <hr>
             </div>
 
@@ -121,7 +300,7 @@
                 <small class="text-muted" id="resultCount"></small>
             </div>
 
-            <div class="row g-3" id="exerciseGrid">
+            <div class="row g-4" id="exerciseGrid">
                 <div class="col-12 text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
                     <p class="mt-2 text-muted">Loading exercises...</p>
@@ -131,7 +310,7 @@
             <!-- Pagination -->
             <div class="d-flex justify-content-center gap-2 mt-4 mb-4">
                 <button class="btn btn-outline-primary" id="prevBtn" onclick="prevPage()" disabled>Previous</button>
-                <span class="btn page-indicator disabled" id="pageIndicator"></span>
+                <div id="pageNumbers" class="page-numbers" aria-label="Pagination"></div>
                 <button class="btn btn-outline-primary" id="nextBtn" onclick="nextPage()" disabled>Next</button>
             </div>
         </div>
@@ -140,27 +319,29 @@
 
 <!-- Exercise Detail Modal -->
 <div class="modal fade" id="exerciseModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold text-capitalize" id="modalExerciseName"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-5 text-center">
-                        <img id="modalGif" src="" alt="" class="img-fluid rounded" style="max-height:260px;">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="exercise-preview-shell">
+                            <img id="modalGif" src="" alt="" class="img-fluid rounded">
+                        </div>
                         <div class="mt-2">
                             <span class="badge bg-primary me-1" id="modalBodyPart"></span>
                             <span class="badge bg-success me-1" id="modalTarget"></span>
                             <span class="badge bg-secondary" id="modalEquipment"></span>
                         </div>
                     </div>
-                    <div class="col-md-7">
+                    <div class="col-md-6">
                         <h6 class="section-title">Secondary Muscles</h6>
                         <p id="modalSecondary" class="text-muted small mb-3"></p>
                         <h6 class="section-title">Instructions</h6>
-                        <ol id="modalInstructions" class="ps-3 small" style="max-height:200px;overflow-y:auto;"></ol>
+                        <ol id="modalInstructions" class="ps-3 small" style="max-height:300px;overflow-y:auto;"></ol>
                     </div>
                 </div>
             </div>
@@ -296,6 +477,17 @@ let currentExercise = null;
 let userRoutines    = [];
 const PAGE_SIZE     = 30; // Optimized for client-side display
 
+function normalizeText(value) {
+    return String(value || '').toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function resolveSvgMuscleKey(value) {
+    const normalized = normalizeText(value);
+    if (SVG_TO_API[normalized]) return normalized;
+    const found = Object.keys(SVG_TO_API).find((key) => normalizeText(key) === normalized);
+    return found || normalized;
+}
+
 // Init
 async function init() {
     const [favsRes, routinesRes] = await Promise.all([
@@ -315,21 +507,30 @@ function renderEquipmentPills() {
     const container = document.getElementById('equipmentPills');
     container.innerHTML = "";
 
-    for (const group of EQUIPMENT_GROUPS) {
-        const label = document.createElement('div');
-            label.className = "w-100 mt-2 mb-1 filter-section-title";
-        label.textContent = group.label;
-        container.appendChild(label);
+    EQUIPMENT_GROUPS.forEach((group, idx) => {
+        const groupEl = document.createElement('details');
+        groupEl.className = 'equip-group';
+        if (idx === 0) groupEl.open = true;
 
-        for (const eq of group.items) {
+        const summary = document.createElement('summary');
+        summary.textContent = `${group.label} (${group.items.length})`;
+        groupEl.appendChild(summary);
+
+        const wrap = document.createElement('div');
+        wrap.className = 'equip-pill-wrap';
+
+        group.items.forEach((eq) => {
             const btn = document.createElement('button');
-                btn.className = "btn btn-sm equip-pill";
-            btn.dataset.equip    = eq;
-            btn.textContent      = eq.charAt(0).toUpperCase() + eq.slice(1);
+            btn.className = "btn btn-sm equip-pill";
+            btn.dataset.equip = eq;
+            btn.textContent = eq.charAt(0).toUpperCase() + eq.slice(1);
             btn.addEventListener('click', () => selectEquipment(eq));
-            container.appendChild(btn);
-        }
-    }
+            wrap.appendChild(btn);
+        });
+
+        groupEl.appendChild(wrap);
+        container.appendChild(groupEl);
+    });
 }
 
 function selectEquipment(eq) {
@@ -349,16 +550,17 @@ function clearEquipment() {
 
 // SVG muscle click
 function onMuscleClick(svgMuscle) {
-    if (selectedSvgGrp === svgMuscle) {
+    const resolvedMuscle = resolveSvgMuscleKey(svgMuscle);
+    if (selectedSvgGrp === resolvedMuscle) {
         selectedSvgGrp = "";
         if (typeof setActiveMuscle === "function") setActiveMuscle(null);
         document.getElementById('selectedMuscleLabel').textContent = "Click a muscle to filter";
         const clearBtn = document.getElementById('clearMuscleBtn');
         if (clearBtn) clearBtn.style.display = 'none';
     } else {
-        selectedSvgGrp = svgMuscle;
-        if (typeof setActiveMuscle === "function") setActiveMuscle(svgMuscle);
-        const label = (SVG_TO_API[svgMuscle] || [svgMuscle])[0];
+        selectedSvgGrp = resolvedMuscle;
+        if (typeof setActiveMuscle === "function") setActiveMuscle(resolvedMuscle);
+        const label = (SVG_TO_API[resolvedMuscle] || [resolvedMuscle])[0];
         document.getElementById('selectedMuscleLabel').textContent =
             "Filtering: " + label.charAt(0).toUpperCase() + label.slice(1);
         const clearBtn = document.getElementById('clearMuscleBtn');
@@ -412,8 +614,15 @@ async function fetchAndRender(search, attempt = 1) {
 // Client-side filtering
 function applyLocalFilters() {
     const acceptableApiMuscles = selectedSvgGrp
-        ? (SVG_TO_API[selectedSvgGrp] || []).map(s => s.toLowerCase())
+        ? (SVG_TO_API[selectedSvgGrp] || []).map(normalizeText)
         : [];
+
+    const fuzzyAnyMatch = (haystack, needles) => {
+        if (!needles.length) return true;
+        return needles.some((needle) =>
+            haystack.some((item) => item.includes(needle) || needle.includes(item))
+        );
+    };
 
     currentFiltered = allFetched.filter(ex => {
         // Robust property extraction handling both ExerciseDB direct shape & internal schema shape
@@ -421,17 +630,18 @@ function applyLocalFilters() {
         const targets = Array.isArray(ex.targetMuscles) ? ex.targetMuscles : (ex.target ? [ex.target] : []);
         const secondary = Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles : [];
         const bodyParts = Array.isArray(ex.bodyParts) ? ex.bodyParts : (ex.bodyPart ? [ex.bodyPart] : []);
+        const normalizedEquipments = equipments.map(normalizeText).filter(Boolean);
+        const normalizedMuscles = [...targets, ...secondary, ...bodyParts].map(normalizeText).filter(Boolean);
 
         // Equipment check
         if (selectedEquip) {
-            const exEquips = equipments.map(e => String(e).toLowerCase());
-            if (!exEquips.includes(selectedEquip.toLowerCase())) return false;
+            const selectedEquipment = normalizeText(selectedEquip);
+            if (!fuzzyAnyMatch(normalizedEquipments, [selectedEquipment])) return false;
         }
 
         // Muscle check
         if (acceptableApiMuscles.length > 0) {
-            const all = [...targets, ...secondary, ...bodyParts].map(m => String(m).toLowerCase());
-            if (!acceptableApiMuscles.some(alias => all.includes(alias))) return false;
+            if (!fuzzyAnyMatch(normalizedMuscles, acceptableApiMuscles)) return false;
         }
 
         return true;
@@ -498,9 +708,45 @@ function nextPage() {
 function updatePagination() {
     const cur   = Math.floor(currentOffset / PAGE_SIZE) + 1;
     const total = Math.ceil(currentFiltered.length / PAGE_SIZE) || 1;
-    document.getElementById('pageIndicator').textContent = `Page ${cur} of ${total}`;
     document.getElementById('prevBtn').disabled = currentOffset <= 0;
     document.getElementById('nextBtn').disabled = currentOffset + PAGE_SIZE >= currentFiltered.length;
+    renderPageNumberButtons(cur, total);
+}
+
+function renderPageNumberButtons(currentPage, totalPages) {
+    const container = document.getElementById('pageNumbers');
+    if (!container) return;
+
+    const pages = [];
+    if (totalPages <= 9) {
+        for (let i = 1; i <= totalPages; i += 1) pages.push(i);
+    } else {
+        const anchors = new Set([1, 2, totalPages - 1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+        const sorted = [...anchors].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+        let prev = 0;
+        for (const p of sorted) {
+            if (prev && p - prev > 1) pages.push('...');
+            pages.push(p);
+            prev = p;
+        }
+    }
+
+    container.innerHTML = pages.map((p) => {
+        if (p === '...') return '<span class="page-num-ellipsis">...</span>';
+        const activeClass = p === currentPage ? 'active' : '';
+        return `<button type="button" class="page-num-btn ${activeClass}" onclick="goToPage(${p})">${p}</button>`;
+    }).join('');
+}
+
+function goToPage(pageValue) {
+    const total = Math.ceil(currentFiltered.length / PAGE_SIZE) || 1;
+    const raw = Number(pageValue);
+    if (!Number.isFinite(raw)) return;
+
+    const target = Math.min(Math.max(Math.floor(raw), 1), total);
+    currentOffset = (target - 1) * PAGE_SIZE;
+    renderCurrentPage();
+    window.scrollTo(0, 0);
 }
 
 // Render
@@ -714,6 +960,8 @@ if (searchInputEl) {
         if (e.key === 'Enter') doSearch();
     });
 }
+
+window.onMuscleClick = onMuscleClick;
 
 init();
 </script>

@@ -12,6 +12,14 @@ class ExerciseRepository:
 
     def upsert(self, exercise_data: dict) -> Exercise:
         """Insert or update a local Exercise record from ExerciseDB API data."""
+        secondary = ",".join(
+            sorted({
+                str(m).strip().lower()
+                for m in (exercise_data.get("secondaryMuscles") or [])
+                if str(m).strip()
+            })
+        ) or None
+
         exercise = self.get_by_exercise_id(exercise_data["exerciseId"])
         if not exercise:
             exercise = Exercise(
@@ -20,11 +28,21 @@ class ExerciseRepository:
                 body_part=exercise_data["bodyParts"][0] if exercise_data.get("bodyParts") else "",
                 equipment=exercise_data["equipments"][0] if exercise_data.get("equipments") else "",
                 target=exercise_data["targetMuscles"][0] if exercise_data.get("targetMuscles") else "",
+                secondary_muscles=secondary,
                 gif_url=exercise_data.get("gifUrl"),
             )
             self.db.add(exercise)
             self.db.commit()
             self.db.refresh(exercise)
+        else:
+            changed = False
+            if secondary and exercise.secondary_muscles != secondary:
+                exercise.secondary_muscles = secondary
+                changed = True
+            if changed:
+                self.db.add(exercise)
+                self.db.commit()
+                self.db.refresh(exercise)
         return exercise
 
     def get_by_id(self, id: int) -> Optional[Exercise]:

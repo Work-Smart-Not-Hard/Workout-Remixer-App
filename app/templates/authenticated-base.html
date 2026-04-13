@@ -42,9 +42,6 @@
     box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
   }
 
-  #sidebar.collapsed {
-    left: -72px;
-  }
 
   /* Brand icon */
   .sb-brand {
@@ -229,11 +226,6 @@
     margin-left: 72px;
     display: flex;
     flex-direction: column;
-    transition: margin-left 0.28s cubic-bezier(.4,0,.2,1);
-  }
-
-  #content.sidebar-hidden {
-    margin-left: 0;
   }
 
   /* Topbar */
@@ -246,28 +238,6 @@
     top: 0;
     z-index: 50;
   }
-
-  .topbar-toggle {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: rgba(255,255,255,0.04);
-    color: #475569;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    flex-shrink: 0;
-  }
-
-  .topbar-toggle:hover {
-    background: rgba(255,255,255,0.08);
-    color: #e2e8f0;
-  }
-
-  .topbar-toggle .material-symbols-outlined { font-size: 18px; }
 
   .topbar-right {
     margin-left: auto;
@@ -450,10 +420,6 @@
   <div id="content">
 
     <div class="topbar">
-      <button class="topbar-toggle" id="menu-toggle" aria-label="Toggle sidebar">
-        <span class="material-symbols-outlined">menu</span>
-      </button>
-
       <div class="topbar-right">
           <a href="/users/{{ user.id }}/profile" class="topbar-user" aria-label="Profile" data-label="Profile">
             <span class="material-symbols-outlined">person</span>
@@ -474,17 +440,6 @@
 
   </div>
 </div>
-
-<script>
-  const sidebar  = document.getElementById('sidebar');
-  const content  = document.getElementById('content');
-  const toggle   = document.getElementById('menu-toggle');
-
-  toggle.addEventListener('click', function () {
-    const collapsed = sidebar.classList.toggle('collapsed');
-    content.classList.toggle('sidebar-hidden', collapsed);
-  });
-</script>
 
 {% block subpage_scripts %}{% endblock %}
 
