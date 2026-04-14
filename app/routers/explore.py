@@ -1,3 +1,4 @@
+from datetime import timezone
 from fastapi import Request, Form, status, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import select, desc, func
@@ -7,6 +8,14 @@ from app.models.models import Post, PostReaction, UserMute, Routine
 from app.models.models import User 
 from app.utilities.flash import flash
 from . import router, templates, api_router
+
+
+def _iso_utc(dt):
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 @router.get("/explore", response_class=HTMLResponse)
@@ -104,7 +113,7 @@ async def get_feed(user: AuthDep, db: SessionDep, offset: int = 0, limit: int = 
         result.append({
             "id": p.id,
             "content": p.content,
-            "created_at": p.created_at.isoformat(),
+            "created_at": _iso_utc(p.created_at),
             "author": {
                 "id": p.author.id if p.author else None,
                 "username": p.author.username if p.author else "Unknown",
@@ -295,7 +304,7 @@ async def get_profile_data(profile_user_id: int, user: AuthDep, db: SessionDep):
             {
                 "id": p.id,
                 "content": p.content,
-                "created_at": p.created_at.isoformat(),
+                "created_at": _iso_utc(p.created_at),
                 "likes": counts.get(p.id, {}).get("likes", 0),
                 "dislikes": counts.get(p.id, {}).get("dislikes", 0),
                 "routine": {"id": p.routine.id, "name": p.routine.name} if p.routine else None,

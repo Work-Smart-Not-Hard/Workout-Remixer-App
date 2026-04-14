@@ -330,7 +330,7 @@
       {% if sessions %}
         {% for s in sessions[:15] %}
         <div class="workout-row">
-          <span class="workout-row-date">{{ s.completed_at.strftime('%b %d, %Y') if s.completed_at else '—' }}</span>
+          <span class="workout-row-date" data-local-date="{{ s.completed_at.isoformat() if s.completed_at else '' }}">{{ s.completed_at.strftime('%b %d, %Y') if s.completed_at else '—' }}</span>
           <a href="/routines/{{ s.routine_id }}" class="workout-row-name">
             {{ s.routine.name if s.routine else 'Routine #' ~ s.routine_id }}
           </a>
@@ -397,6 +397,13 @@
     requestAnimationFrame(update);
   }
 
+  function formatLocalDateLabel(value) {
+    if (!value) return '';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return String(value);
+    return dt.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  }
+
   function renderTrend(id, value, prevValue) {
     const el = document.getElementById(id);
     if (!el || !prevValue) return;
@@ -413,12 +420,12 @@
     const today = new Date(); today.setHours(0,0,0,0);
     const dateSet = new Set(sessions
       .filter(s => s.date)
-      .map(s => s.date)
+      .map(s => formatLocalDateLabel(s.date))
     );
     let streak = 0, d = new Date(today);
     while (true) {
-      const iso = d.toISOString().slice(0,10);
-      if (!dateSet.has(iso)) break;
+      const key = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+      if (!dateSet.has(key)) break;
       streak++;
       d.setDate(d.getDate() - 1);
     }
@@ -496,8 +503,11 @@
     noMsg.style.display = 'none';
     hideSkeleton('sessionsChartSkeleton', 'sessionsChart');
     const grouped = {};
-    dataPoints.forEach(d => grouped[d.date] = (grouped[d.date] || 0) + d.duration);
-    const labels = Object.keys(grouped).sort();
+    dataPoints.forEach(d => {
+      const label = formatLocalDateLabel(d.date);
+      grouped[label] = (grouped[label] || 0) + d.duration;
+    });
+    const labels = Object.keys(grouped);
     if (sessionsChart) sessionsChart.destroy();
     sessionsChart = new Chart(canvas, {
       type: 'line',

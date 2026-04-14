@@ -1,3 +1,4 @@
+from datetime import timezone
 from fastapi import Request, Form, status, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import select, desc, func
@@ -10,6 +11,14 @@ from app.utilities.flash import flash
 from . import router, templates, api_router
 
 SECONDARY_MUSCLE_WEIGHT = 0.5
+
+
+def _iso_utc(dt):
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _muscle_buckets(exercise: Exercise) -> tuple[set[str], set[str]]:
@@ -93,8 +102,8 @@ async def _build_session_entry(
     routine = session.routine
     return {
         "id": session.id,
-        "started_at": session.started_at.isoformat(),
-        "completed_at": session.completed_at.isoformat() if session.completed_at else None,
+        "started_at": _iso_utc(session.started_at),
+        "completed_at": _iso_utc(session.completed_at),
         "duration_minutes": session.duration_minutes,
         "notes": session.notes,
         "routine": {"id": routine.id, "name": routine.name} if routine else None,

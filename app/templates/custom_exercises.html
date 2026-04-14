@@ -227,7 +227,7 @@
           {% if ex.description %}
           <p class="custom-ex-desc">{{ ex.description }}</p>
           {% endif %}
-          <p class="custom-ex-meta">Added {{ ex.created_at.strftime('%b %d, %Y') }}</p>
+          <p class="custom-ex-meta">Added <span data-local-date="{{ ex.created_at.isoformat() }}">{{ ex.created_at.strftime('%b %d, %Y') }}</span></p>
         </div>
         <div class="custom-ex-footer">
           <button class="btn btn-outline-secondary btn-sm flex-grow-1"

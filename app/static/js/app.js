@@ -8,6 +8,134 @@ const DAILY_GOAL_META = {
   workouts: { label: 'workout', pluralLabel: 'workouts', shortLabel: 'workouts', accent: '#f59e0b' },
 };
 
+function localizeUserTimes() {
+  const dateNodes = document.querySelectorAll('[data-local-date]');
+  dateNodes.forEach((node) => {
+    const iso = node.getAttribute('data-local-date');
+    if (!iso) return;
+    const dt = new Date(iso);
+    if (Number.isNaN(dt.getTime())) return;
+    node.textContent = dt.toLocaleDateString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+    });
+  });
+
+  const dateTimeNodes = document.querySelectorAll('[data-local-datetime]');
+  dateTimeNodes.forEach((node) => {
+    const iso = node.getAttribute('data-local-datetime');
+    if (!iso) return;
+    const dt = new Date(iso);
+    if (Number.isNaN(dt.getTime())) return;
+    node.textContent = dt.toLocaleString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  });
+
+  const timeNodes = document.querySelectorAll('[data-local-time]');
+  timeNodes.forEach((node) => {
+    const iso = node.getAttribute('data-local-time');
+    if (!iso) return;
+    const dt = new Date(iso);
+    if (Number.isNaN(dt.getTime())) return;
+    node.textContent = dt.toLocaleTimeString(undefined, {
+      hour: '2-digit', minute: '2-digit',
+    });
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', localizeUserTimes);
+} else {
+  localizeUserTimes();
+}
+
+const BUTTON_CLICK_SFX_URL = '/static/sfx/button%20click.mp3';
+const NAV_CLICK_SFX_URL = '/static/sfx/nav%20click.mp3';
+
+let buttonClickSfx = null;
+let navClickSfx = null;
+
+function createClickSfx(url, volume) {
+  try {
+    const audio = new Audio(url);
+    audio.preload = 'auto';
+    audio.volume = volume;
+    audio.load();
+    return audio;
+  } catch {}
+  return null;
+}
+
+function getButtonClickSfx() {
+  if (!buttonClickSfx) {
+    buttonClickSfx = createClickSfx(BUTTON_CLICK_SFX_URL, 0.35);
+  }
+  return buttonClickSfx;
+}
+
+function getNavClickSfx() {
+  if (!navClickSfx) {
+    navClickSfx = createClickSfx(NAV_CLICK_SFX_URL, 0.3);
+  }
+  return navClickSfx;
+}
+
+function playClickSfx(audio) {
+  if (!audio) return;
+  try {
+    audio.currentTime = 0;
+    const playResult = audio.play();
+    if (playResult && typeof playResult.catch === 'function') {
+      playResult.catch(() => {});
+    }
+  } catch {}
+}
+
+function playButtonClickSfx() {
+  playClickSfx(getButtonClickSfx());
+}
+
+function playNavClickSfx() {
+  playClickSfx(getNavClickSfx());
+}
+
+function isModifiedClick(event) {
+  return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+}
+
+document.addEventListener('click', (event) => {
+  const navTarget = event.target.closest('a.sb-item, a.sb-brand, a.sb-avatar, a.sb-logout, [data-nav-sfx]');
+  if (navTarget && !navTarget.hasAttribute('data-no-sfx')) {
+    if (!isModifiedClick(event)) {
+      const href = navTarget.getAttribute('href');
+      if (href && href !== '#') {
+        event.preventDefault();
+        playNavClickSfx();
+        window.setTimeout(() => { window.location.href = navTarget.href; }, 80);
+        return;
+      }
+    }
+    playNavClickSfx();
+    return;
+  }
+
+  const target = event.target.closest('button, .btn, input[type="button"], input[type="submit"], [role="button"]');
+  if (!target || target.disabled || target.hasAttribute('data-no-sfx')) return;
+  playButtonClickSfx();
+}, true);
+
+function warmClickSfx() {
+  getButtonClickSfx();
+  getNavClickSfx();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', warmClickSfx);
+} else {
+  warmClickSfx();
+}
+
 function _goalStorageKey(root) {
   return `daily-goal-settings:${root?.dataset?.goalStorageKey || 'default'}`;
 }

@@ -1,12 +1,20 @@
 from fastapi.responses import HTMLResponse
 from fastapi import Request
-from sqlmodel import select
+from sqlmodel import select, desc
 from datetime import datetime, timezone, timedelta
 from app.dependencies import SessionDep, AuthDep
 from app.models import WorkoutSession, SessionExercise, Exercise
 from . import router, templates, api_router
 
 SECONDARY_MUSCLE_WEIGHT = 0.5
+
+
+def _iso_utc(dt):
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _get_cutoff(period: str):
@@ -48,7 +56,7 @@ async def dashboard_view(request: Request, user: AuthDep, db: SessionDep):
         select(WorkoutSession)
         .where(WorkoutSession.user_id == user.id)
         .where(WorkoutSession.completed_at != None)
-        .order_by(WorkoutSession.completed_at.desc())
+        .order_by(desc(WorkoutSession.completed_at))
     ).all()
     return templates.TemplateResponse(
         request=request, name="dashboard.html",
@@ -72,7 +80,7 @@ async def heatmap_data(user: AuthDep, db: SessionDep, period: str = "week"):
         WorkoutSession.completed_at != None,
     )
     if cutoff:
-        query = query.where(WorkoutSession.completed_at >= cutoff)
+        query = query.where(WorkoutSession.completed_at >= cutoff)  # type: ignore[operator]
     sessions = db.exec(query).all()
 
     muscle_sets: dict[str, float] = {}
@@ -102,19 +110,19 @@ async def dashboard_stats(user: AuthDep, db: SessionDep, period: str = "all"):
         WorkoutSession.completed_at != None,
     )
     if cutoff:
-        query = query.where(WorkoutSession.completed_at >= cutoff)
-    sessions = db.exec(query.order_by(WorkoutSession.completed_at)).all()
+        query = query.where(WorkoutSession.completed_at >= cutoff)  # type: ignore[operator]
+    sessions = db.exec(query.order_by(desc(WorkoutSession.completed_at))).all()
 
     today_cutoff = _get_day_start()
     today_query = select(WorkoutSession).where(
         WorkoutSession.user_id == user.id,
         WorkoutSession.completed_at != None,
-        WorkoutSession.completed_at >= today_cutoff,
+        WorkoutSession.completed_at >= today_cutoff,  # type: ignore[operator]
     )
-    today_sessions = db.exec(today_query.order_by(WorkoutSession.completed_at)).all()
+    today_sessions = db.exec(today_query.order_by(desc(WorkoutSession.completed_at))).all()
 
     sessions_over_time = [
-        {"date": s.completed_at.strftime("%Y-%m-%d"), "duration": s.duration_minutes or 0}
+        {"date": _iso_utc(s.completed_at), "duration": s.duration_minutes or 0}
         for s in sessions
     ]
     muscle_volume: dict[str, float] = {}
@@ -158,20 +166,22 @@ async def muscle_history_api(muscle_name: str, user: AuthDep, db: SessionDep, pe
     muscle_key = muscle_name.strip().lower()
     query = (
         select(SessionExercise, WorkoutSession)
-        .join(WorkoutSession, WorkoutSession.id == SessionExercise.session_id)
+        .join(WorkoutSession, WorkoutSession.id == SessionExercise.session_id)  # type: ignore[arg-type]
         .where(WorkoutSession.user_id == user.id)
         .where(SessionExercise.exercise_id != None)
         .where(WorkoutSession.completed_at != None)
     )
     if cutoff:
-        query = query.where(WorkoutSession.completed_at >= cutoff)
+        query = query.where(WorkoutSession.completed_at >= cutoff)  # type: ignore[operator]
 
-    rows = db.exec(query.order_by(WorkoutSession.completed_at.desc())).all()
+    rows = db.exec(query.order_by(desc(WorkoutSession.completed_at))).all()
     exercise_map: dict[int, Exercise] = {}
     matched_exercises: dict[int, Exercise] = {}
     entries = []
 
     for se, session in rows:
+        if se.exercise_id is None:
+            continue
         ex = exercise_map.get(se.exercise_id)
         if ex is None:
             ex = db.get(Exercise, se.exercise_id)
@@ -184,10 +194,12 @@ async def muscle_history_api(muscle_name: str, user: AuthDep, db: SessionDep, pe
         if not any(muscle_key in m or m in muscle_key for m in muscles):
             continue
 
+        if ex.id is None:
+            continue
         matched_exercises[ex.id] = ex
         entries.append(
             {
-                "date": session.completed_at.strftime("%Y-%m-%d"),
+                "date": _iso_utc(session.completed_at),
                 "exercise_name": ex.name,
                 "exercise_db_id": ex.exercise_id,
                 "sets": se.sets_completed,
@@ -217,22 +229,20 @@ async def exercise_history(exercise_id: str, user: AuthDep, db: SessionDep, peri
 
     query = (
         select(SessionExercise, WorkoutSession)
-        .join(WorkoutSession, WorkoutSession.id == SessionExercise.session_id)
+        .join(WorkoutSession, WorkoutSession.id == SessionExercise.session_id)  # type: ignore[arg-type]
         .where(WorkoutSession.user_id == user.id)
         .where(SessionExercise.exercise_id == ex.id)
         .where(WorkoutSession.completed_at != None)
     )
     if cutoff:
-        query = query.where(WorkoutSession.completed_at >= cutoff)
+        query = query.where(WorkoutSession.completed_at >= cutoff)  # type: ignore[operator]
 
-    rows = db.exec(
-        query.order_by(WorkoutSession.completed_at, SessionExercise.id)
-    ).all()
+    rows = db.exec(query.order_by(desc(WorkoutSession.completed_at), desc(SessionExercise.id))).all()
 
     sets = [
         {
             "session_id": session.id,
-            "date": session.completed_at.strftime("%Y-%m-%d"),
+            "date": _iso_utc(session.completed_at),
             "sets": se.sets_completed,
             "reps": se.reps_completed,
             "weight_kg": se.weight_kg,

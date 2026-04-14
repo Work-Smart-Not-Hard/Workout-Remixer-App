@@ -337,7 +337,7 @@
     <div class="d-flex align-items-center justify-content-between gap-2">
       <div class="overflow-hidden me-auto">
         <p class="routine-title text-truncate">{{ routine.name }}</p>
-        <p class="started-at">Started {{ session.started_at.strftime('%I:%M %p') }}</p>
+        <p class="started-at">Started <span data-local-time="{{ session.started_at.isoformat() }}">{{ session.started_at.strftime('%I:%M %p') }}</span></p>
       </div>
       <div class="timer-block">
         <div class="timer-digits" id="timerDisplay">00:00</div>

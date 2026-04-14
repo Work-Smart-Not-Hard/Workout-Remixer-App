@@ -147,6 +147,13 @@
     loadHistory();
   }
 
+  function formatLocalDateLabel(value) {
+    if (!value) return '';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return String(value);
+    return dt.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  }
+
   async function loadHistory() {
     const res  = await fetch(`/api/dashboard/muscle/${encodeURIComponent(muscleName)}/history?period=${currentPeriod}`);
     const data = await res.json();
@@ -183,8 +190,11 @@
     }
     noMsg.style.display = 'none'; canvas.style.display = '';
     const grouped = {};
-    entries.forEach(e => grouped[e.date] = (grouped[e.date] || 0) + (e.sets || 0));
-    const labels = Object.keys(grouped).sort();
+    entries.forEach(e => {
+      const label = formatLocalDateLabel(e.date);
+      grouped[label] = (grouped[label] || 0) + (e.sets || 0);
+    });
+    const labels = Object.keys(grouped);
     if (volumeChart) volumeChart.destroy();
     volumeChart = new Chart(canvas, {
       type: 'line',
@@ -254,7 +264,7 @@
           </tr></thead>
           <tbody>${entries.map(e => `
             <tr>
-              <td>${e.date}</td>
+              <td>${formatLocalDateLabel(e.date)}</td>
               <td class="text-capitalize">
                 <a href="/exercises/${e.exercise_db_id}" class="text-decoration-none" style="color:var(--accent-cyan-lt);">${e.exercise_name}</a>
               </td>

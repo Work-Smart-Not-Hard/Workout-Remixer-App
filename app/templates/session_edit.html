@@ -181,7 +181,7 @@
         <div>
           <p class="routine-title">{{ routine.name }}</p>
           <p class="started-at">
-            Editing workout from {{ session.completed_at.strftime('%b %d, %Y %I:%M %p') if session.completed_at else session.started_at.strftime('%b %d, %Y %I:%M %p') }}
+            Editing workout from <span data-local-datetime="{{ (session.completed_at or session.started_at).isoformat() }}">{{ session.completed_at.strftime('%b %d, %Y %I:%M %p') if session.completed_at else session.started_at.strftime('%b %d, %Y %I:%M %p') }}</span>
           </p>
         </div>
         <button type="submit" class="edit-btn">

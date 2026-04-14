@@ -185,6 +185,13 @@
     renderChart(allSets);
   }
 
+  function formatLocalDateLabel(value) {
+    if (!value) return '';
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return String(value);
+    return dt.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  }
+
   async function loadExerciseInfo() {
     try {
       const res = await fetch(`/api/exercises/${exerciseId}`);
@@ -225,6 +232,7 @@
   function computeMetricData(sets) {
     const byDate = {};
     for (const s of sets) {
+      const label = formatLocalDateLabel(s.date);
       let val = 0;
       if (currentMetric === 'weight') {
         val = s.weight_kg || 0;
@@ -234,13 +242,13 @@
       } else if (currentMetric === 'volume') {
         val = (s.weight_kg || 0) * (s.reps || 0);
       } else if (currentMetric === 'session') {
-        if (!byDate[s.date]) byDate[s.date] = {};
-        const sid = s.session_id || s.date;
-        byDate[s.date][sid] = (byDate[s.date][sid] || 0) + (s.weight_kg || 0) * (s.reps || 0);
+        if (!byDate[label]) byDate[label] = {};
+        const sid = s.session_id || label;
+        byDate[label][sid] = (byDate[label][sid] || 0) + (s.weight_kg || 0) * (s.reps || 0);
         continue;
       }
       if (val > 0) {
-        byDate[s.date] = Math.max(byDate[s.date] || 0, val);
+        byDate[label] = Math.max(byDate[label] || 0, val);
       }
     }
     if (currentMetric === 'session') {
@@ -333,7 +341,7 @@
       <tbody>${[...sets].reverse().map(s => {
         const e1rm = s.weight_kg && s.reps ? Math.round(s.weight_kg * (1 + s.reps/30) * 10)/10 : null;
         return `<tr>
-          <td>${s.date}</td>
+          <td>${formatLocalDateLabel(s.date)}</td>
           <td>${s.sets ?? '—'}</td>
           <td>${s.reps ?? '—'}</td>
           <td style="color:var(--text-primary);font-weight:600;">${s.weight_kg ? s.weight_kg+' kg' : '—'}</td>

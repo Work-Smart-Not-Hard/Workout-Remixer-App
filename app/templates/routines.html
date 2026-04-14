@@ -182,7 +182,7 @@
           {% else %}
           <p class="routine-desc" style="color:var(--text-ghost);">No description yet.</p>
           {% endif %}
-          <p class="routine-created">Created {{ routine.created_at.strftime('%b %d, %Y') }}</p>
+          <p class="routine-created">Created <span data-local-date="{{ routine.created_at.isoformat() }}">{{ routine.created_at.strftime('%b %d, %Y') }}</span></p>
         </div>
 
         <!-- Actions -->
