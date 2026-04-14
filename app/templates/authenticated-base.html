@@ -144,8 +144,8 @@
   /* ── Nav item ── */
   .sb-item {
     position: relative;
-    width: 44px; height: 36px;
-    border-radius: 10px;
+    width: 42px; height: 42px;
+    border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     text-decoration: none;
     color: rgba(255,255,255,0.30);
@@ -236,20 +236,22 @@
 
   /* User avatar */
   .sb-avatar {
-    width: 36px; height: 36px; border-radius: 999px;
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 13px; font-weight: 700; color: #e0e7ff;
+    color: rgba(255,255,255,0.24);
     text-decoration: none;
-    border: 1.5px solid rgba(129,140,248,0.38);
-    box-shadow: 0 0 14px rgba(99,102,241,0.32);
-    transition: box-shadow 0.2s, transform 0.15s;
+    border: none;
+    box-shadow: none;
+    transition: color 0.2s, transform 0.15s;
     position: relative;
   }
+  .sb-avatar .material-symbols-outlined {
+    font-size: 19px;
+    font-variation-settings: 'FILL' 0, 'wght' 300;
+  }
   .sb-avatar:hover {
-    box-shadow: 0 0 24px rgba(99,102,241,0.58);
-    transform: scale(1.08);
+    color: rgba(255,255,255,0.72);
+    transform: scale(1.04);
   }
   .sb-avatar::after {
     content: 'Profile';
@@ -341,12 +343,6 @@
 
     <div class="sb-nav">
 
-      <a href="/app"
-         class="sb-item {% if request.path == '/app' %}active-indigo{% endif %}"
-         data-label="Home">
-        <span class="material-symbols-outlined">home</span>
-      </a>
-
       <a href="/dashboard"
          class="sb-item {% if request.path == '/dashboard' %}active-cyan{% endif %}"
          data-label="Dashboard">
@@ -359,8 +355,6 @@
         <span class="material-symbols-outlined">history</span>
       </a>
 
-      <div class="sb-separator"></div>
-
       <a href="/exercises"
          class="sb-item {% if request.path == '/exercises' %}active-amber{% endif %}"
          data-label="Exercises">
@@ -372,8 +366,6 @@
          data-label="Routines">
         <span class="material-symbols-outlined">event_note</span>
       </a>
-
-      <div class="sb-separator"></div>
 
       <a href="/custom-exercises"
          class="sb-item {% if request.path == '/custom-exercises' %}active-indigo{% endif %}"
@@ -398,7 +390,7 @@
     <!-- Footer: avatar + logout -->
     <div class="sb-footer">
       <a href="/users/{{ user.id }}/profile" class="sb-avatar" aria-label="Profile">
-        {{ user.username[0]|upper }}
+        <span class="material-symbols-outlined">person</span>
       </a>
       <a href="/logout" class="sb-logout" aria-label="Sign out">
         <span class="material-symbols-outlined">logout</span>
