@@ -285,7 +285,7 @@
               <span class="material-symbols-outlined" style="font-size:0.9rem">self_improvement</span>
             </div>
             <div>
-              <h6 class="section-title mb-0" style="font-size:0.8rem;">Weekly Snapshot</h6>
+              <h6 class="section-title mb-0" style="font-size:0.8rem;" id="hmSnapshotTitle">Weekly Snapshot</h6>
               <p class="page-subtitle" style="font-size:0.65rem;">Training muscle balance</p>
             </div>
           </div>
@@ -369,7 +369,19 @@
     document.querySelectorAll('#hmPeriodGroup .chart-period').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     window._hmPeriod = period;
+    updateHmSnapshotTitle(period);
     reloadHeatmap();
+  }
+
+  function updateHmSnapshotTitle(period) {
+    const el = document.getElementById('hmSnapshotTitle');
+    if (!el) return;
+    const labels = {
+      week: 'Weekly Snapshot',
+      month: 'Monthly Snapshot',
+      all: 'All-Time Snapshot',
+    };
+    el.textContent = labels[period] || 'Workout Snapshot';
   }
 
   async function reloadHeatmap() {
