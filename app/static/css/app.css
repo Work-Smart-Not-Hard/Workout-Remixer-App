@@ -775,3 +775,159 @@ h6, .h6 { font-size: 0.875rem !important; font-weight: 600 !important; color: va
 .floating    { animation: float 4s ease-in-out infinite; }
 .spin-slow   { animation: spin-slow 20s linear infinite; }
 .text-ghost-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-ghost); font-weight: 700; }
+
+
+/* Improved skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skel-bar {
+  animation: skeleton-shimmer 1.8s ease-in-out infinite !important;
+  background-size: 200% 100% !important;
+}
+
+/* Chart.js global constraint — prevent runaway pie charts */
+.chart-body canvas {
+  max-height: 260px !important;
+}
+
+/* Post card (explore) */
+@keyframes postSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.post-card { animation: postSlideIn 0.35s ease both; }
+
+/* ── Empty state float animation (shared) ── */
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+.fav-empty-orb,
+.custom-empty-icon-ring { animation: emptyFloat 4s ease-in-out infinite; }
+
+/* Discover sidebar quick-link hover line */
+.quick-link::before {
+  content: '';
+  display: inline-block;
+  width: 2px; height: 0;
+  background: var(--accent-cyan);
+  border-radius: 99px;
+  margin-right: 0;
+  transition: height 0.15s ease, margin-right 0.15s ease;
+  vertical-align: middle;
+  overflow: hidden;
+}
+.quick-link:hover::before {
+  height: 14px;
+  margin-right: 4px;
+}
+
+/* Highlight card hover glow */
+.highlight-card:nth-child(1):hover { border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.04); }
+.highlight-card:nth-child(2):hover { border-color: rgba(34,197,94,0.3);  background: rgba(34,197,94,0.04);  }
+.highlight-card:nth-child(3):hover { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.04); }
+.highlight-card:nth-child(4):hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04); }
+.highlight-card:nth-child(5):hover { border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.04); }
+
+/* Step guide numbered rows */
+.step-row .step-num {
+  transition: background 0.18s, border-color 0.18s;
+}
+.step-row:hover .step-num {
+  background: rgba(99,102,241,0.3);
+  border-color: rgba(129,140,248,0.55);
+}
+
+/* Discover routine item tag */
+.discover-routine-remix {
+  background: rgba(34,211,238,0.12);
+  color: #67e8f9;
+  border: 0.5px solid rgba(34,211,238,0.28);
+  border-radius: 8px;
+  font-size: 0.68rem; font-weight: 700;
+  padding: 3px 10px; white-space: nowrap;
+  cursor: pointer; transition: background 0.15s;
+}
+.discover-routine-remix:hover { background: rgba(34,211,238,0.22); }
+
+/* Responsive tweaks for explore grid */
+@media (max-width: 767px) {
+  .post-compose { padding: 0.85rem; }
+  .post-compose-footer { flex-direction: column; align-items: stretch; }
+  .post-compose-footer select { max-width: 100% !important; }
+}
+
+/* Custom exercise card hover border accent line */
+.custom-ex-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,0.5), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.custom-ex-card { position: relative; }
+.custom-ex-card:hover::after { opacity: 1; }
+
+/* Favourites filter input clear style */
+.fav-filter-input:focus {
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.12), 0 0 10px rgba(245,158,11,0.06);
+}
+
+/* Category suggestion chips animation */
+.fav-suggest-chip {
+  animation: fadeInUp 0.5s ease both;
+}
+.fav-suggest-chip:nth-child(1) { animation-delay: 0.08s; }
+.fav-suggest-chip:nth-child(2) { animation-delay: 0.14s; }
+.fav-suggest-chip:nth-child(3) { animation-delay: 0.20s; }
+.fav-suggest-chip:nth-child(4) { animation-delay: 0.26s; }
+
+/* Profile modal avatar gradient */
+.profile-modal-avatar {
+  transition: box-shadow 0.2s;
+}
+.profile-modal-avatar:hover {
+  box-shadow: 0 0 20px rgba(99,102,241,0.5);
+}
+
+/* Feed section label line */
+.feed-section-label {
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.feed-section-label::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border-1), transparent);
+}
+
+/* Post reactions hover states */
+.react-btn .material-symbols-outlined {
+  transition: transform 0.15s;
+}
+.react-btn:hover .material-symbols-outlined { transform: scale(1.2); }
+.react-btn.liked   { color: var(--accent-cyan); }
+.react-btn.disliked { color: var(--accent-red-lt); }
+
+/* Stat mini card (explore sidebar) */
+.stat-mini-val {
+  display: block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.1rem; font-weight: 700; letter-spacing: -0.03em;
+  margin-bottom: 0.1rem;
+}
+
+/* Dashboard workout-row improvements */
+.workout-row {
+  cursor: default;
+}
+.workout-row-name {
+  transition: color 0.15s;
+}
+
+/* Chart period group inside chart header */
+.chart-card-header .chart-period-group {
+  flex-shrink: 0;
+}

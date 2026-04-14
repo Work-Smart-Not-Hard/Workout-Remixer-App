@@ -2,228 +2,432 @@
 {% block title %}Favourite Exercises{% endblock %}
 
 {% block additional_styles %}
-.ex-card-new {
-    border-radius: 16px;
-    border-color: rgba(245,158,11,0.48) !important;
-    box-shadow: 0 0 0 1px rgba(245,158,11,0.22) inset;
-}
-
-.ex-saved-chip {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    z-index: 2;
-    font-size: 0.62rem;
+<style>
+  /* ── Empty state ── */
+  .fav-empty-shell {
+    max-width: 520px;
+    margin: 3rem auto;
+    text-align: center;
+  }
+  .fav-empty-orb {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 35% 35%, rgba(245,158,11,0.25), transparent 60%),
+      rgba(245,158,11,0.08);
+    border: 0.5px solid rgba(245,158,11,0.28);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 0 28px rgba(245,158,11,0.18);
+    animation: float 4s ease-in-out infinite;
+  }
+  .fav-empty-orb .material-symbols-outlined {
+    font-size: 2.4rem;
+    color: #fbbf24;
+    font-variation-settings: 'FILL' 1;
+  }
+  .fav-empty-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.35rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #fcd34d;
-    background: rgba(245, 158, 11, 0.16);
-    border: 1px solid rgba(245, 158, 11, 0.42);
-    border-radius: 999px;
-    padding: 3px 8px;
-}
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+  .fav-empty-copy {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 38ch;
+    margin: 0 auto 1.75rem;
+  }
 
-.ex-card-img-wrap {
-    height: auto;
-    min-height: 160px;
-    aspect-ratio: 4 / 3;
-    display: flex;
+  /* Category suggestion chips */
+  .fav-suggest-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+    margin-top: 2rem;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .fav-suggest-chip {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: var(--glass-1);
+    border: 0.5px solid var(--border-1);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.18s;
+    text-align: left;
+  }
+  .fav-suggest-chip:hover {
+    border-color: var(--border-glow-amber);
+    background: rgba(245,158,11,0.06);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .fav-suggest-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 0.9rem;
+  }
+  .fav-suggest-label { line-height: 1.3; }
+  .fav-suggest-sub { font-size: 0.68rem; color: var(--text-muted); font-weight: 400; display: block; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-5px); }
+  }
+
+  /* ── Stats bar (when has data) ── */
+  .fav-stats-bar {
+    display: flex; gap: 0.65rem; flex-wrap: wrap;
+    padding: 0.85rem 1rem;
+    background: var(--glass-1);
+    border: 0.5px solid var(--border-1);
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
     align-items: center;
-    justify-content: center;
+  }
+  .fav-stat-item {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.78rem;
+  }
+  .fav-stat-item .material-symbols-outlined { font-size: 0.9rem; }
+
+  /* ── Card overrides ── */
+  .ex-card-new {
+    border-radius: 16px;
+    border-color: rgba(245,158,11,0.35) !important;
+    box-shadow: 0 0 0 1px rgba(245,158,11,0.12) inset;
+  }
+  .ex-card-new:hover {
+    border-color: rgba(245,158,11,0.55) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(245,158,11,0.35) inset !important;
+  }
+  .ex-saved-chip {
+    position: absolute; top: 8px; right: 10px; z-index: 2;
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #fcd34d;
+    background: rgba(245,158,11,0.18);
+    border: 1px solid rgba(245,158,11,0.42);
+    border-radius: 999px; padding: 3px 8px;
+  }
+  .ex-card-img-wrap {
+    height: auto; min-height: 155px; aspect-ratio: 4/3;
+    display: flex; align-items: center; justify-content: center;
     background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
-    padding: 9px;
-    border-radius: 14px;
-    overflow: hidden;
-}
+    padding: 9px; border-radius: 14px; overflow: hidden;
+  }
+  .ex-card-img-wrap img {
+    width: 100%; height: 100%; object-fit: contain; object-position: center;
+    border-radius: 14px; background: rgba(248,250,252,0.94); padding: 6px;
+  }
+  .ex-card-overlay { display: none; }
 
-.ex-card-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-    border-radius: 14px;
-    background: #ffffff;
-    padding: 6px;
-}
-
-.ex-card-overlay {
-    display: none;
-}
-
-.exercise-preview-shell {
-    min-height: 260px;
-    border-radius: 14px;
+  /* Modal media */
+  .exercise-preview-shell {
+    min-height: 220px; border-radius: 14px;
     border: 1px solid rgba(255,255,255,0.09);
     background: rgba(255,255,255,0.03);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-}
+    display: flex; align-items: center; justify-content: center; padding: 10px;
+  }
+  #modalGif {
+    width: 100%; max-height: 300px;
+    object-fit: contain; object-position: center;
+    border-radius: 14px; background: rgba(248,250,252,0.94); padding: 8px;
+  }
 
-#modalGif {
-    width: 100%;
-    max-height: 340px;
-    object-fit: contain;
-    object-position: center;
-    border-radius: 14px;
-    background: rgba(248,250,252,0.94);
-    padding: 8px;
-}
+  /* Search/filter bar */
+  .fav-filter-bar {
+    display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1.25rem; flex-wrap: wrap;
+  }
+  .fav-filter-input {
+    flex: 1; min-width: 180px;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid var(--border-2);
+    border-radius: var(--radius-sm);
+    padding: 0.45rem 0.85rem;
+    color: var(--text-primary); font-size: 0.85rem;
+  }
+  .fav-filter-input:focus {
+    outline: none;
+    border-color: rgba(245,158,11,0.45);
+    background: rgba(255,255,255,0.06);
+  }
+  .fav-filter-input::placeholder { color: var(--text-ghost); }
+</style>
 {% endblock %}
 
 {% block subpage_content %}
 <div class="container-fluid">
 
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h4 class="fw-bold mb-0">Favourite Exercises</h4>
-            <p class="text-muted small mb-0">Your saved movement library, ready for quick add-ins</p>
-        </div>
-        <div class="col-auto">
-            <a href="/exercises" class="btn btn-outline-primary btn-sm">Browse Exercises</a>
-        </div>
+  <!-- Header -->
+  <div class="row mb-4 align-items-center animate-slide-up">
+    <div class="col">
+      <h4 class="page-title">Favourite Exercises</h4>
+      <p class="page-subtitle">Your saved movement library, ready for quick add-ins</p>
     </div>
+    <div class="col-auto d-flex gap-2">
+      {% if favourites %}
+      <a href="/exercises" class="btn btn-primary btn-sm">
+        <span class="material-symbols-outlined me-1" style="font-size:.9rem;vertical-align:middle">add</span>
+        Add More
+      </a>
+      {% endif %}
+      <a href="/exercises" class="btn btn-outline-secondary btn-sm">Browse All</a>
+    </div>
+  </div>
 
-    {% if favourites %}
-    <div class="row g-3">
-        {% for fav in favourites %}
-        {% set payload = {
-            'exerciseId': fav.exercise_id,
-            'name': fav.name,
-            'gifUrl': fav.gif_url,
-            'bodyPart': fav.body_part,
-            'target': fav.target,
-            'equipment': fav.equipment,
-            'secondaryMuscles': [],
-            'instructions': [],
-            'targetMuscles': [fav.target] if fav.target else [],
-            'equipments': [fav.equipment] if fav.equipment else []
-        } %}
-        <div class="col-sm-6 col-md-4 col-lg-3">
-            <div class="ex-card-new position-relative" role="button"
-                 onclick="openExerciseFromEncoded('{{ payload | tojson | urlencode }}')">
-                <span class="ex-saved-chip">Saved</span>
-                <div class="ex-card-img-wrap">
-                    {% if fav.gif_url %}
-                    <img src="{{ fav.gif_url }}" loading="lazy" alt="{{ fav.name }}">
-                    {% else %}
-                    <div class="d-flex align-items-center justify-content-center w-100 h-100">
-                        <span class="material-symbols-outlined text-muted" style="font-size:2rem">fitness_center</span>
-                    </div>
-                    {% endif %}
-                    <div class="ex-card-overlay"></div>
-                </div>
-                <div class="ex-card-body">
-                    <p class="ex-card-name">{{ fav.name }}</p>
-                    <div class="ex-card-tags">
-                        {% if fav.equipment %}
-                        <span class="ex-tag ex-tag-gray">{{ fav.equipment }}</span>
-                        {% endif %}
-                        {% if fav.target %}
-                        <span class="ex-tag ex-tag-green">{{ fav.target }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
+  {% if favourites %}
+
+  <!-- Stats bar -->
+  <div class="fav-stats-bar animate-slide-up stagger-1">
+    <div class="fav-stat-item">
+      <span class="material-symbols-outlined" style="color:#fbbf24;font-variation-settings:'FILL' 1;">star</span>
+      <span style="color:var(--text-primary);font-weight:700;">{{ favourites|length }}</span>
+      <span class="text-muted">saved exercise{{ '' if favourites|length == 1 else 's' }}</span>
     </div>
-    {% else %}
-    <div class="text-center py-5 text-muted">
-        <span class="material-symbols-outlined" style="font-size:3rem">bookmark</span>
-        <p class="mt-2">No saved exercises yet.</p>
-        <a href="/exercises" class="btn btn-primary btn-sm mt-1">Start Browsing</a>
+    {% set muscles = [] %}
+    {% for f in favourites %}{% if f.target and f.target not in muscles %}{% set _ = muscles.append(f.target) %}{% endif %}{% endfor %}
+    {% if muscles %}
+    <div class="fav-stat-item ms-auto" style="flex-wrap:wrap;gap:.3rem;">
+      <span class="text-muted" style="font-size:.72rem;">Targets:</span>
+      {% for m in muscles[:5] %}
+      <span class="pill pill-muted" style="font-size:.65rem;text-transform:capitalize;">{{ m }}</span>
+      {% endfor %}
     </div>
     {% endif %}
+  </div>
 
+  <!-- Filter bar -->
+  <div class="fav-filter-bar animate-slide-up stagger-2">
+    <input type="text" class="fav-filter-input" id="favSearch" placeholder="🔍  Filter favourites…"
+           oninput="filterFavs(this.value)">
+    <small class="text-muted" id="favCount">{{ favourites|length }} exercise{{ '' if favourites|length == 1 else 's' }}</small>
+  </div>
+
+  <!-- Grid -->
+  <div class="row g-3 animate-fade-in stagger-2" id="favGrid">
+    {% for fav in favourites %}
+    {% set payload = {
+        'exerciseId': fav.exercise_id,
+        'name': fav.name,
+        'gifUrl': fav.gif_url,
+        'bodyPart': fav.body_part,
+        'target': fav.target,
+        'equipment': fav.equipment,
+        'secondaryMuscles': [],
+        'instructions': [],
+        'targetMuscles': [fav.target] if fav.target else [],
+        'equipments': [fav.equipment] if fav.equipment else []
+    } %}
+    <div class="col-sm-6 col-md-4 col-lg-3 fav-item"
+         data-name="{{ fav.name|lower }}"
+         data-target="{{ (fav.target or '')|lower }}">
+      <div class="ex-card-new position-relative" role="button"
+           onclick="openExerciseFromEncoded('{{ payload | tojson | urlencode }}')">
+        <span class="ex-saved-chip">
+          <span class="material-symbols-outlined" style="font-size:.7rem;vertical-align:middle;font-variation-settings:'FILL' 1;">star</span>
+          Saved
+        </span>
+        <div class="ex-card-img-wrap">
+          {% if fav.gif_url %}
+          <img src="{{ fav.gif_url }}" loading="lazy" alt="{{ fav.name }}">
+          {% else %}
+          <div class="d-flex align-items-center justify-content-center w-100 h-100"
+               style="background:rgba(255,255,255,0.03);border-radius:12px;">
+            <span class="material-symbols-outlined text-muted" style="font-size:2rem">fitness_center</span>
+          </div>
+          {% endif %}
+          <div class="ex-card-overlay"></div>
+        </div>
+        <div class="ex-card-body">
+          <p class="ex-card-name">{{ fav.name }}</p>
+          <div class="ex-card-tags">
+            {% if fav.target %}
+            <span class="ex-tag ex-tag-green">{{ fav.target }}</span>
+            {% endif %}
+            {% if fav.equipment %}
+            <span class="ex-tag ex-tag-gray">{{ fav.equipment }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p id="noFavResults" class="text-muted text-center py-4 small" style="display:none;">
+    No favourites match your search.
+  </p>
+
+  {% else %}
+
+  <!-- ── Beautiful empty state ── -->
+  <div class="fav-empty-shell animate-slide-up">
+    <div class="fav-empty-orb">
+      <span class="material-symbols-outlined">star</span>
+    </div>
+    <h5 class="fav-empty-title">Your favourites list is empty</h5>
+    <p class="fav-empty-copy">
+      Browse the exercise library and tap the ⭐ on any movement to save it here for quick access.
+    </p>
+    <a href="/exercises" class="btn btn-primary px-5">
+      <span class="material-symbols-outlined me-1" style="font-size:.95rem;vertical-align:middle">fitness_center</span>
+      Browse Exercises
+    </a>
+
+    <!-- Category suggestions -->
+    <div class="fav-suggest-grid stagger-2 animate-slide-up">
+      <a href="/exercises?q=chest" class="fav-suggest-chip" onclick="goFilter('chest')">
+        <div class="fav-suggest-icon" style="background:rgba(239,68,68,0.14);color:#fca5a5;">
+          <span class="material-symbols-outlined" style="font-size:1rem">fitness_center</span>
+        </div>
+        <div class="fav-suggest-label">
+          Chest Exercises
+          <span class="fav-suggest-sub">Push · Pectorals</span>
+        </div>
+      </a>
+      <a href="/exercises" class="fav-suggest-chip" onclick="goFilter('back')">
+        <div class="fav-suggest-icon" style="background:rgba(34,211,238,0.14);color:#67e8f9;">
+          <span class="material-symbols-outlined" style="font-size:1rem">rowing</span>
+        </div>
+        <div class="fav-suggest-label">
+          Back Exercises
+          <span class="fav-suggest-sub">Pull · Lats · Traps</span>
+        </div>
+      </a>
+      <a href="/exercises" class="fav-suggest-chip" onclick="goFilter('legs')">
+        <div class="fav-suggest-icon" style="background:rgba(34,197,94,0.14);color:#4ade80;">
+          <span class="material-symbols-outlined" style="font-size:1rem">directions_walk</span>
+        </div>
+        <div class="fav-suggest-label">
+          Leg Day
+          <span class="fav-suggest-sub">Quads · Hamstrings · Glutes</span>
+        </div>
+      </a>
+      <a href="/exercises" class="fav-suggest-chip" onclick="goFilter('abs')">
+        <div class="fav-suggest-icon" style="background:rgba(245,158,11,0.14);color:#fbbf24;">
+          <span class="material-symbols-outlined" style="font-size:1rem">sports_gymnastics</span>
+        </div>
+        <div class="fav-suggest-label">
+          Core & Abs
+          <span class="fav-suggest-sub">Planks · Crunches</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  {% endif %}
 </div>
 
 <!-- Exercise Detail Modal -->
 <div class="modal fade" id="exerciseModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold text-capitalize" id="modalExerciseName"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-capitalize" id="modalExerciseName"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="exercise-preview-shell">
+              <img id="modalGif" src="" alt="" class="img-fluid">
             </div>
-            <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-md-6 text-center">
-                        <div class="exercise-preview-shell">
-                            <img id="modalGif" src="" alt="" class="img-fluid rounded">
-                        </div>
-                        <div class="mt-2">
-                            <span class="badge bg-primary me-1" id="modalBodyPart"></span>
-                            <span class="badge bg-success me-1" id="modalTarget"></span>
-                            <span class="badge bg-secondary" id="modalEquipment"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="section-title">Secondary Muscles</h6>
-                        <p id="modalSecondary" class="text-muted small mb-3">None listed</p>
-                        <h6 class="section-title">Instructions</h6>
-                        <ol id="modalInstructions" class="ps-3 small mb-0">
-                            <li>No instruction steps available for this saved entry.</li>
-                        </ol>
-                    </div>
-                </div>
+            <div class="mt-2 d-flex flex-wrap gap-1">
+              <span class="badge bg-primary" id="modalBodyPart"></span>
+              <span class="badge bg-success" id="modalTarget"></span>
+              <span class="badge bg-secondary" id="modalEquipment"></span>
             </div>
-            <div class="modal-footer flex-wrap gap-2">
-                <button id="unfavBtn" class="btn btn-warning">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">star</span>
-                    Remove Favourite
-                </button>
-                <a id="viewStatsBtn" href="#" class="btn btn-outline-info">
-                    <span class="material-symbols-outlined" style="font-size:1rem;vertical-align:middle">bar_chart</span>
-                    View Stats
-                </a>
-                <a href="/exercises" class="btn btn-primary">Browse More</a>
-            </div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="section-title mb-1">Secondary Muscles</h6>
+            <p id="modalSecondary" class="text-muted small mb-3">None listed</p>
+            <h6 class="section-title mb-1">Instructions</h6>
+            <ol id="modalInstructions" class="ps-3 small mb-0" style="max-height:240px;overflow-y:auto;">
+              <li>No instructions available for this saved entry.</li>
+            </ol>
+          </div>
         </div>
+      </div>
+      <div class="modal-footer flex-wrap gap-2">
+        <button id="unfavBtn" class="btn btn-warning">
+          <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:middle;font-variation-settings:'FILL' 1;">star</span>
+          Remove Favourite
+        </button>
+        <a id="viewStatsBtn" href="#" class="btn btn-outline-info">
+          <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:middle">bar_chart</span>
+          Progress
+        </a>
+        <a href="/exercises" class="btn btn-primary ms-auto">Browse More</a>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block subpage_scripts %}
 <script>
-    let currentExId = null;
+  let currentExId = null;
 
-    function openExercise(exercise) {
-        currentExId = exercise.exerciseId || exercise.exercise_id || '';
-        document.getElementById('modalExerciseName').textContent = exercise.name || '';
-        document.getElementById('modalGif').src = exercise.gifUrl || exercise.gif_url || '';
-        document.getElementById('modalBodyPart').textContent = exercise.bodyPart || exercise.body_part || '';
-        document.getElementById('modalTarget').textContent = exercise.target || '';
-        document.getElementById('modalEquipment').textContent = exercise.equipment || '';
-        document.getElementById('modalSecondary').textContent = (exercise.secondaryMuscles || []).join(', ') || 'None listed';
-        const steps = Array.isArray(exercise.instructions) ? exercise.instructions : [];
-        document.getElementById('modalInstructions').innerHTML = steps.length
-            ? steps.map((s) => `<li>${String(s).replace(/^Step:\d+\s*/, '')}</li>`).join('')
-            : '<li>No instruction steps available for this saved entry.</li>';
-        document.getElementById('viewStatsBtn').href = `/exercises/${currentExId}`;
-        new bootstrap.Modal(document.getElementById('exerciseModal')).show();
-    }
+  function goFilter(muscle) {
+    window.location.href = '/exercises';
+    // The exercises page's onMuscleClick handles filtering
+  }
 
-    function openExerciseFromEncoded(encoded) {
-        try {
-            openExercise(JSON.parse(decodeURIComponent(encoded)));
-        } catch (err) {
-            console.error('Invalid exercise payload', err);
-        }
-    }
-
-    document.getElementById('unfavBtn').addEventListener('click', async () => {
-        if (!currentExId) return;
-        await fetch('/api/favourites/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exerciseId: currentExId }),
-        });
-        // Remove the card from the DOM and close modal
-        bootstrap.Modal.getInstance(document.getElementById('exerciseModal')).hide();
-        window.location.reload();
+  function filterFavs(query) {
+    const q = query.toLowerCase();
+    const items = document.querySelectorAll('.fav-item');
+    let shown = 0;
+    items.forEach(item => {
+      const match = !q || item.dataset.name.includes(q) || item.dataset.target.includes(q);
+      item.style.display = match ? '' : 'none';
+      if (match) shown++;
     });
+    const noRes = document.getElementById('noFavResults');
+    const count = document.getElementById('favCount');
+    if (noRes) noRes.style.display = shown === 0 ? '' : 'none';
+    if (count) count.textContent = `${shown} exercise${shown !== 1 ? 's' : ''}`;
+  }
+
+  function openExercise(exercise) {
+    currentExId = exercise.exerciseId || exercise.exercise_id || '';
+    document.getElementById('modalExerciseName').textContent = exercise.name || '';
+    document.getElementById('modalGif').src = exercise.gifUrl || exercise.gif_url || '';
+    document.getElementById('modalBodyPart').textContent = exercise.bodyPart || exercise.body_part || '';
+    document.getElementById('modalTarget').textContent = exercise.target || '';
+    document.getElementById('modalEquipment').textContent = exercise.equipment || '';
+    document.getElementById('modalSecondary').textContent =
+      (exercise.secondaryMuscles || []).join(', ') || 'None listed';
+    const steps = Array.isArray(exercise.instructions) ? exercise.instructions : [];
+    document.getElementById('modalInstructions').innerHTML = steps.length
+      ? steps.map(s => `<li>${String(s).replace(/^Step:\d+\s*/, '')}</li>`).join('')
+      : '<li>No instruction steps available for this saved entry.</li>';
+    document.getElementById('viewStatsBtn').href = `/exercises/${currentExId}`;
+    new bootstrap.Modal(document.getElementById('exerciseModal')).show();
+  }
+
+  function openExerciseFromEncoded(encoded) {
+    try { openExercise(JSON.parse(decodeURIComponent(encoded))); }
+    catch (err) { console.error('Invalid exercise payload', err); }
+  }
+
+  document.getElementById('unfavBtn')?.addEventListener('click', async () => {
+    if (!currentExId) return;
+    await fetch('/api/favourites/toggle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ exerciseId: currentExId }),
+    });
+    bootstrap.Modal.getInstance(document.getElementById('exerciseModal')).hide();
+    window.location.reload();
+  });
 </script>
 {% endblock %}

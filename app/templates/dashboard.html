@@ -36,16 +36,61 @@
   .si-amber  { background: rgba(245,158,11,0.15); color: #fbbf24; }
   .si-indigo { background: rgba(99,102,241,0.15); color: #a5b4fc; }
 
+  /* ── CHART FIX: Constrain chart containers so pie doesn't fill viewport ── */
+  .chart-canvas-wrap {
+    position: relative;
+    max-height: 240px;
+    overflow: hidden;
+  }
+  .chart-canvas-wrap canvas {
+    max-height: 240px !important;
+  }
+  .sessions-canvas-wrap {
+    position: relative;
+    max-height: 160px;
+  }
+  .sessions-canvas-wrap canvas {
+    max-height: 160px !important;
+  }
+
   /* Muscle activity panel */
   .muscle-panel-label {
     font-size: 0.65rem; color: var(--text-muted);
     text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
   }
 
+  /* ── Highlights section ── */
+  .highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.65rem;
+  }
+  .highlight-card {
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid var(--border-1);
+    border-radius: var(--radius-md);
+    padding: 0.85rem 1rem;
+    transition: border-color 0.18s, background 0.18s;
+  }
+  .highlight-card:hover {
+    border-color: var(--border-2);
+    background: rgba(255,255,255,0.05);
+  }
+  .highlight-label {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-ghost); font-weight: 700; margin-bottom: 0.35rem;
+  }
+  .highlight-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem; font-weight: 700; letter-spacing: -0.04em;
+    line-height: 1; margin-bottom: 0.2rem;
+  }
+  .highlight-sub { font-size: 0.72rem; color: var(--text-muted); }
+
   /* Recent workout row */
   .workout-row {
     display: flex; align-items: center; gap: 1rem;
-    padding: 0.9rem 1.2rem; border-bottom: 0.5px solid rgba(255,255,255,0.04);
+    padding: 0.85rem 1.2rem; border-bottom: 0.5px solid rgba(255,255,255,0.04);
     transition: background 0.15s;
   }
   .workout-row:last-child { border-bottom: none; }
@@ -60,7 +105,17 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .workout-row-name:hover { color: #67e8f9; }
-  .workout-row-note { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
+
+  /* Empty chart state */
+  .chart-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 2rem;
+    color: var(--text-ghost); font-size: 0.8rem; text-align: center;
+    min-height: 160px;
+  }
+  .chart-empty .material-symbols-outlined {
+    font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem;
+  }
 </style>
 {% endblock %}
 
@@ -119,8 +174,8 @@
           </div>
           <div>
             <div class="goal-widget-kicker">Daily goal</div>
-            <h5 class="goal-widget-title">Track today’s pace</h5>
-            <p class="goal-widget-copy mt-2">Choose a metric and target. The ring fills clockwise as you build toward the day’s goal.</p>
+            <h5 class="goal-widget-title">Track today's pace</h5>
+            <p class="goal-widget-copy mt-2">Choose a metric and target. The ring fills clockwise as you build toward the day's goal.</p>
             <div class="goal-controls">
               <div class="goal-control">
                 <label for="dashboardGoalMetric">Metric</label>
@@ -138,6 +193,48 @@
                 <p class="goal-widget-progress" data-goal-progress>—</p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Highlights row ── -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 animate-slide-up stagger-4">
+      <div class="card p-3">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <div class="section-icon si-amber">
+            <span class="material-symbols-outlined" style="font-size:1rem">emoji_events</span>
+          </div>
+          <h6 class="section-title mb-0">Highlights</h6>
+          <small class="text-muted ms-auto" id="highlightPeriodLabel" style="font-size:.7rem;">This week</small>
+        </div>
+        <div class="highlights-grid" id="highlightsGrid">
+          <div class="highlight-card">
+            <div class="highlight-label">Total Workouts</div>
+            <div class="highlight-value gradient-text-cyan" id="hlWorkouts">—</div>
+            <div class="highlight-sub">completed sessions</div>
+          </div>
+          <div class="highlight-card">
+            <div class="highlight-label">Total Sets</div>
+            <div class="highlight-value gradient-text-green" id="hlSets">—</div>
+            <div class="highlight-sub">sets logged</div>
+          </div>
+          <div class="highlight-card">
+            <div class="highlight-label">Training Time</div>
+            <div class="highlight-value gradient-text-amber" id="hlTime">—</div>
+            <div class="highlight-sub">total minutes</div>
+          </div>
+          <div class="highlight-card" id="hlTopMuscleCard" style="display:none;">
+            <div class="highlight-label">Top Muscle</div>
+            <div class="highlight-value" id="hlTopMuscle" style="font-size:1rem;text-transform:capitalize;color:var(--accent-indigo-lt);">—</div>
+            <div class="highlight-sub" id="hlTopMuscleSets">most targeted</div>
+          </div>
+          <div class="highlight-card">
+            <div class="highlight-label">Daily Average</div>
+            <div class="highlight-value gradient-text-cyan" id="hlAvgMins">—</div>
+            <div class="highlight-sub">min/workout</div>
           </div>
         </div>
       </div>
@@ -184,12 +281,14 @@
             <div class="skel-bar" style="height:70%"></div>
             <div class="skel-bar" style="height:40%"></div>
           </div>
-          <canvas id="sessionsChart" height="110" style="display:none;"></canvas>
+          <div class="sessions-canvas-wrap">
+            <canvas id="sessionsChart" height="110" style="display:none;"></canvas>
+          </div>
           <p id="noSessionsMsg" class="text-muted text-center small mt-2" style="display:none;">No workouts yet for this period.</p>
         </div>
       </div>
 
-      <!-- Muscle volume pie -->
+      <!-- Muscle volume pie — FIXED: constrained wrapper prevents viewport fill -->
       <div class="card chart-card">
         <div class="chart-card-header">
           <div>
@@ -198,8 +297,12 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas id="muscleChart" height="180"></canvas>
-          <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet. Complete some workouts!</p>
+          <div id="muscleChartWrap">
+            <div class="chart-canvas-wrap">
+              <canvas id="muscleChart" height="220" style="max-height:220px;"></canvas>
+            </div>
+            <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet. Complete some workouts!</p>
+          </div>
         </div>
       </div>
 
@@ -228,15 +331,13 @@
           {% if s.duration_minutes %}
           <span class="pill pill-active" style="flex-shrink:0;">{{ s.duration_minutes }} min</span>
           {% endif %}
-          <span class="workout-row-note d-none d-md-block" style="min-width:100px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-            {{ s.notes or '—' }}
-          </span>
         </div>
         {% endfor %}
       {% else %}
-      <div class="text-center py-5 text-muted">
-        <span class="material-symbols-outlined" style="font-size:2.5rem;opacity:.35;">bar_chart</span>
-        <p class="mt-2 small">No workouts yet. Start a routine to begin tracking!</p>
+      <div class="chart-empty">
+        <span class="material-symbols-outlined">bar_chart</span>
+        <p class="mb-2">No workouts logged yet.</p>
+        <a href="/routines" class="btn btn-outline-primary btn-sm">Start a Workout</a>
       </div>
       {% endif %}
     </div>
@@ -251,10 +352,17 @@
   let muscleChart   = null;
   let currentPeriod = 'week';
 
+  const PERIOD_LABELS = {
+    week: 'This week', month: 'This month',
+    '6months': 'Last 6 months', year: 'This year', all: 'All time'
+  };
+
   function setPeriod(period, btn) {
     currentPeriod = period;
     document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    const lbl = document.getElementById('highlightPeriodLabel');
+    if (lbl) lbl.textContent = PERIOD_LABELS[period] || period;
     reload();
   }
 
@@ -286,6 +394,25 @@
     animateNumber('statSessions', data.total_sessions);
     animateNumber('statSets',     data.total_sets);
     animateNumber('statDuration', data.total_duration);
+
+    // Highlights
+    animateNumber('hlWorkouts', data.total_sessions);
+    animateNumber('hlSets',     data.total_sets);
+    animateNumber('hlTime',     data.total_duration);
+
+    const avgMins = data.total_sessions > 0
+      ? Math.round(data.total_duration / data.total_sessions) : 0;
+    animateNumber('hlAvgMins', avgMins);
+
+    if (data.muscle_volume?.length) {
+      const top = data.muscle_volume[0];
+      document.getElementById('hlTopMuscle').textContent = top.muscle;
+      document.getElementById('hlTopMuscleSets').textContent = `${Math.round(top.sets)} sets`;
+      document.getElementById('hlTopMuscleCard').style.display = '';
+    } else {
+      document.getElementById('hlTopMuscleCard').style.display = 'none';
+    }
+
     if (typeof initDailyGoalWidget === 'function') {
       initDailyGoalWidget('dashboardGoalWidget', data);
     }
@@ -317,7 +444,7 @@
     noMsg.style.display = 'none';
     hideSkeleton('sessionsChartSkeleton', 'sessionsChart');
     const grouped = {};
-    dataPoints.forEach(d => grouped[d.date] = (grouped[d.date]||0) + d.duration);
+    dataPoints.forEach(d => grouped[d.date] = (grouped[d.date] || 0) + d.duration);
     const labels = Object.keys(grouped).sort();
     if (sessionsChart) sessionsChart.destroy();
     sessionsChart = new Chart(canvas, {
@@ -327,17 +454,17 @@
         datasets: [{
           label: 'Duration (min)', data: labels.map(l => grouped[l]),
           borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.07)',
-          tension: 0.4, fill: true, pointRadius: 5, pointHoverRadius: 7,
+          tension: 0.4, fill: true, pointRadius: 4, pointHoverRadius: 6,
           pointBackgroundColor: '#22d3ee', pointBorderColor: 'rgba(3,12,23,0.9)',
           pointBorderWidth: 2, borderWidth: 2,
         }]
       },
       options: {
-        responsive: true,
+        responsive: true, maintainAspectRatio: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: '#2d4060', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } },
-          y: { beginAtZero: true, ticks: { color: '#2d4060', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } }
+          x: { ticks: { color: '#2d4060', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } },
+          y: { beginAtZero: true, ticks: { color: '#2d4060', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } }
         }
       }
     });
@@ -357,23 +484,34 @@
     }
     noMsg.style.display = 'none'; canvas.style.display = '';
     if (muscleChart) muscleChart.destroy();
+
+    // Limit to top 8 for readability
+    const topMuscles = muscleData.slice(0, 8);
+
     muscleChart = new Chart(canvas, {
       type: 'pie',
       data: {
-        labels: muscleData.map(d => d.muscle),
+        labels: topMuscles.map(d => d.muscle),
         datasets: [{
-          data: muscleData.map(d => d.sets),
-          backgroundColor: PIE_COLORS.slice(0, muscleData.length),
+          data: topMuscles.map(d => d.sets),
+          backgroundColor: PIE_COLORS.slice(0, topMuscles.length),
           borderWidth: 1.5,
           borderColor: 'rgba(8,15,30,0.8)',
+          hoverOffset: 6,
         }]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: true,
+        layout: { padding: 10 },
         plugins: {
           legend: {
             position: 'bottom',
-            labels: { color: '#5a7294', font: { size: 11 }, padding: 14, boxWidth: 12, boxHeight: 12 }
+            labels: {
+              color: '#5a7294', font: { size: 11 }, padding: 12,
+              boxWidth: 10, boxHeight: 10,
+              usePointStyle: true, pointStyle: 'circle',
+            }
           }
         }
       }
