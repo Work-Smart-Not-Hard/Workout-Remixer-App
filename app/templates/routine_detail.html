@@ -205,20 +205,43 @@
         {% endif %}
       </div>
       {% if routine.owner_id == user.id %}
-      <form method="POST" action="/api/routines/{{ routine.id }}/edit" class="inline-meta-form">
-        <input type="hidden" name="name" value="{{ routine.name }}">
+      <div class="inline-meta-form mt-2" id="bioWrapper">
+        <!-- Inline bio editing -->
         <div class="mb-2">
-          <label class="form-label small fw-semibold mb-1">Routine Bio</label>
-          <textarea name="description" rows="2" class="form-control form-control-sm" placeholder="Add routine context, cues, or goals">{{ routine.description or '' }}</textarea>
-        </div>
-        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-          <div class="form-check m-0">
-            <input type="checkbox" name="is_public" value="true" class="form-check-input" id="inlinePublic" {% if routine.is_public %}checked{% endif %}>
-            <label class="form-check-label small" for="inlinePublic">Public routine</label>
+          <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);font-weight:700;margin-bottom:0.3rem;">
+            Routine Bio
+            <span style="font-size:0.58rem;color:rgba(255,255,255,.18);font-weight:400;margin-left:6px;">(click to edit)</span>
           </div>
-          <button type="submit" class="btn btn-outline-primary btn-sm">Save Metadata</button>
+          <!-- Display mode -->
+          <div id="bioDisplay"
+               onclick="startBioEdit()"
+               style="font-size:0.83rem;color:var(--text-secondary);line-height:1.6;cursor:text;padding:0.4rem 0.6rem;border-radius:8px;border:0.5px solid transparent;transition:border-color .15s,background .15s;min-height:2.4rem;"
+               onmouseenter="this.style.borderColor='rgba(255,255,255,0.12)';this.style.background='rgba(255,255,255,0.03)'"
+               onmouseleave="this.style.borderColor='transparent';this.style.background='transparent'">
+            {{ routine.description or 'Click to add a description, goals, or cues…' }}
+          </div>
+          <!-- Edit mode (hidden by default) -->
+          <textarea id="bioEdit"
+                    rows="2"
+                    class="form-control form-control-sm"
+                    placeholder="Add routine context, cues, or goals"
+                    style="display:none;resize:none;"
+                    onblur="saveBioEdit()">{{ routine.description or '' }}</textarea>
         </div>
-      </form>
+        <!-- Visibility toggle — click icon, no checkbox -->
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" id="visibilityToggle"
+                  onclick="toggleVisibility()"
+                  style="display:inline-flex;align-items:center;gap:0.45rem;padding:0.3rem 0.75rem;border-radius:8px;border:0.5px solid;font-size:0.76rem;font-weight:700;cursor:pointer;transition:all .15s;background:none;
+                    {% if routine.is_public %}border-color:rgba(34,197,94,0.4);color:#4ade80;{% else %}border-color:rgba(100,116,139,0.35);color:#94a3b8;{% endif %}">
+            <span class="material-symbols-outlined" style="font-size:1rem;" id="visibilityIcon">
+              {% if routine.is_public %}public{% else %}lock{% endif %}
+            </span>
+            <span id="visibilityLabel">{% if routine.is_public %}Public{% else %}Private{% endif %}</span>
+          </button>
+          <span style="font-size:0.68rem;color:var(--text-ghost);" id="visibilitySavedMsg"></span>
+        </div>
+      </div>
       {% endif %}
     </div>
 
@@ -835,5 +858,71 @@ doSearch();
 
 // Ensure heatmap component can call this reliably
 window.onMuscleClick = onMuscleClick;
+
+// ── Inline bio editing ────────────────────────────────────────────
+function startBioEdit() {
+  const display = document.getElementById('bioDisplay');
+  const edit    = document.getElementById('bioEdit');
+  if (!display || !edit) return;
+  edit.value = display.textContent.trim() === 'Click to add a description, goals, or cues…'
+    ? '' : display.textContent.trim();
+  display.style.display = 'none';
+  edit.style.display    = '';
+  edit.focus();
+  edit.setSelectionRange(edit.value.length, edit.value.length);
+}
+
+async function saveBioEdit() {
+  const display = document.getElementById('bioDisplay');
+  const edit    = document.getElementById('bioEdit');
+  if (!display || !edit) return;
+  const newBio = edit.value.trim();
+  display.textContent = newBio || 'Click to add a description, goals, or cues…';
+  edit.style.display    = 'none';
+  display.style.display = '';
+  // Save via API
+  const fd = new FormData();
+  fd.append('name',        '{{ routine.name | replace("'", "\\'") }}');
+  fd.append('description', newBio);
+  fd.append('is_public',   document.getElementById('visibilityLabel')?.textContent === 'Public' ? 'true' : '');
+  await fetch('/api/routines/{{ routine.id }}/edit', { method:'POST', body:fd }).catch(() => {});
+}
+
+// ── Visibility icon toggle ────────────────────────────────────────
+let _isPublic = {{ 'true' if routine.is_public else 'false' }};
+
+async function toggleVisibility() {
+  _isPublic = !_isPublic;
+  const btn   = document.getElementById('visibilityToggle');
+  const icon  = document.getElementById('visibilityIcon');
+  const label = document.getElementById('visibilityLabel');
+  const msg   = document.getElementById('visibilitySavedMsg');
+  if (!btn || !icon || !label) return;
+  // Update UI immediately
+  if (_isPublic) {
+    btn.style.borderColor = 'rgba(34,197,94,0.4)';
+    btn.style.color = '#4ade80';
+    icon.textContent  = 'public';
+    label.textContent = 'Public';
+  } else {
+    btn.style.borderColor = 'rgba(100,116,139,0.35)';
+    btn.style.color = '#94a3b8';
+    icon.textContent  = 'lock';
+    label.textContent = 'Private';
+  }
+  msg.textContent = 'Saving…';
+  // Save via API
+  const fd = new FormData();
+  fd.append('name',        '{{ routine.name | replace("'", "\\'") }}');
+  fd.append('description', document.getElementById('bioDisplay')?.textContent?.trim() || '');
+  if (_isPublic) fd.append('is_public', 'true');
+  try {
+    await fetch('/api/routines/{{ routine.id }}/edit', { method:'POST', body:fd });
+    msg.textContent = 'Saved!';
+    setTimeout(() => { msg.textContent = ''; }, 1500);
+  } catch {
+    msg.textContent = 'Error saving.';
+  }
+}
 </script>
 {% endblock %}

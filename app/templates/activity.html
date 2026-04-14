@@ -42,6 +42,74 @@
 .activity-entry:hover { border-left-color: rgba(34,211,238,0.75) !important; }
 .activity-ex-item { border-bottom: 1px solid rgba(255,255,255,0.06); padding: .55rem 0; transition: background 0.12s; }
 .activity-ex-item:hover { background: rgba(255,255,255,0.03); border-radius:8px; }
+
+/* Muscle heatmap bars in share modal */
+.snapshot-muscle-bar-wrap { margin-bottom: 3px; }
+.snapshot-muscle-label {
+  font-size: 0.64rem; font-weight: 600; text-transform: capitalize;
+  color: rgba(255,255,255,0.55); min-width: 90px; flex-shrink: 0;
+}
+.snapshot-muscle-track {
+  height: 8px; border-radius: 99px;
+  background: rgba(255,255,255,0.06); overflow: hidden; flex: 1;
+}
+.snapshot-muscle-fill {
+  height: 100%; border-radius: 99px;
+  transition: width 0.5s ease;
+}
+.snapshot-muscle-pct {
+  font-size: 0.58rem; color: rgba(255,255,255,0.3);
+  font-weight: 700; min-width: 28px; text-align: right;
+}
+
+/* Action buttons — high-visibility toolbar */
+.activity-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+.act-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 0.5px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: rgba(255,255,255,0.05);
+}
+.act-btn .material-symbols-outlined {
+  font-size: 1rem;
+}
+.act-btn-share {
+  border-color: rgba(34,211,238,0.35);
+  color: #67e8f9;
+}
+.act-btn-share:hover {
+  background: rgba(34,211,238,0.18);
+  border-color: rgba(34,211,238,0.7);
+  box-shadow: 0 0 12px rgba(34,211,238,0.3);
+}
+.act-btn-edit {
+  border-color: rgba(99,102,241,0.35);
+  color: #a5b4fc;
+}
+.act-btn-edit:hover {
+  background: rgba(99,102,241,0.18);
+  border-color: rgba(99,102,241,0.7);
+  box-shadow: 0 0 12px rgba(99,102,241,0.3);
+}
+.act-btn-delete {
+  border-color: rgba(239,68,68,0.35);
+  color: #f87171;
+}
+.act-btn-delete:hover {
+  background: rgba(239,68,68,0.18);
+  border-color: rgba(239,68,68,0.7);
+  box-shadow: 0 0 12px rgba(239,68,68,0.3);
+}
 {% endblock %}
 
 {% block subpage_content %}
@@ -156,8 +224,15 @@
           </div>
           <h5 id="spName" class="fw-bold mb-2 gradient-text-brand" style="font-size:1.1rem;"></h5>
           <div class="d-flex gap-2 mb-3" id="spStats"></div>
-          <div id="spExercises" style="font-size:.78rem;color:rgba(255,255,255,.55);line-height:1.7;"></div>
-          <div id="spMuscles" class="d-flex flex-wrap gap-1 mt-2"></div>
+          <div class="row g-2 mt-1">
+            <div class="col-7">
+              <p style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.25);margin:0 0 .3rem;">Exercises</p>
+              <div id="spExercises" style="font-size:.75rem;color:rgba(255,255,255,.55);line-height:1.7;"></div>
+            </div>
+            <div class="col-5">
+              <div id="spMuscles"></div>
+            </div>
+          </div>
           <p style="font-size:.6rem;color:rgba(255,255,255,.15);margin-top:.75rem;margin-bottom:0;">workout-remixer.app</p>
         </div>
         <p class="text-muted" style="font-size:.75rem;">This generates a PNG image you can share anywhere.</p>
@@ -279,18 +354,18 @@
             <h6 class="fw-bold mb-0" style="color:var(--text-primary);font-size:.92rem;">${escHtml(routineName)}</h6>
             <small class="text-muted">${dateStr} · ${timeStr}</small>
           </div>
-          <div class="d-flex gap-1">
-            <button class="btn btn-sm btn-outline-secondary" title="Share snapshot"
+          <div class="activity-actions">
+            <button class="act-btn act-btn-share" title="Share snapshot"
                     onclick="openSnapshot(${JSON.stringify(e).replace(/"/g,'&quot;')})">
-              <span class="material-symbols-outlined" style="font-size:.9rem;vertical-align:middle">share</span>
+              <span class="material-symbols-outlined">ios_share</span>
             </button>
-            <button class="btn btn-sm btn-outline-secondary"
+            <button class="act-btn act-btn-edit"
                     onclick="window.location.href='/sessions/${e.id}/edit'"
-                    title="Edit this workout record">
-              <span class="material-symbols-outlined" style="font-size:.9rem;vertical-align:middle">edit</span>
+                    title="Edit workout record">
+              <span class="material-symbols-outlined">edit</span>
             </button>
-            <button class="btn btn-sm btn-outline-danger" onclick="openDelete(${e.id})">
-              <span class="material-symbols-outlined" style="font-size:.9rem;vertical-align:middle">delete</span>
+            <button class="act-btn act-btn-delete" onclick="openDelete(${e.id})" title="Delete workout">
+              <span class="material-symbols-outlined">delete</span>
             </button>
           </div>
         </div>
@@ -352,11 +427,28 @@
     const moreCount = (entry.exercises || []).length - 5;
     document.getElementById('spExercises').innerHTML = exList + (moreCount > 0 ? `<br>+ ${moreCount} more` : '');
 
-    // Muscles
-    const muscles = Object.entries(entry.muscle_data || {}).sort((a,b) => b[1]-a[1]).slice(0,6).map(([m]) => m);
-    document.getElementById('spMuscles').innerHTML = muscles.map(m =>
-      `<span class="pill pill-active" style="font-size:.62rem;text-transform:capitalize;">${m}</span>`
-    ).join('');
+    // Muscles — heatmap bars
+    const muscleEntries = Object.entries(entry.muscle_data || {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 7);
+    if (muscleEntries.length) {
+      document.getElementById('spMuscles').innerHTML = `
+        <p style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.25);margin:0 0 0.4rem;">Muscles Trained</p>
+        ${muscleEntries.map(([m, v]) => {
+          const color = v >= 0.66 ? '#f59e0b' : v >= 0.33 ? '#22c55e' : '#38bdf8';
+          const pct = Math.round(v * 100);
+          return `<div class="snapshot-muscle-bar-wrap d-flex align-items-center gap-2 mb-1">
+            <span class="snapshot-muscle-label">${m}</span>
+            <div class="snapshot-muscle-track">
+              <div class="snapshot-muscle-fill" style="width:${pct}%;background:${color};box-shadow:0 0 6px ${color}66;"></div>
+            </div>
+            <span class="snapshot-muscle-pct">${pct}%</span>
+          </div>`;
+        }).join('')}`;
+    } else {
+      document.getElementById('spMuscles').innerHTML =
+        '<p style="font-size:.72rem;color:rgba(255,255,255,.2);margin:0;">No muscle data recorded</p>';
+    }
 
     // Download button
     document.getElementById('snapshotDownloadBtn').onclick = () => {

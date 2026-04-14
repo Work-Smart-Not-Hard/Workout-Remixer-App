@@ -439,19 +439,19 @@ function exportWorkoutSnapshot(entry, username) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8);
 
+  const colX = W * 0.58;
+  const colW = W - colX - 24;
+
+  // Always draw the muscle section header
+  ctx.font = '700 10px "DM Sans", sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillText('MUSCLES TRAINED', colX, 276);
+
   if (muscleEntries.length) {
-    const colX = W * 0.58;
-    const colW = W - colX - 24;
-
-    ctx.font = '700 10px "DM Sans", sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillText('MUSCLES TRAINED', colX, 276);
-
     muscleEntries.forEach(([muscle, intensity], i) => {
       const barY  = 292 + i * 28;
       const label = muscle.charAt(0).toUpperCase() + muscle.slice(1);
 
-      // Intensity colour
       let barColor;
       if (intensity >= 0.66)      barColor = '#f59e0b';
       else if (intensity >= 0.33) barColor = '#22c55e';
@@ -472,13 +472,18 @@ function exportWorkoutSnapshot(entry, username) {
       ctx.fillStyle = barW > colW * 0.4 ? 'rgba(0,0,0,0.85)' : '#e2e8f0';
       ctx.fillText(label, colX + 6, barY + 13);
 
-      // Pct on right
+      // Pct
       ctx.font = '700 9px "DM Sans", sans-serif';
       ctx.fillStyle = barColor;
       ctx.textAlign = 'right';
       ctx.fillText(Math.round(intensity * 100) + '%', colX + colW - 4, barY + 13);
       ctx.textAlign = 'left';
     });
+  } else {
+    // No muscle data — show placeholder
+    ctx.font = '400 10px "DM Sans", sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillText('No muscle data for this session.', colX, 308);
   }
 
   //Bottom branding

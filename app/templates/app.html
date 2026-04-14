@@ -147,11 +147,28 @@
     0%, 100% { transform: translateY(0); }
     50%       { transform: translateY(-4px); }
   }
+
+  /* Fill remaining viewport height */
+  .home-bottom-fill {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .home-bottom-fill > .card,
+  .home-bottom-fill > .goal-compact-card {
+    flex: 1;
+    height: 100% !important;
+  }
+  /* Ensure heatmap container fills */
+  .col-lg-5.animate-slide-up.stagger-3 .card,
+  .col-lg-4.animate-slide-up.stagger-4 .card {
+    height: 100%;
+  }
 </style>
 {% endblock %}
 
 {% block subpage_content %}
-<div class="container-fluid">
+<div class="container-fluid d-flex flex-column" style="min-height:calc(100vh - 72px);">
 
   <!-- HERO -->
   <div class="card home-hero mb-3 animate-slide-up">
@@ -207,10 +224,10 @@
   </div>
 
   <!-- BOTTOM ROW: Daily Goal | Heatmap | Calendar -->
-  <div class="row g-3">
+  <div class="row g-3 flex-grow-1" style="align-content:stretch;">
 
     <!-- Daily Goal view only with cycle arrows -->
-    <div class="col-lg-3 animate-slide-up stagger-2">
+    <div class="col-lg-3 animate-slide-up stagger-2 home-bottom-fill">
       <div class="goal-compact-card" id="homeGoalWidget" data-goal-storage-key="home-{{ user.id }}">
         <div class="section-header mb-3">
           <div class="section-header-title">
@@ -260,7 +277,7 @@
     </div>
 
     <!-- Weekly Snapshot (heatmap) -->
-    <div class="col-lg-5 animate-slide-up stagger-3">
+    <div class="col-lg-5 animate-slide-up stagger-3 home-bottom-fill">
       <div class="card shadow-sm p-3 h-100">
         <div class="section-header">
           <div class="section-header-title">
@@ -284,7 +301,7 @@
     </div>
 
     <!-- Workout Calendar -->
-    <div class="col-lg-4 animate-slide-up stagger-4">
+    <div class="col-lg-4 animate-slide-up stagger-4 home-bottom-fill">
       <div class="card shadow-sm h-100">
         <div class="card-body">
           <div class="section-header mb-2">

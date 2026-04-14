@@ -143,8 +143,9 @@
   .fav-card-body { padding: 0.6rem 0.75rem 0.75rem; }
   .fav-card-name {
     font-size: 0.82rem; font-weight: 700; text-transform: capitalize;
-    color: var(--text-primary); margin: 0 0 0.3rem;
+    color: #e2eaf4; margin: 0 0 0.3rem;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
   }
   .fav-card-tags { display: flex; flex-wrap: wrap; gap: 3px; }
   .fav-tag { font-size: 0.62rem; padding: 2px 7px; border-radius: var(--radius-pill); font-weight: 600; }
@@ -313,10 +314,10 @@
   {% endif %}
 </div>
 
-<!-- Exercise Detail Modal -->
+<!-- Exercise Detail Modal — matches Browse Exercises -->
 <div class="modal fade" id="exerciseModal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content text-secondary">
       <div class="modal-header">
         <h5 class="modal-title fw-bold text-capitalize" id="modalExerciseName"></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -336,11 +337,18 @@
           <div class="col-md-6">
             <h6 class="section-title mb-1">Secondary Muscles</h6>
             <p id="modalSecondary" class="text-muted small mb-3">None listed</p>
-            <h6 class="section-title mb-1">Instructions</h6>
-            <ol id="modalInstructions" class="ps-3 small mb-0" style="max-height:220px;overflow-y:auto;">
-              <li>No instruction steps available for this saved entry.</li>
+            <h6 class="section-title mb-1">Description / Instructions</h6>
+            <div id="modalDescription" class="text-muted small mb-3" style="font-size:0.8rem;line-height:1.6;max-height:100px;overflow-y:auto;"></div>
+            <h6 class="section-title mb-1">Steps</h6>
+            <ol id="modalInstructions" class="ps-3 small mb-0" style="max-height:160px;overflow-y:auto;color:var(--text-secondary);">
+              <li>No instruction steps available.</li>
             </ol>
           </div>
+        </div>
+        <!-- Loading indicator -->
+        <div id="modalLoadingRow" class="text-center py-2" style="display:none;">
+          <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+          <small class="text-muted">Loading full details…</small>
         </div>
       </div>
       <div class="modal-footer flex-wrap gap-2">
@@ -378,21 +386,55 @@
     if (count) count.textContent = `${shown} exercise${shown !== 1 ? 's' : ''}`;
   }
 
-  function openExercise(exercise) {
+  async function openExercise(exercise) {
     currentExId = exercise.exerciseId || exercise.exercise_id || '';
+    // Populate modal with local data first (instant feedback)
     document.getElementById('modalExerciseName').textContent = exercise.name || '';
     document.getElementById('modalGif').src = exercise.gifUrl || exercise.gif_url || '';
     document.getElementById('modalBodyPart').textContent = exercise.bodyPart || exercise.body_part || '';
     document.getElementById('modalTarget').textContent   = exercise.target || '';
     document.getElementById('modalEquipment').textContent = exercise.equipment || '';
-    document.getElementById('modalSecondary').textContent =
-      (exercise.secondaryMuscles || []).join(', ') || 'None listed';
-    const steps = Array.isArray(exercise.instructions) ? exercise.instructions : [];
-    document.getElementById('modalInstructions').innerHTML = steps.length
-      ? steps.map(s => `<li>${String(s).replace(/^Step:\d+\s*/, '')}</li>`).join('')
-      : '<li>No instruction steps available.</li>';
+    document.getElementById('modalSecondary').textContent = 'Loading…';
+    document.getElementById('modalDescription').textContent = '';
+    document.getElementById('modalInstructions').innerHTML = '<li>Loading steps…</li>';
     document.getElementById('viewStatsBtn').href = `/exercises/${currentExId}`;
+
     new bootstrap.Modal(document.getElementById('exerciseModal')).show();
+
+    // Fetch full data from ExerciseDB
+    try {
+      document.getElementById('modalLoadingRow').style.display = '';
+      const res = await fetch(`/api/exercises/${currentExId}`);
+      if (res.ok) {
+        const full = await res.json();
+        const secondary = Array.isArray(full.secondaryMuscles) ? full.secondaryMuscles : [];
+        const instructions = Array.isArray(full.instructions) ? full.instructions : [];
+
+        document.getElementById('modalSecondary').textContent =
+          secondary.join(', ') || 'None listed';
+
+        // Description from instructions joined as prose, or body from API
+        const descText = full.description || '';
+        document.getElementById('modalDescription').textContent =
+          descText || (secondary.length ? `Secondarily targets: ${secondary.join(', ')}` : '');
+
+        document.getElementById('modalInstructions').innerHTML = instructions.length
+          ? instructions.map(s => `<li>${String(s).replace(/^Step:\d+\s*/, '')}</li>`).join('')
+          : '<li>No instruction steps available for this exercise.</li>';
+      } else {
+        // Fallback: use local data
+        document.getElementById('modalSecondary').textContent =
+          (exercise.secondaryMuscles || []).join(', ') || 'None listed';
+        document.getElementById('modalInstructions').innerHTML = '<li>No instruction steps available.</li>';
+        document.getElementById('modalDescription').textContent = '';
+      }
+    } catch {
+      document.getElementById('modalSecondary').textContent =
+        (exercise.secondaryMuscles || []).join(', ') || 'None listed';
+      document.getElementById('modalInstructions').innerHTML = '<li>No instruction steps available.</li>';
+    } finally {
+      document.getElementById('modalLoadingRow').style.display = 'none';
+    }
   }
 
   function openExerciseFromEncoded(encoded) {

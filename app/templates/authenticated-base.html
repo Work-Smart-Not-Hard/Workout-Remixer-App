@@ -61,79 +61,6 @@
   }
   .sb-brand svg { width: 16px; height: 16px; fill: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
 
-  /* ── Active Session Banner (inside sidebar) ── */
-  #activeSessionBanner {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    width: 44px;
-    background: linear-gradient(135deg, rgba(34,197,94,0.18), rgba(16,185,129,0.08));
-    border: 0.5px solid rgba(34,197,94,0.40);
-    border-radius: 12px;
-    padding: 6px 4px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.18s;
-    position: relative;
-    overflow: hidden;
-    flex-shrink: 0;
-    margin-bottom: 2px;
-  }
-  #activeSessionBanner::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(34,197,94,0.6), transparent);
-  }
-  #activeSessionBanner:hover {
-    background: linear-gradient(135deg, rgba(34,197,94,0.28), rgba(16,185,129,0.14));
-    border-color: rgba(34,197,94,0.65);
-    box-shadow: 0 0 14px rgba(34,197,94,0.30);
-  }
-  .session-banner-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #22c55e;
-    box-shadow: 0 0 6px rgba(34,197,94,0.8);
-    animation: session-pulse 1.5s ease-in-out infinite;
-    flex-shrink: 0;
-  }
-  @keyframes session-pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(34,197,94,0.8); }
-    50%       { opacity: 0.6; box-shadow: 0 0 12px rgba(34,197,94,0.5); }
-  }
-  .session-banner-timer {
-    font-size: 9px; font-weight: 800; color: #4ade80;
-    letter-spacing: 0.02em; font-variant-numeric: tabular-nums;
-    line-height: 1; text-align: center;
-  }
-  .session-banner-label {
-    font-size: 8px; color: rgba(74,222,128,0.65);
-    font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.06em; line-height: 1;
-    text-align: center; width: 100%;
-    white-space: nowrap; overflow: hidden; text-overflow: clip;
-    padding: 0 2px;
-  }
-  /* Tooltip for banner */
-  #activeSessionBanner::after {
-    content: attr(data-label);
-    position: absolute;
-    left: calc(100% + 14px); top: 50%;
-    transform: translateY(-50%);
-    background: rgba(4,9,18,0.97);
-    color: #4ade80;
-    font-size: 11px; font-weight: 600;
-    white-space: nowrap;
-    padding: 5px 10px;
-    border-radius: 8px;
-    border: 0.5px solid rgba(34,197,94,0.30);
-    pointer-events: none; opacity: 0;
-    transition: opacity 0.15s ease;
-    z-index: 300;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-  }
-  #activeSessionBanner:hover::after { opacity: 1; }
-
   /* ── Nav section ── */
   .sb-nav {
     display: flex; flex-direction: column;
@@ -334,13 +261,6 @@
       <svg viewBox="0 0 24 24"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
     </a>
 
-    <!-- Active Session Banner -->
-    <a href="#" id="activeSessionBanner" data-label="Return to active workout">
-      <div class="session-banner-dot"></div>
-      <div class="session-banner-timer" data-session-timer>00:00</div>
-      <div class="session-banner-label" data-session-name>Active</div>
-    </a>
-
     <div class="sb-nav">
 
       <a href="/dashboard"
@@ -421,12 +341,5 @@
 </div>
 
 {% block subpage_scripts %}{% endblock %}
-
-<script>
-  // Mount active session banner on every authenticated page
-  document.addEventListener('DOMContentLoaded', () => {
-    if (typeof mountSessionBanner === 'function') mountSessionBanner();
-  });
-</script>
 
 {% endblock %}

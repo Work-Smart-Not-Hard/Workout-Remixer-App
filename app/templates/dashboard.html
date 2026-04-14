@@ -303,9 +303,20 @@
         <div class="col-md-5">
           <!-- Weekly comparison panel -->
           <div class="card p-3 h-100">
-            <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="d-flex align-items-center gap-2 mb-1">
               <div class="section-icon si-green"><span class="material-symbols-outlined" style="font-size:1rem">trending_up</span></div>
-              <h6 class="section-title mb-0" style="font-size:0.82rem;">Weekly Comparison</h6>
+              <div>
+                <h6 class="section-title mb-0" style="font-size:0.82rem;">Period Comparison</h6>
+                <p id="periodComparisonSubtitle" style="font-size:0.62rem;color:var(--text-ghost);margin:0;">This week vs last week</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:0.4rem;margin-bottom:0.75rem;padding-bottom:0.6rem;border-bottom:0.5px solid rgba(255,255,255,0.05);">
+              <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.35);">
+                <span style="width:10px;height:3px;border-radius:99px;background:linear-gradient(90deg,#0891b2,#22d3ee);display:inline-block;"></span> This period
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.20);">
+                <span style="width:10px;height:3px;border-radius:99px;background:rgba(255,255,255,0.18);display:inline-block;"></span> Last period
+              </span>
             </div>
             <div id="weeklyComparePanel">
               <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
@@ -373,10 +384,24 @@
     btn.classList.add('active');
     const lbl = document.getElementById('highlightPeriodLabel');
     if (lbl) lbl.textContent = PERIOD_LABELS[period] || period;
+      updatePeriodComparisonLabel();
     reload();
   }
 
   async function reload() { await Promise.all([loadStats(), loadHeatmap()]); }
+
+  function updatePeriodComparisonLabel() {
+    const subtitle = document.getElementById('periodComparisonSubtitle');
+    if (!subtitle) return;
+    const labels = {
+      week: 'This week vs last week',
+      month: 'This month vs last month',
+      '6months': 'Last 6 months vs previous 6 months',
+      year: 'This year vs last year',
+      all: 'All time data'
+    };
+    subtitle.textContent = labels[currentPeriod] || 'Period comparison';
+  }
 
   async function loadHeatmap() {
     const res  = await fetch(`/api/dashboard/heatmap?period=${currentPeriod}`);
@@ -439,6 +464,7 @@
     ]);
     const data = await res.json();
     const prevData = await prevRes.json();
+  updatePeriodComparisonLabel();
 
     animateNumber('statSessions', data.total_sessions);
     animateNumber('statSets',     data.total_sets);
@@ -568,13 +594,21 @@
     const el = document.getElementById('weeklyComparePanel');
     if (!el) return;
 
+    const periodCaption = {
+      week: { curr: 'this week', prev: 'last week' },
+      month: { curr: 'this month', prev: 'last month' },
+      '6months': { curr: 'last 6 months', prev: 'previous 6 months' },
+      year: { curr: 'this year', prev: 'last year' },
+      all: { curr: 'all time', prev: 'comparison period' },
+    };
+    const caption = periodCaption[currentPeriod] || periodCaption.week;
+
     const metrics = [
       { label:'Workouts', curr:data.total_sessions, prev:prevWeekData.total_sessions, color:'#22d3ee', grad:'linear-gradient(90deg,#0891b2,#22d3ee)' },
       { label:'Sets',     curr:data.total_sets,     prev:prevWeekData.total_sets,     color:'#22c55e', grad:'linear-gradient(90deg,#16a34a,#4ade80)' },
       { label:'Minutes',  curr:data.total_duration, prev:prevWeekData.total_duration, color:'#f59e0b', grad:'linear-gradient(90deg,#b45309,#fbbf24)' },
     ];
 
-    // compute bar widths relative to the max across current + prev
     const maxVal = Math.max(1, ...metrics.flatMap(m => [m.curr, m.prev]));
 
     el.innerHTML = metrics.map(m => {
@@ -584,27 +618,28 @@
       const cls     = delta > 0 ? 'trend-up' : delta < 0 ? 'trend-down' : 'trend-flat';
       const currW   = Math.round((m.curr / maxVal) * 100);
       const prevW   = Math.round((m.prev / maxVal) * 100);
+      const noData  = m.curr === 0 && m.prev === 0;
 
       return `
     <div class="mb-3">
       <div class="d-flex align-items-baseline justify-content-between mb-1">
         <span style="font-size:.72rem;font-weight:700;color:#c8d5e8;letter-spacing:.02em;">${m.label}</span>
         <div class="d-flex align-items-center gap-2">
-          <span style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;color:${m.color};">${m.curr.toLocaleString()}</span>
-          <span class="trend-badge ${cls}">${sign}${delta}</span>
+          <span style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;color:${m.curr > 0 ? m.color : 'rgba(255,255,255,0.2)'};">${m.curr.toLocaleString()}</span>
+          ${!noData ? `<span class="trend-badge ${cls}">${sign}${delta}</span>` : '<span style="font-size:.6rem;color:rgba(255,255,255,.2);">no data</span>'}
         </div>
       </div>
-      <!-- Current period bar -->
-      <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;margin-bottom:3px;">
+      <!-- This period bar -->
+      <div title="This period: ${m.curr}" style="height:6px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;margin-bottom:3px;">
         <div style="height:100%;width:${currW}%;background:${m.grad};border-radius:99px;transition:width 0.6s ease;box-shadow:0 0 8px ${m.color}44;"></div>
       </div>
-      <!-- Previous period bar (dimmed) -->
-      <div style="height:4px;background:rgba(255,255,255,0.04);border-radius:99px;overflow:hidden;">
-        <div style="height:100%;width:${prevW}%;background:rgba(255,255,255,0.14);border-radius:99px;transition:width 0.6s ease;"></div>
+      <!-- Last period bar (dimmed) -->
+      <div title="Last period: ${m.prev}" style="height:4px;background:rgba(255,255,255,0.04);border-radius:99px;overflow:hidden;">
+        <div style="height:100%;width:${prevW}%;background:rgba(255,255,255,0.16);border-radius:99px;transition:width 0.6s ease;"></div>
       </div>
       <div style="font-size:.6rem;color:rgba(255,255,255,.22);margin-top:2px;display:flex;justify-content:space-between;">
-        <span>This period</span>
-        <span>${m.prev.toLocaleString()} last period${pct !== 0 ? ' · ' + (pct > 0 ? '+':'') + pct + '%' : ''}</span>
+        <span style="color:rgba(255,255,255,.3);">${m.curr.toLocaleString()} ${caption.curr}</span>
+        <span>${m.prev.toLocaleString()} ${caption.prev}${pct !== 0 && m.prev > 0 ? ' · ' + (pct > 0 ? '+':'') + pct + '%' : ''}</span>
       </div>
     </div>`;
     }).join('');
