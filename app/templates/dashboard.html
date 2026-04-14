@@ -16,113 +16,99 @@
   }
   .period-tab {
     padding: 5px 14px; border: none; border-radius: 7px;
-    background: transparent; color: var(--text-muted);
+    background: transparent; color: #7a92b4;
     font-size: 0.75rem; font-weight: 600; cursor: pointer;
     transition: all 0.18s; white-space: nowrap;
   }
-  .period-tab:hover  { color: var(--text-secondary); background: rgba(255,255,255,0.06); }
-  .period-tab.active {
-    background: rgba(34,211,238,0.18); color: var(--accent-cyan-lt);
-    box-shadow: 0 0 10px rgba(34,211,238,0.2);
-  }
+  .period-tab:hover  { color: #c8d5e8; background: rgba(255,255,255,0.06); }
+  .period-tab.active { background: rgba(34,211,238,0.18); color: #a5f3fc; box-shadow: 0 0 10px rgba(34,211,238,0.2); }
 
-  /* Section icon badges */
-  .section-icon {
-    width: 30px; height: 30px; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
+  /* Section icons */
+  .section-icon { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .si-cyan   { background: rgba(34,211,238,0.15); color: #67e8f9; }
   .si-green  { background: rgba(34,197,94,0.15);  color: #4ade80; }
   .si-amber  { background: rgba(245,158,11,0.15); color: #fbbf24; }
   .si-indigo { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+  .si-red    { background: rgba(239,68,68,0.15);  color: #f87171; }
 
-  /* ── CHART FIX: Constrain chart containers so pie doesn't fill viewport ── */
-  .chart-canvas-wrap {
-    position: relative;
-    max-height: 240px;
-    overflow: hidden;
-  }
-  .chart-canvas-wrap canvas {
-    max-height: 240px !important;
-  }
-  .sessions-canvas-wrap {
-    position: relative;
-    max-height: 160px;
-  }
-  .sessions-canvas-wrap canvas {
-    max-height: 160px !important;
-  }
+  /* Chart containers */
+  .chart-canvas-wrap { position: relative; max-height: 240px; overflow: hidden; }
+  .chart-canvas-wrap canvas { max-height: 240px !important; }
+  .sessions-canvas-wrap { position: relative; max-height: 160px; }
+  .sessions-canvas-wrap canvas { max-height: 160px !important; }
 
-  /* Muscle activity panel */
-  .muscle-panel-label {
-    font-size: 0.65rem; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700;
-  }
-
-  /* ── Highlights section ── */
-  .highlights-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 0.65rem;
-  }
+  /* Highlights grid */
+  .highlights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.65rem; }
   .highlight-card {
-    background: rgba(255,255,255,0.03);
-    border: 0.5px solid var(--border-1);
+    background: rgba(255,255,255,0.035);
+    border: 0.5px solid rgba(255,255,255,0.09);
     border-radius: var(--radius-md);
     padding: 0.85rem 1rem;
     transition: border-color 0.18s, background 0.18s;
   }
-  .highlight-card:hover {
-    border-color: var(--border-2);
-    background: rgba(255,255,255,0.05);
-  }
-  .highlight-label {
-    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--text-ghost); font-weight: 700; margin-bottom: 0.35rem;
-  }
-  .highlight-value {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.3rem; font-weight: 700; letter-spacing: -0.04em;
-    line-height: 1; margin-bottom: 0.2rem;
-  }
-  .highlight-sub { font-size: 0.72rem; color: var(--text-muted); }
+  .highlight-card:hover { border-color: rgba(255,255,255,0.16); background: rgba(255,255,255,0.055); }
+  .highlight-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.28); font-weight: 700; margin-bottom: 0.35rem; }
+  .highlight-value { font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 0.2rem; }
+  .highlight-sub   { font-size: 0.72rem; color: rgba(255,255,255,0.38); }
 
-  /* Recent workout row */
+  /* Streak card */
+  .streak-highlight {
+    background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(234,88,12,0.06));
+    border: 0.5px solid rgba(245,158,11,0.28) !important;
+  }
+  .streak-highlight:hover { border-color: rgba(245,158,11,0.45) !important; background: rgba(245,158,11,0.10) !important; }
+  .streak-num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.4rem; font-weight: 800; letter-spacing: -0.04em;
+    line-height: 1; margin-bottom: 0.2rem;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  /* Comparison badge */
+  .trend-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 0.65rem; font-weight: 700; padding: 2px 7px;
+    border-radius: 99px;
+  }
+  .trend-up   { background: rgba(34,197,94,0.14);  color: #4ade80; border: 0.5px solid rgba(34,197,94,0.28); }
+  .trend-down { background: rgba(239,68,68,0.14);  color: #f87171; border: 0.5px solid rgba(239,68,68,0.28); }
+  .trend-flat { background: rgba(100,116,139,0.14); color: #94a3b8; border: 0.5px solid rgba(100,116,139,0.22); }
+
+  /* Recent workout rows */
   .workout-row {
     display: flex; align-items: center; gap: 1rem;
-    padding: 0.85rem 1.2rem; border-bottom: 0.5px solid rgba(255,255,255,0.04);
+    padding: 0.75rem 1.2rem; border-bottom: 0.5px solid rgba(255,255,255,0.04);
     transition: background 0.15s;
   }
   .workout-row:last-child { border-bottom: none; }
   .workout-row:hover { background: rgba(34,211,238,0.03); }
-  .workout-row-date {
-    font-size: 0.78rem; color: var(--text-muted);
-    min-width: 90px; flex-shrink: 0;
-  }
-  .workout-row-name {
-    flex: 1; font-weight: 600; font-size: 0.85rem;
-    color: var(--accent-cyan-lt); text-decoration: none;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
+  .workout-row-date { font-size: 0.78rem; color: rgba(255,255,255,0.38); min-width: 90px; flex-shrink: 0; }
+  .workout-row-name { flex: 1; font-weight: 600; font-size: 0.85rem; color: #7dd3fc; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .workout-row-name:hover { color: #67e8f9; }
 
   /* Empty chart state */
-  .chart-empty {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 2rem;
-    color: var(--text-ghost); font-size: 0.8rem; text-align: center;
-    min-height: 160px;
+  .chart-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; color: rgba(255,255,255,0.25); font-size: 0.8rem; text-align: center; min-height: 160px; }
+  .chart-empty .material-symbols-outlined { font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem; }
+
+  /* PR section */
+  .pr-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.55rem 0.75rem;
+    background: rgba(255,255,255,0.025);
+    border: 0.5px solid rgba(255,255,255,0.07);
+    border-radius: 9px; margin-bottom: 0.45rem;
   }
-  .chart-empty .material-symbols-outlined {
-    font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem;
-  }
+  .pr-item:last-child { margin-bottom: 0; }
+  .pr-exercise { font-size: 0.78rem; font-weight: 600; color: #c8d5e8; text-transform: capitalize; }
+  .pr-value    { font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; font-weight: 700; color: #fbbf24; }
 </style>
 {% endblock %}
 
 {% block subpage_content %}
 <div class="container-fluid">
 
-  <!-- ── Header ── -->
+  <!-- Header -->
   <div class="row mb-4 align-items-center animate-slide-up">
     <div class="col">
       <h4 class="page-title">Progress Dashboard</h4>
@@ -139,29 +125,32 @@
     </div>
   </div>
 
-  <!-- ── Stat cards ── -->
+  <!-- Stat cards -->
   <div class="row g-3 mb-4">
     <div class="col-sm-4 animate-slide-up stagger-1">
       <div class="card stat-card tint-cyan">
         <div class="stat-number" id="statSessions">—</div>
         <div class="stat-label">Workouts</div>
+        <div class="mt-1" id="statSessionsTrend"></div>
       </div>
     </div>
     <div class="col-sm-4 animate-slide-up stagger-2">
       <div class="card stat-card tint-green">
         <div class="stat-number" id="statSets">—</div>
         <div class="stat-label">Total Sets</div>
+        <div class="mt-1" id="statSetsTrend"></div>
       </div>
     </div>
     <div class="col-sm-4 animate-slide-up stagger-3">
       <div class="card stat-card tint-amber">
         <div class="stat-number" id="statDuration">—</div>
         <div class="stat-label">Minutes Trained</div>
+        <div class="mt-1" id="statDurationTrend"></div>
       </div>
     </div>
   </div>
 
-  <!-- ── Daily goal ── -->
+  <!-- Daily goal -->
   <div class="row g-3 mb-4">
     <div class="col-12 animate-slide-up stagger-4">
       <div class="card daily-goal-card" id="dashboardGoalWidget" data-goal-storage-key="dashboard-{{ user.id }}">
@@ -199,14 +188,12 @@
     </div>
   </div>
 
-  <!-- ── Highlights row ── -->
+  <!-- Highlights -->
   <div class="row g-3 mb-4">
     <div class="col-12 animate-slide-up stagger-4">
       <div class="card p-3">
         <div class="d-flex align-items-center gap-2 mb-3">
-          <div class="section-icon si-amber">
-            <span class="material-symbols-outlined" style="font-size:1rem">emoji_events</span>
-          </div>
+          <div class="section-icon si-amber"><span class="material-symbols-outlined" style="font-size:1rem">emoji_events</span></div>
           <h6 class="section-title mb-0">Highlights</h6>
           <small class="text-muted ms-auto" id="highlightPeriodLabel" style="font-size:.7rem;">This week</small>
         </div>
@@ -226,6 +213,11 @@
             <div class="highlight-value gradient-text-amber" id="hlTime">—</div>
             <div class="highlight-sub">total minutes</div>
           </div>
+          <div class="highlight-card streak-highlight" id="hlStreakCard">
+            <div class="highlight-label">🔥 Streak</div>
+            <div class="streak-num" id="hlStreak">—</div>
+            <div class="highlight-sub">days in a row</div>
+          </div>
           <div class="highlight-card" id="hlTopMuscleCard" style="display:none;">
             <div class="highlight-label">Top Muscle</div>
             <div class="highlight-value" id="hlTopMuscle" style="font-size:1rem;text-transform:capitalize;color:var(--accent-indigo-lt);">—</div>
@@ -241,29 +233,27 @@
     </div>
   </div>
 
-  <!-- ── Main grid ── -->
+  <!-- Main grid -->
   <div class="row g-4">
 
     <!-- Left: Muscle Heatmap -->
     <div class="col-lg-4 animate-slide-up stagger-2">
       <div class="card p-3 h-100">
         <div class="d-flex align-items-center gap-2 mb-3">
-          <div class="section-icon si-cyan">
-            <span class="material-symbols-outlined" style="font-size:1rem">self_improvement</span>
-          </div>
+          <div class="section-icon si-cyan"><span class="material-symbols-outlined" style="font-size:1rem">self_improvement</span></div>
           <div>
             <h6 class="section-title mb-0">Muscle Activity</h6>
-            <p class="muscle-panel-label mb-0">Click a muscle for history</p>
+            <p class="page-subtitle mb-0" style="font-size:0.68rem;">Click a muscle for history</p>
           </div>
         </div>
-        {{ muscle_heatmap(mode="stats", height="360px", instance_id="dashboard") }}
+        {{ muscle_heatmap(mode="stats", height="340px", instance_id="dashboard") }}
       </div>
     </div>
 
-    <!-- Right: Charts -->
+    <!-- Right: Charts + Analytics -->
     <div class="col-lg-8 animate-slide-up stagger-3">
 
-      <!-- Sessions over time -->
+      <!-- Workouts over time -->
       <div class="card chart-card mb-4">
         <div class="chart-card-header">
           <div>
@@ -288,20 +278,36 @@
         </div>
       </div>
 
-      <!-- Muscle volume pie — FIXED: constrained wrapper prevents viewport fill -->
-      <div class="card chart-card">
-        <div class="chart-card-header">
-          <div>
-            <p class="chart-title">Top Muscle Groups</p>
-            <p class="chart-subtitle">Volume by sets completed</p>
+      <!-- Two-column: muscle pie + weekly comparison -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-7">
+          <div class="card chart-card h-100">
+            <div class="chart-card-header">
+              <div>
+                <p class="chart-title">Top Muscle Groups</p>
+                <p class="chart-subtitle">Volume by sets completed</p>
+              </div>
+            </div>
+            <div class="chart-body">
+              <div id="muscleChartWrap">
+                <div class="chart-canvas-wrap">
+                  <canvas id="muscleChart" height="220" style="max-height:220px;"></canvas>
+                </div>
+                <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">Complete some workouts to see data!</p>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="chart-body">
-          <div id="muscleChartWrap">
-            <div class="chart-canvas-wrap">
-              <canvas id="muscleChart" height="220" style="max-height:220px;"></canvas>
+        <div class="col-md-5">
+          <!-- Weekly comparison panel -->
+          <div class="card p-3 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <div class="section-icon si-green"><span class="material-symbols-outlined" style="font-size:1rem">trending_up</span></div>
+              <h6 class="section-title mb-0" style="font-size:0.82rem;">Weekly Comparison</h6>
             </div>
-            <p id="noMuscleMsg" class="text-muted text-center small mt-2" style="display:none;">No data yet. Complete some workouts!</p>
+            <div id="weeklyComparePanel">
+              <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            </div>
           </div>
         </div>
       </div>
@@ -309,13 +315,11 @@
     </div>
   </div>
 
-  <!-- ── Recent Workouts ── -->
+  <!-- Recent Workouts -->
   <div class="card mt-4 animate-slide-up stagger-4">
     <div class="card-header d-flex align-items-center justify-content-between py-3 px-4">
       <div class="d-flex align-items-center gap-2">
-        <div class="section-icon si-indigo">
-          <span class="material-symbols-outlined" style="font-size:1rem">history</span>
-        </div>
+        <div class="section-icon si-indigo"><span class="material-symbols-outlined" style="font-size:1rem">history</span></div>
         <span class="section-title">Recent Workouts</span>
       </div>
       <a href="/activity" class="btn btn-outline-secondary btn-sm">View All</a>
@@ -348,14 +352,18 @@
 
 {% block subpage_scripts %}
 <script>
-  let sessionsChart = null;
-  let muscleChart   = null;
+  let sessionsChart = null, muscleChart = null;
   let currentPeriod = 'week';
 
   const PERIOD_LABELS = {
-    week: 'This week', month: 'This month',
-    '6months': 'Last 6 months', year: 'This year', all: 'All time'
+    week:'This week', month:'This month',
+    '6months':'Last 6 months', year:'This year', all:'All time',
   };
+
+  const PIE_COLORS = [
+    '#22d3ee','#4ade80','#fbbf24','#f87171','#a5b4fc','#67e8f9',
+    '#86efac','#fcd34d','#fca5a5','#c4b5fd','#34d399','#fb923c',
+  ];
 
   function setPeriod(period, btn) {
     currentPeriod = period;
@@ -377,8 +385,7 @@
   function animateNumber(id, target) {
     const el = document.getElementById(id);
     if (!el) return;
-    const startTime = performance.now();
-    const duration  = 750;
+    const startTime = performance.now(), duration = 750;
     function update(now) {
       const p = Math.min((now - startTime) / duration, 1);
       const e = 1 - Math.pow(1 - p, 3);
@@ -388,21 +395,65 @@
     requestAnimationFrame(update);
   }
 
+  function renderTrend(id, value, prevValue) {
+    const el = document.getElementById(id);
+    if (!el || !prevValue) return;
+    const pct = Math.round(((value - prevValue) / prevValue) * 100);
+    if (pct === 0) { el.innerHTML = '<span class="trend-badge trend-flat">— same</span>'; return; }
+    const cls = pct > 0 ? 'trend-up' : 'trend-down';
+    const icon = pct > 0 ? '↑' : '↓';
+    el.innerHTML = `<span class="trend-badge ${cls}">${icon} ${Math.abs(pct)}%</span>`;
+  }
+
+  // Calculate streak from sessions list
+  function calculateStreak(sessions) {
+    if (!sessions || !sessions.length) return 0;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dateSet = new Set(sessions
+      .filter(s => s.date)
+      .map(s => s.date)
+    );
+    let streak = 0, d = new Date(today);
+    while (true) {
+      const iso = d.toISOString().slice(0,10);
+      if (!dateSet.has(iso)) break;
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+    return streak;
+  }
+
   async function loadStats() {
-    const res  = await fetch(`/api/dashboard/stats?period=${currentPeriod}`);
+    const [res, prevRes] = await Promise.all([
+      fetch(`/api/dashboard/stats?period=${currentPeriod}`),
+      fetch(`/api/dashboard/stats?period=week`),
+    ]);
     const data = await res.json();
+    const prevData = await prevRes.json();
+
     animateNumber('statSessions', data.total_sessions);
     animateNumber('statSets',     data.total_sets);
     animateNumber('statDuration', data.total_duration);
+
+    // Trend badges (vs last period)
+    if (currentPeriod !== 'all') {
+      renderTrend('statSessionsTrend', data.total_sessions, prevData.total_sessions);
+      renderTrend('statSetsTrend',     data.total_sets,     prevData.total_sets);
+      renderTrend('statDurationTrend', data.total_duration, prevData.total_duration);
+    }
 
     // Highlights
     animateNumber('hlWorkouts', data.total_sessions);
     animateNumber('hlSets',     data.total_sets);
     animateNumber('hlTime',     data.total_duration);
 
-    const avgMins = data.total_sessions > 0
-      ? Math.round(data.total_duration / data.total_sessions) : 0;
+    const avgMins = data.total_sessions > 0 ? Math.round(data.total_duration / data.total_sessions) : 0;
     animateNumber('hlAvgMins', avgMins);
+
+    // Streak from sessions over time
+    const streak = calculateStreak(data.sessions_over_time || []);
+    const hlStreak = document.getElementById('hlStreak');
+    if (hlStreak) animateNumber('hlStreak', streak);
 
     if (data.muscle_volume?.length) {
       const top = data.muscle_volume[0];
@@ -413,11 +464,10 @@
       document.getElementById('hlTopMuscleCard').style.display = 'none';
     }
 
-    if (typeof initDailyGoalWidget === 'function') {
-      initDailyGoalWidget('dashboardGoalWidget', data);
-    }
+    if (typeof initDailyGoalWidget === 'function') initDailyGoalWidget('dashboardGoalWidget', data);
     renderSessionsChart(data.sessions_over_time);
     renderMuscleChart(data.muscle_volume);
+    renderWeeklyComparison(data, prevData);
   }
 
   function onMuscleClick(muscleName) {
@@ -425,11 +475,11 @@
   }
 
   function showSkeleton(skId, canvasId) {
-    const sk = document.getElementById(skId); const cv = document.getElementById(canvasId);
+    const sk = document.getElementById(skId), cv = document.getElementById(canvasId);
     if (sk) sk.classList.remove('hidden'); if (cv) cv.style.display = 'none';
   }
   function hideSkeleton(skId, canvasId) {
-    const sk = document.getElementById(skId); const cv = document.getElementById(canvasId);
+    const sk = document.getElementById(skId), cv = document.getElementById(canvasId);
     if (sk) sk.classList.add('hidden'); if (cv) cv.style.display = '';
   }
 
@@ -457,23 +507,18 @@
           tension: 0.4, fill: true, pointRadius: 4, pointHoverRadius: 6,
           pointBackgroundColor: '#22d3ee', pointBorderColor: 'rgba(3,12,23,0.9)',
           pointBorderWidth: 2, borderWidth: 2,
-        }]
+        }],
       },
       options: {
         responsive: true, maintainAspectRatio: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: '#2d4060', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } },
-          y: { beginAtZero: true, ticks: { color: '#2d4060', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } }
-        }
-      }
+          x: { ticks: { color: '#4a6485', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } },
+          y: { beginAtZero: true, ticks: { color: '#4a6485', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false } },
+        },
+      },
     });
   }
-
-  const PIE_COLORS = [
-    '#22d3ee','#4ade80','#fbbf24','#f87171','#a5b4fc','#67e8f9',
-    '#86efac','#fcd34d','#fca5a5','#c4b5fd','#34d399','#fb923c'
-  ];
 
   function renderMuscleChart(muscleData) {
     const noMsg = document.getElementById('noMuscleMsg');
@@ -484,38 +529,56 @@
     }
     noMsg.style.display = 'none'; canvas.style.display = '';
     if (muscleChart) muscleChart.destroy();
-
-    // Limit to top 8 for readability
-    const topMuscles = muscleData.slice(0, 8);
-
+    const top = muscleData.slice(0, 8);
     muscleChart = new Chart(canvas, {
       type: 'pie',
       data: {
-        labels: topMuscles.map(d => d.muscle),
+        labels: top.map(d => d.muscle),
         datasets: [{
-          data: topMuscles.map(d => d.sets),
-          backgroundColor: PIE_COLORS.slice(0, topMuscles.length),
-          borderWidth: 1.5,
-          borderColor: 'rgba(8,15,30,0.8)',
-          hoverOffset: 6,
-        }]
+          data: top.map(d => d.sets),
+          backgroundColor: PIE_COLORS.slice(0, top.length),
+          borderWidth: 1.5, borderColor: 'rgba(8,15,30,0.8)', hoverOffset: 6,
+        }],
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        layout: { padding: 10 },
+        responsive: true, maintainAspectRatio: true, layout: { padding: 10 },
         plugins: {
           legend: {
             position: 'bottom',
-            labels: {
-              color: '#5a7294', font: { size: 11 }, padding: 12,
-              boxWidth: 10, boxHeight: 10,
-              usePointStyle: true, pointStyle: 'circle',
-            }
-          }
-        }
-      }
+            labels: { color: '#7a92b4', font: { size: 11 }, padding: 12, boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle' },
+          },
+        },
+      },
     });
+  }
+
+  function renderWeeklyComparison(data, prevWeekData) {
+    const el = document.getElementById('weeklyComparePanel');
+    if (!el) return;
+
+    const metrics = [
+      { label: 'Workouts',   curr: data.total_sessions, prev: prevWeekData.total_sessions, color: '#22d3ee' },
+      { label: 'Sets',       curr: data.total_sets,     prev: prevWeekData.total_sets,     color: '#22c55e' },
+      { label: 'Minutes',    curr: data.total_duration, prev: prevWeekData.total_duration, color: '#f59e0b' },
+    ];
+
+    el.innerHTML = metrics.map(m => {
+      const pct   = m.prev ? Math.round(((m.curr - m.prev) / m.prev) * 100) : 0;
+      const delta = m.curr - m.prev;
+      const sign  = delta >= 0 ? '+' : '';
+      const cls   = delta > 0 ? 'trend-up' : delta < 0 ? 'trend-down' : 'trend-flat';
+      return `
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div>
+            <div style="font-size:.72rem;font-weight:700;color:#c8d5e8;">${m.label}</div>
+            <div style="font-size:1rem;font-weight:700;color:${m.color};font-family:'Space Grotesk',sans-serif;">${m.curr}</div>
+          </div>
+          <div class="text-end">
+            <span class="trend-badge ${cls}">${sign}${delta}</span>
+            <div style="font-size:.62rem;color:rgba(255,255,255,.25);margin-top:2px;">vs last period</div>
+          </div>
+        </div>`;
+    }).join('');
   }
 
   reload();

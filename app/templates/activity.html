@@ -2,45 +2,59 @@
 {% block title %}My Activity{% endblock %}
 
 {% block additional_styles %}
-.activity-entry {
+.activity-entry { border-radius: 16px; }
+.activity-entry .card-body { padding: 1rem 1.1rem; }
+.activity-ex-list { max-height: 220px; overflow-y: auto; padding-right: .15rem; }
+.activity-ex-item { border-bottom: 1px solid rgba(255,255,255,0.07); padding: .5rem 0; }
+.activity-ex-item:last-child { border-bottom: none; }
+
+/* Snapshot preview modal */
+.snapshot-preview-card {
+  background: linear-gradient(135deg, #05111f, #091a2e);
+  border: 0.5px solid rgba(34,211,238,0.20);
   border-radius: 16px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
 }
-
-.activity-entry .card-body {
-  padding: 1rem 1.05rem;
+.snapshot-preview-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; width: 160px; height: 3px;
+  background: linear-gradient(90deg, #0891b2, #22d3ee, #4ade80);
+  border-radius: 0 0 3px 0;
 }
-
-.activity-ex-list {
-  max-height: 260px;
-  overflow-y: auto;
-  padding-right: 0.15rem;
+.snapshot-stat-tile {
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255,255,255,0.10);
+  border-radius: 10px;
+  padding: .65rem .85rem;
+  text-align: center;
 }
-
-.activity-ex-item {
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  padding: 0.55rem 0;
+.snapshot-stat-tile .val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.3rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1;
 }
-
-.activity-ex-item:last-child {
-  border-bottom: none;
+.snapshot-stat-tile .lbl {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.09em;
+  color: rgba(255,255,255,0.30); font-weight: 700; margin-top: 3px;
 }
 {% endblock %}
 
 {% block subpage_content %}
 <div class="container-fluid">
 
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h4 class="fw-bold mb-0">My Activity</h4>
-            <p class="text-muted small mb-0">Your completed workouts</p>
-        </div>
-        <div class="col-auto">
-            <a href="/routines" class="btn btn-primary btn-sm">
-                <span class="material-symbols-outlined me-1" style="font-size:1.2rem;vertical-align:middle">add</span>
-                Start Workout
-            </a>
-        </div>
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <h4 class="fw-bold mb-0">My Activity</h4>
+      <p class="text-muted small mb-0">Your completed workouts</p>
     </div>
+    <div class="col-auto">
+      <a href="/routines" class="btn btn-primary btn-sm">
+        <span class="material-symbols-outlined me-1" style="font-size:1.2rem;vertical-align:middle">add</span>
+        Start Workout
+      </a>
+    </div>
+  </div>
 
   {% for message in get_flashed_messages(request) %}
   <div class="alert alert-{{ message.type }} alert-dismissible fade show" role="alert">
@@ -64,76 +78,113 @@
 
 <!-- Edit Notes Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content text-secondary">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Edit Session Notes</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <textarea id="editNotesArea" class="form-control" rows="4"
-                          placeholder="e.g. felt strong today…" style="resize:none;"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveNotes()">Save</button>
-            </div>
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-content text-secondary">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Edit Session Notes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <textarea id="editNotesArea" class="form-control" rows="4"
+                  placeholder="e.g. felt strong today…" style="resize:none;"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveNotes()">Save</button>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Delete Confirm Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content text-secondary">
-            <div class="modal-body text-center py-4">
-                <span class="material-symbols-outlined text-danger" style="font-size:3rem">delete_forever</span>
-                <h6 class="fw-bold mt-2">Delete this workout?</h6>
-                <p class="text-muted small">This removes it from your history permanently.</p>
-                <div class="d-flex gap-2 justify-content-center mt-3">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Delete</button>
-                </div>
-            </div>
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content text-secondary">
+      <div class="modal-body text-center py-4">
+        <span class="material-symbols-outlined text-danger" style="font-size:3rem">delete_forever</span>
+        <h6 class="fw-bold mt-2">Delete this workout?</h6>
+        <p class="text-muted small">This removes it from your history permanently.</p>
+        <div class="d-flex gap-2 justify-content-center mt-3">
+          <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Delete</button>
         </div>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Exercise Detail Modal -->
 <div class="modal fade" id="exDetailModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content text-secondary">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold text-capitalize" id="exDetailName"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img id="exDetailGif" src="" alt="" class="img-fluid rounded mb-3" style="max-height:200px;">
-                <div id="exDetailStats" class="d-flex flex-wrap gap-2 justify-content-center"></div>
-            </div>
-            <div class="modal-footer justify-content-center">
-                <a id="exDetailLink" href="#" class="btn btn-outline-primary btn-sm">View Full Stats</a>
-            </div>
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-content text-secondary">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-capitalize" id="exDetailName"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="exDetailGif" src="" alt="" class="img-fluid rounded mb-3" style="max-height:200px;">
+        <div id="exDetailStats" class="d-flex flex-wrap gap-2 justify-content-center"></div>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <a id="exDetailLink" href="#" class="btn btn-outline-primary btn-sm">View Full Stats</a>
+      </div>
     </div>
+  </div>
 </div>
 
+<!-- Snapshot Preview Modal -->
+<div class="modal fade" id="snapshotModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header pb-2">
+        <h5 class="modal-title fw-bold">Share Workout</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body px-4 pb-2">
+        <!-- Preview card -->
+        <div class="snapshot-preview-card mb-3" id="snapshotPreview">
+          <div class="d-flex align-items-start justify-content-between mb-2">
+            <div>
+              <p style="font-size:.62rem;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.28);margin:0;">WORKOUT REMIXER</p>
+              <p id="spDate" style="font-size:.72rem;color:rgba(255,255,255,.35);margin:0;"></p>
+            </div>
+            <span style="font-size:.72rem;color:rgba(255,255,255,.30);" id="spUser"></span>
+          </div>
+          <h5 id="spName" class="fw-bold mb-2 gradient-text-brand" style="font-size:1.1rem;"></h5>
+          <div class="d-flex gap-2 mb-3" id="spStats"></div>
+          <div id="spExercises" style="font-size:.78rem;color:rgba(255,255,255,.55);line-height:1.7;"></div>
+          <div id="spMuscles" class="d-flex flex-wrap gap-1 mt-2"></div>
+          <p style="font-size:.6rem;color:rgba(255,255,255,.15);margin-top:.75rem;margin-bottom:0;">workout-remixer.app</p>
+        </div>
+        <p class="text-muted" style="font-size:.75rem;">This generates a PNG image you can share anywhere.</p>
+      </div>
+      <div class="modal-footer pt-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary btn-sm" id="snapshotDownloadBtn">
+          <span class="material-symbols-outlined me-1" style="font-size:.9rem;vertical-align:middle">download</span>
+          Download Image
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block subpage_scripts %}
 <script>
+  const CURRENT_USERNAME = '{{ user.username }}';
+
   let offset = 0;
   const LIMIT = 10;
   let hasMore = true;
   let activeSessionId = null;
+  let currentSnapshotEntry = null;
 
   async function loadFeed(reset = false) {
     if (reset) {
       offset = 0; hasMore = true;
       document.getElementById('activityFeed').innerHTML = `
-        <div class="text-center py-5">
-          <div class="spinner-border text-primary"></div>
-        </div>`;
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
     }
     if (!hasMore) return;
     const res = await fetch(`/api/activity/feed?offset=${offset}&limit=${LIMIT}`);
@@ -163,35 +214,34 @@
     const timeStr = dt.toLocaleTimeString('en-TT', { hour:'2-digit', minute:'2-digit' });
     const routineName = e.routine ? e.routine.name : 'Custom Workout';
 
-        const exChips = e.exercises.map(ex => {
-            const exEncoded = encodeURIComponent(JSON.stringify(ex));
-            return `
-            <div class="d-flex align-items-center gap-2 py-2 border-bottom"
-                 role="button" onclick="openExDetailFromEncoded('${exEncoded}')" style="cursor:pointer;">
-                ${ex.gif_url
-                    ? `<img src="${ex.gif_url}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`
-                    : `<div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
-                            style="width:40px;height:40px;background:rgba(255,255,255,0.07);">
-                           <span class="material-symbols-outlined text-muted" style="font-size:1.2rem">fitness_center</span>
-                       </div>`}
-                <div class="overflow-hidden">
-                    <p class="mb-0 fw-semibold text-capitalize text-truncate text-secondary" style="font-size:.82rem;">${ex.name}</p>
-                    <small class="text-muted">
-                        ${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ''}
-                        ${ex.weight_kg ? ` · ${ex.weight_kg} kg` : ''}
-                        ${ex.duration_seconds ? ` · ${ex.duration_seconds}s` : ''}
-                    </small>
-                </div>
-            </div>
-        `;
-        }).join('');
+    const exChips = e.exercises.map(ex => {
+      const exEncoded = encodeURIComponent(JSON.stringify(ex));
+      return `
+      <div class="d-flex align-items-center gap-2 py-2 border-bottom activity-ex-item"
+           role="button" onclick="openExDetailFromEncoded('${exEncoded}')" style="cursor:pointer;">
+        ${ex.gif_url
+          ? `<img src="${ex.gif_url}" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0;" loading="lazy">`
+          : `<div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
+                  style="width:38px;height:38px;background:rgba(255,255,255,0.06);">
+               <span class="material-symbols-outlined text-muted" style="font-size:1.1rem">fitness_center</span>
+             </div>`}
+        <div class="overflow-hidden">
+          <p class="mb-0 fw-semibold text-capitalize text-truncate text-secondary" style="font-size:.8rem;">${ex.name}</p>
+          <small class="text-muted">
+            ${ex.sets && ex.reps ? `${ex.sets}×${ex.reps}` : ''}
+            ${ex.weight_kg ? ` · ${ex.weight_kg} kg` : ''}
+            ${ex.duration_seconds ? ` · ${ex.duration_seconds}s` : ''}
+          </small>
+        </div>
+      </div>`;
+    }).join('');
 
     const muscleHtml = buildMuscleBadges(e.muscle_data || {});
     const notesHtml  = e.notes
       ? `<p class="text-muted small fst-italic mt-2 mb-0">"${escHtml(e.notes)}"</p>` : '';
 
     return `
-    <div class="card shadow-sm mb-4 activity-entry" id="entry-${e.id}">
+    <div class="card shadow-sm mb-3 activity-entry" id="entry-${e.id}">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
           <div>
@@ -199,6 +249,10 @@
             <small class="text-muted">${dateStr} · ${timeStr}</small>
           </div>
           <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" title="Share snapshot"
+                    onclick="openSnapshot(${JSON.stringify(e).replace(/"/g,'&quot;')})">
+              <span class="material-symbols-outlined" style="font-size:.9rem;vertical-align:middle">share</span>
+            </button>
             <button class="btn btn-sm btn-outline-secondary"
                     onclick="window.location.href='/sessions/${e.id}/edit'"
                     title="Edit this workout record">
@@ -228,20 +282,62 @@
         </div>
 
         ${muscleHtml ? `<div class="mb-2">${muscleHtml}</div>` : ''}
-        ${e.exercises.length ? `
-        <div class="activity-ex-list">
-          ${exChips}
-        </div>` : ''}
+        ${e.exercises.length ? `<div class="activity-ex-list">${exChips}</div>` : ''}
         ${notesHtml}
       </div>
     </div>`;
   }
 
-  function openExDetailFromEncoded(encoded) {
-    try { openExDetail(JSON.parse(decodeURIComponent(encoded))); }
-    catch (err) { console.error(err); }
+  /* ── Snapshot ─────────────────────────────── */
+  function openSnapshot(entry) {
+    currentSnapshotEntry = entry;
+    const dt = entry.completed_at ? new Date(entry.completed_at) : new Date(entry.started_at);
+    const dateStr = dt.toLocaleDateString('en-TT', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+    const routineName = entry.routine ? entry.routine.name : 'Workout';
+
+    document.getElementById('spDate').textContent  = dateStr;
+    document.getElementById('spUser').textContent  = CURRENT_USERNAME;
+    document.getElementById('spName').textContent  = routineName;
+
+    // Stats
+    const stats = [
+      { val: (entry.duration_minutes ?? '—') + ' min', lbl: 'Duration',  color: '#22d3ee' },
+      { val: String(entry.total_sets || 0),             lbl: 'Sets',      color: '#22c55e' },
+      { val: entry.total_volume > 0 ? entry.total_volume.toLocaleString() + ' kg' : '—', lbl: 'Volume', color: '#f59e0b' },
+    ];
+    document.getElementById('spStats').innerHTML = stats.map(s => `
+      <div class="snapshot-stat-tile flex-fill">
+        <div class="val" style="color:${s.color};">${s.val}</div>
+        <div class="lbl">${s.lbl}</div>
+      </div>`).join('');
+
+    // Exercises
+    const exList = (entry.exercises || []).slice(0, 5).map(ex => {
+      const meta = [];
+      if (ex.sets && ex.reps) meta.push(`${ex.sets}×${ex.reps}`);
+      if (ex.weight_kg)       meta.push(`${ex.weight_kg} kg`);
+      return `${ex.name.charAt(0).toUpperCase() + ex.name.slice(1)}${meta.length ? ' — ' + meta.join(' · ') : ''}`;
+    }).join('<br>');
+    const moreCount = (entry.exercises || []).length - 5;
+    document.getElementById('spExercises').innerHTML = exList + (moreCount > 0 ? `<br>+ ${moreCount} more` : '');
+
+    // Muscles
+    const muscles = Object.entries(entry.muscle_data || {}).sort((a,b) => b[1]-a[1]).slice(0,6).map(([m]) => m);
+    document.getElementById('spMuscles').innerHTML = muscles.map(m =>
+      `<span class="pill pill-active" style="font-size:.62rem;text-transform:capitalize;">${m}</span>`
+    ).join('');
+
+    // Download button
+    document.getElementById('snapshotDownloadBtn').onclick = () => {
+      if (typeof exportWorkoutSnapshot === 'function') {
+        exportWorkoutSnapshot(currentSnapshotEntry, CURRENT_USERNAME);
+      }
+    };
+
+    new bootstrap.Modal(document.getElementById('snapshotModal')).show();
   }
 
+  /* ── Muscle badges ────────────────────────── */
   const MUSCLE_MAP = {
     "chest":"chest","pectorals":"chest","abs":"abs","abdominals":"abs","core":"abs",
     "obliques":"obliques","biceps":"biceps","brachialis":"biceps","triceps":"triceps",
@@ -249,7 +345,7 @@
     "shoulders":"shoulders","delts":"shoulders","deltoids":"shoulders","traps":"traps",
     "trapezius":"traps","upper back":"upper back","lats":"lats","latissimus dorsi":"lats",
     "lower back":"lower back","glutes":"glutes","hamstrings":"hamstrings","neck":"neck",
-    "adductors":"adductors","tibialis":"tibialis"
+    "adductors":"adductors","tibialis":"tibialis",
   };
 
   function buildMuscleBadges(muscleData) {
@@ -264,6 +360,12 @@
       const cls = v >= 0.66 ? 'pill-error' : v >= 0.33 ? 'pill-progress' : 'pill-muted';
       return `<span class="pill ${cls}" style="margin:0 4px 4px 0;text-transform:capitalize;">${m}</span>`;
     }).join('');
+  }
+
+  /* ── Other modals ─────────────────────────── */
+  function openExDetailFromEncoded(encoded) {
+    try { openExDetail(JSON.parse(decodeURIComponent(encoded))); }
+    catch (err) { console.error(err); }
   }
 
   function openEdit(sessionId, currentNotes) {

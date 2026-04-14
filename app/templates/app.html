@@ -4,79 +4,68 @@
 
 {% block additional_styles %}
 <style>
-  /* Hero grid lines - move to page-level to not conflict with base */
+  /* ── Hero grid overlay ── */
   .home-hero-grid {
     position: absolute; inset: 0; pointer-events: none; z-index: 0;
     background-image:
-      linear-gradient(rgba(34,211,238,0.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(34,211,238,0.035) 1px, transparent 1px);
+      linear-gradient(rgba(34,211,238,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,211,238,0.03) 1px, transparent 1px);
     background-size: 44px 44px;
-    mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 25%, transparent 82%);
+    mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 20%, transparent 80%);
   }
-
   .hero-content { position: relative; z-index: 1; }
 
-  /* Metric mini-cards on hero right side */
-  .hero-metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+  /* ── Hero metric mini cards ── */
+  .hero-metric-row { display: flex; gap: 0.6rem; }
   .hero-metric {
-    background: rgba(255,255,255,0.03);
-    border: 0.5px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    padding: 0.85rem 1rem;
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(255,255,255,0.09);
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem;
     transition: border-color 0.2s, background 0.2s;
     position: relative; overflow: hidden;
   }
-  .hero-metric:hover { border-color: rgba(34,211,238,0.30); background: rgba(34,211,238,0.04); }
   .hero-metric::before {
     content: '';
-    position: absolute; top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent);
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.09), transparent);
   }
+  .hero-metric:hover { border-color: rgba(34,211,238,0.28); background: rgba(34,211,238,0.04); }
   .hero-metric-label {
-    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.10em;
-    color: rgba(255,255,255,0.32); font-weight: 700; display: block; margin-bottom: 0.4rem;
+    font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.10em;
+    color: rgba(255,255,255,0.30); font-weight: 700; display: block; margin-bottom: 0.3rem;
   }
   .hero-metric-value {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.7rem; font-weight: 700; letter-spacing: -0.05em; line-height: 1;
+    font-size: 1.6rem; font-weight: 700; letter-spacing: -0.05em; line-height: 1;
     display: block;
   }
   .hero-metric-value.v-cyan   { background: linear-gradient(135deg,#67e8f9,#22d3ee); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   .hero-metric-value.v-green  { background: linear-gradient(135deg,#4ade80,#22c55e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   .hero-metric-value.v-amber  { background: linear-gradient(135deg,#fbbf24,#f59e0b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-  .hero-metric-value.v-indigo { background: linear-gradient(135deg,#a5b4fc,#6366f1); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .hero-metric-sub { font-size: 0.62rem; color: rgba(255,255,255,0.22); display: block; margin-top: 2px; }
 
-  .hero-metric-wide { grid-column: 1 / -1; }
-  .hero-metric-wide .hero-metric-value { font-size: 1.4rem; }
-  .hero-fire-icon {
-    position: absolute; right: 10px; bottom: 8px;
-    font-size: 1.5rem; opacity: 0.25; color: #f59e0b;
-    font-variation-settings: 'FILL' 1;
-    animation: float 4s ease-in-out infinite;
-  }
-
-  /* Section headers */
+  /* ── Section header ── */
   .section-header {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 1rem;
+    margin-bottom: 0.85rem;
   }
-  .section-header-title {
-    display: flex; align-items: center; gap: 0.5rem;
-  }
+  .section-header-title { display: flex; align-items: center; gap: 0.5rem; }
   .section-icon {
-    width: 28px; height: 28px; border-radius: 8px;
+    width: 26px; height: 26px; border-radius: 7px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .section-icon-cyan   { background: rgba(34,211,238,0.15); color: #67e8f9; }
-  .section-icon-indigo { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+  .section-icon-cyan   { background: rgba(34,211,238,0.14); color: #67e8f9; }
+  .section-icon-indigo { background: rgba(99,102,241,0.14); color: #a5b4fc; }
+  .section-icon-amber  { background: rgba(245,158,11,0.14); color: #fbbf24; }
 
-  /* Calendar styles */
+  /* ── Calendar ── */
   .calendar-day {
-    height: 42px; border-radius: 8px;
+    height: 36px; border-radius: 7px;
     border: 0.5px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);
-    color: var(--text-muted); display: flex; align-items: center; justify-content: center;
-    font-size: 0.82rem; position: relative;
+    color: rgba(255,255,255,0.35); display: flex; align-items: center; justify-content: center;
+    font-size: 0.78rem; position: relative;
     transition: background 0.15s, border-color 0.15s;
   }
   .calendar-day.is-today { border-color: rgba(129,140,248,0.5); color: #c7d2fe; font-weight: 700; }
@@ -85,10 +74,84 @@
     border-color: rgba(251,113,133,0.48); color: #ffe4e6; font-weight: 700;
   }
   .calendar-day-fire {
-    position: absolute; right: 2px; bottom: 1px; font-size: 11px; line-height: 1;
+    position: absolute; right: 2px; bottom: 1px; font-size: 10px; line-height: 1;
     color: #fb7185; font-variation-settings: 'FILL' 1; pointer-events: none;
   }
   .calendar-day.is-empty { background: transparent; border-color: transparent; }
+  .calendar-weekday {
+    text-align: center; font-size: 0.58rem; text-transform: uppercase;
+    letter-spacing: 0.08em; color: rgba(255,255,255,0.20);
+    padding: 3px 0; font-weight: 700;
+  }
+
+  /* ── Daily goal (compact, matches target overview card) ── */
+  .goal-compact-card {
+    background: var(--glass-1);
+    border: 0.5px solid var(--border-1);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .goal-compact-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.35), transparent);
+  }
+  .goal-ring-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .goal-ring-sm {
+    width: 100px; aspect-ratio: 1; border-radius: 50%;
+    padding: 9px; position: relative;
+    --goal-angle: 0deg;
+    --goal-track: rgba(255,255,255,0.06);
+    background: conic-gradient(from 0deg, var(--goal-accent, #22d3ee) 0deg var(--goal-angle), var(--goal-track) var(--goal-angle) 360deg);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.05) inset, 0 8px 24px rgba(0,0,0,0.30);
+  }
+  .goal-ring-sm::before {
+    content: '';
+    position: absolute; inset: 9px; border-radius: 50%;
+    background: #080f1e;
+    border: 0.5px solid rgba(255,255,255,0.06);
+  }
+  .goal-ring-sm-inner {
+    position: relative; z-index: 1;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  .goal-ring-sm-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.55rem; font-weight: 700; letter-spacing: -0.05em; line-height: 1;
+    color: var(--text-primary);
+  }
+  .goal-ring-sm-unit {
+    font-size: 0.58rem; color: rgba(255,255,255,0.30); text-transform: uppercase;
+    letter-spacing: 0.07em; font-weight: 700; margin-top: 2px;
+  }
+  .goal-controls-sm {
+    display: flex; flex-direction: column; gap: 0.45rem; width: 100%;
+  }
+  .goal-control-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;
+  }
+  .goal-ctrl-label {
+    font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em;
+    font-weight: 700; color: rgba(255,255,255,0.25); margin-bottom: 0.15rem; display: block;
+  }
+
+  /* ── Bottom legend ── */
+  .calendar-legend {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.68rem; color: rgba(255,255,255,0.25); margin-top: 0.65rem;
+  }
+  .legend-fire { font-size: 0.9rem; color: #fb7185; font-variation-settings: 'FILL' 1; }
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
@@ -100,158 +163,172 @@
 {% block subpage_content %}
 <div class="container-fluid">
 
-  <!-- ── HERO ── -->
-  <div class="card home-hero mb-4 animate-slide-up">
+  <!-- ══ HERO (compact) ══════════════════════════════════════════════════ -->
+  <div class="card home-hero mb-3 animate-slide-up">
     <div class="home-hero-grid"></div>
-    <div class="card-body p-4 p-lg-5 hero-content">
-      <div class="row g-4 align-items-center">
+    <div class="card-body p-3 p-lg-4 hero-content">
+      <div class="row g-3 align-items-center">
 
         <!-- Left: copy + CTAs -->
-        <div class="col-lg-7">
-          <div class="home-hero-badge">
-            Home base
-          </div>
-          <h4 class="home-hero-title">
+        <div class="col-lg-5">
+          <div class="home-hero-badge mb-2">Home base</div>
+          <h4 class="home-hero-title mb-1" style="font-size:clamp(1.4rem,1rem+1.2vw,2.2rem);">
             <span style="color:#eef2f7;">{{ user.username }},</span><br>
-            <span class="gradient-text-brand">build today</span><br>
-            <span style="color:rgba(238,242,247,0.70);">with intent.</span>
+            <span class="gradient-text-brand">build today</span>
+            <span style="color:rgba(238,242,247,0.60);"> with intent.</span>
           </h4>
-          <p class="home-hero-copy mt-2">
-            Start a routine, check your recent training, or jump back into
-            the next workout without digging through charts.
+          <p style="font-size:0.8rem;color:var(--text-muted);margin:0.4rem 0 0.9rem;max-width:44ch;line-height:1.6;">
+            Start a routine, check your recent training, or jump back into the next workout.
           </p>
-          <div class="home-hero-actions">
-            <a href="/routines" class="btn btn-primary btn-lg px-4">
-              <span class="material-symbols-outlined me-1" style="font-size:1.1rem;vertical-align:middle">play_arrow</span>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="/routines" class="btn btn-primary btn-sm px-3">
+              <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:middle">play_arrow</span>
               Start Routine
             </a>
-            <a href="/exercises" class="btn btn-outline-primary btn-lg px-4">Browse Exercises</a>
-            <a href="/explore"   class="btn btn-outline-secondary btn-lg px-3">Explore</a>
+            <a href="/exercises" class="btn btn-outline-primary btn-sm px-3">Browse Exercises</a>
+            <a href="/explore"   class="btn btn-outline-secondary btn-sm px-3">Explore</a>
           </div>
         </div>
 
-        <!-- Right: stats -->
-        <div class="col-lg-5">
-          <div class="home-hero-card p-3">
-            <div class="hero-metric-grid">
-              <div class="hero-metric stagger-1 animate-slide-up">
-                <span class="hero-metric-label">This week</span>
-                <span class="hero-metric-value v-cyan" id="quickSessions">—</span>
-                <small style="font-size:.68rem;color:rgba(255,255,255,0.25);">workouts</small>
-              </div>
-              <div class="hero-metric stagger-2 animate-slide-up">
-                <span class="hero-metric-label">Total sets</span>
-                <span class="hero-metric-value v-green" id="quickSets">—</span>
-                <small style="font-size:.68rem;color:rgba(255,255,255,0.25);">this week</small>
-              </div>
-              <div class="hero-metric hero-metric-wide stagger-3 animate-slide-up">
-                <span class="hero-metric-label">Minutes trained</span>
-                <span class="hero-metric-value v-amber" id="quickMinutes">—</span>
-                <span class="hero-fire-icon material-symbols-outlined">local_fire_department</span>
-                <small style="font-size:.68rem;color:rgba(255,255,255,0.25);">this week</small>
-              </div>
+        <!-- Right: stat metrics -->
+        <div class="col-lg-7">
+          <div class="hero-metric-row stagger-1 animate-slide-up">
+            <div class="hero-metric">
+              <span class="hero-metric-label">This week</span>
+              <span class="hero-metric-value v-cyan" id="quickSessions">—</span>
+              <span class="hero-metric-sub">workouts</span>
             </div>
-            <p class="home-section-note mt-3 mb-0 text-center">Your next workout is one click away.</p>
-
-            <div class="daily-goal-card mt-3" id="homeGoalWidget" data-goal-storage-key="home-{{ user.id }}">
-              <div class="daily-goal-shell compact">
-                <div class="goal-ring" data-goal-ring>
-                  <div class="goal-ring-inner">
-                    <div class="goal-ring-value" data-goal-value>0</div>
-                    <div class="goal-ring-label" data-goal-label>of 45 min</div>
-                  </div>
-                </div>
-                <div>
-                  <div class="goal-widget-kicker">Daily goal</div>
-                  <h6 class="goal-widget-title mb-0">Clock your training</h6>
-                  <p class="goal-widget-copy mt-2">Pick the metric that matters most today and let the ring fill clockwise.</p>
-                  <div class="goal-controls">
-                    <div class="goal-control">
-                      <label for="homeGoalMetric">Metric</label>
-                      <select id="homeGoalMetric" class="form-select form-select-sm" data-goal-metric>
-                        <option value="minutes">Minutes trained</option>
-                        <option value="sets">Sets completed</option>
-                        <option value="workouts">Workouts finished</option>
-                      </select>
-                    </div>
-                    <div class="goal-control">
-                      <label for="homeGoalTarget">Target</label>
-                      <input id="homeGoalTarget" class="form-control form-control-sm" type="number" min="1" step="1" value="45" data-goal-target>
-                    </div>
-                    <div class="goal-control goal-control-full">
-                      <p class="goal-widget-progress mb-0" data-goal-progress>—</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div class="hero-metric">
+              <span class="hero-metric-label">Total sets</span>
+              <span class="hero-metric-value v-green" id="quickSets">—</span>
+              <span class="hero-metric-sub">this week</span>
+            </div>
+            <div class="hero-metric">
+              <span class="hero-metric-label">Minutes trained</span>
+              <span class="hero-metric-value v-amber" id="quickMinutes">—</span>
+              <span class="hero-metric-sub">this week</span>
             </div>
           </div>
+          <p class="text-center mt-2 mb-0" style="font-size:0.68rem;color:rgba(255,255,255,0.18);">Your next workout is one click away.</p>
         </div>
 
       </div>
     </div>
   </div>
 
-  <!-- ── TWO COLUMN: heatmap + calendar ── -->
-  <div class="row g-4">
+  <!-- ══ BOTTOM ROW: Daily Goal | Heatmap | Calendar ═══════════════════ -->
+  <div class="row g-3">
 
-    <!-- Weekly snapshot -->
-    <div class="col-lg-6 animate-slide-up stagger-2">
+    <!-- Daily Goal -->
+    <div class="col-lg-3 animate-slide-up stagger-2">
+      <div class="goal-compact-card" id="homeGoalWidget" data-goal-storage-key="home-{{ user.id }}">
+        <div class="section-header mb-3">
+          <div class="section-header-title">
+            <div class="section-icon section-icon-amber">
+              <span class="material-symbols-outlined" style="font-size:0.9rem">track_changes</span>
+            </div>
+            <div>
+              <h6 class="section-title mb-0" style="font-size:0.8rem;">Daily Goal</h6>
+              <p class="page-subtitle" style="font-size:0.65rem;">Clock your training</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="goal-ring-wrap">
+          <!-- Ring -->
+          <div class="goal-ring-sm" data-goal-ring>
+            <div class="goal-ring-sm-inner">
+              <div class="goal-ring-sm-value" data-goal-value>0</div>
+              <div class="goal-ring-sm-unit" data-goal-label>of 45 min</div>
+            </div>
+          </div>
+
+          <!-- Progress text -->
+          <p class="text-center mb-1" style="font-size:0.72rem;color:var(--text-muted);" data-goal-progress>—</p>
+
+          <!-- Controls -->
+          <div class="goal-controls-sm">
+            <div class="goal-control-row">
+              <div>
+                <span class="goal-ctrl-label">Metric</span>
+                <select class="form-select form-select-sm" data-goal-metric id="homeGoalMetric"
+                        style="font-size:0.72rem;padding:0.25rem 0.5rem;min-height:30px;">
+                  <option value="minutes">Minutes</option>
+                  <option value="sets">Sets</option>
+                  <option value="workouts">Workouts</option>
+                </select>
+              </div>
+              <div>
+                <span class="goal-ctrl-label">Target</span>
+                <input type="number" class="form-control form-control-sm" min="1" step="1" value="45"
+                       data-goal-target id="homeGoalTarget"
+                       style="font-size:0.72rem;padding:0.25rem 0.5rem;min-height:30px;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly Snapshot (heatmap) -->
+    <div class="col-lg-5 animate-slide-up stagger-3">
       <div class="card shadow-sm p-3 h-100">
         <div class="section-header">
           <div class="section-header-title">
             <div class="section-icon section-icon-cyan">
-              <span class="material-symbols-outlined" style="font-size:1rem">self_improvement</span>
+              <span class="material-symbols-outlined" style="font-size:0.9rem">self_improvement</span>
             </div>
             <div>
-              <h6 class="section-title mb-0">Weekly Snapshot</h6>
-              <p class="page-subtitle">A quick view of your training balance</p>
+              <h6 class="section-title mb-0" style="font-size:0.8rem;">Weekly Snapshot</h6>
+              <p class="page-subtitle" style="font-size:0.65rem;">Training muscle balance</p>
             </div>
           </div>
-          <select id="hmPeriod" class="form-select form-select-sm" style="width:auto;" onchange="reloadHeatmap()">
+          <select id="hmPeriod" class="form-select form-select-sm" style="width:auto;font-size:0.72rem;" onchange="reloadHeatmap()">
             <option value="week"  class="bg-dark">This Week</option>
             <option value="month" class="bg-dark">This Month</option>
             <option value="all"   class="bg-dark">All Time</option>
           </select>
         </div>
-        {{ muscle_heatmap(mode="stats", height="310px") }}
+        {{ muscle_heatmap(mode="stats", height="260px") }}
       </div>
     </div>
 
-    <!-- Workout calendar -->
-    <div class="col-lg-6 animate-slide-up stagger-3">
+    <!-- Workout Calendar -->
+    <div class="col-lg-4 animate-slide-up stagger-4">
       <div class="card shadow-sm h-100">
         <div class="card-body">
-          <div class="section-header mb-3">
+          <div class="section-header mb-2">
             <div class="section-header-title">
               <div class="section-icon section-icon-indigo">
-                <span class="material-symbols-outlined" style="font-size:1rem">calendar_month</span>
+                <span class="material-symbols-outlined" style="font-size:0.9rem">calendar_month</span>
               </div>
               <div>
-                <h6 class="section-title mb-0">Workout Calendar</h6>
-                <p class="page-subtitle">Your training frequency at a glance</p>
+                <h6 class="section-title mb-0" style="font-size:0.8rem;">Workout Calendar</h6>
+                <p class="page-subtitle" style="font-size:0.65rem;">Training frequency</p>
               </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
-              <button class="calendar-nav-btn" id="calendarPrev" type="button" aria-label="Previous month">
-                <span class="material-symbols-outlined" style="font-size:15px;">chevron_left</span>
+            <div class="d-flex align-items-center gap-1">
+              <button class="calendar-nav-btn" id="calendarPrev" type="button" aria-label="Previous">
+                <span class="material-symbols-outlined" style="font-size:13px;">chevron_left</span>
               </button>
-              <span class="calendar-month-label" id="calendarMonthLabel"></span>
-              <button class="calendar-nav-btn" id="calendarNext" type="button" aria-label="Next month">
-                <span class="material-symbols-outlined" style="font-size:15px;">chevron_right</span>
+              <span class="calendar-month-label" id="calendarMonthLabel" style="font-size:0.78rem;"></span>
+              <button class="calendar-nav-btn" id="calendarNext" type="button" aria-label="Next">
+                <span class="material-symbols-outlined" style="font-size:13px;">chevron_right</span>
               </button>
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:6px;">
-            {% for day in ['S','M','T','W','T','F','S'] %}
-            <div style="text-align:center;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-ghost);padding:3px 0;font-weight:700;">{{ day }}</div>
+          <!-- Weekday headers -->
+          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:4px;">
+            {% for d in ['S','M','T','W','T','F','S'] %}
+            <div class="calendar-weekday">{{ d }}</div>
             {% endfor %}
           </div>
-          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;" id="workoutCalendarGrid"></div>
+          <!-- Grid -->
+          <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;" id="workoutCalendarGrid"></div>
 
-          <div class="calendar-legend mt-3">
-            <span class="material-symbols-outlined calendar-fire">local_fire_department</span>
+          <div class="calendar-legend">
+            <span class="material-symbols-outlined legend-fire">local_fire_department</span>
             <span>Workout completed</span>
           </div>
         </div>
@@ -264,6 +341,7 @@
 
 {% block subpage_scripts %}
 <script>
+  // ── Heatmap ───────────────────────────────────
   async function reloadHeatmap() {
     const period = document.getElementById('hmPeriod').value;
     const res  = await fetch(`/api/dashboard/heatmap?period=${period}`);
@@ -272,12 +350,13 @@
   }
   function onMuscleClick(m) { window.location.href = `/dashboard/muscle/${encodeURIComponent(m)}`; }
 
+  // ── Stats + Goal ──────────────────────────────
   async function loadQuickStats() {
     const res  = await fetch('/api/dashboard/stats?period=week');
     const data = await res.json();
-    animateNumber('quickSessions', data.total_sessions);
-    animateNumber('quickSets',     data.total_sets);
-    animateNumber('quickMinutes',  data.total_duration);
+    animateNumber('quickSessions', data.total_sessions || 0);
+    animateNumber('quickSets',     data.total_sets     || 0);
+    animateNumber('quickMinutes',  data.total_duration || 0);
     if (typeof initDailyGoalWidget === 'function') {
       initDailyGoalWidget('homeGoalWidget', data);
     }
@@ -286,24 +365,23 @@
   function animateNumber(id, target) {
     const el = document.getElementById(id);
     if (!el) return;
-    const start = 0;
     const duration = 900;
     const startTime = performance.now();
     function update(now) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 3);
-      el.textContent = Math.round(start + (target - start) * ease);
-      if (progress < 1) requestAnimationFrame(update);
+      const p    = Math.min((now - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * ease);
+      if (p < 1) requestAnimationFrame(update);
     }
     requestAnimationFrame(update);
   }
 
+  // ── Calendar ──────────────────────────────────
   const workoutDateMap = new Map();
   let calendarDate = new Date();
 
   function toIsoDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-  function formatMonthLabel(d) { return new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric'}).format(d); }
+  function formatMonthLabel(d) { return new Intl.DateTimeFormat('en-US',{month:'short',year:'numeric'}).format(d); }
 
   function renderCalendar() {
     const grid  = document.getElementById('workoutCalendarGrid');
@@ -331,7 +409,6 @@
         cell.title = `${info.sessions} workout${info.sessions>1?'s':''} · ${info.minutes} min`;
         const m = document.createElement('span');
         m.className = 'material-symbols-outlined calendar-day-fire';
-        m.style.fontVariationSettings = "'FILL' 1";
         m.textContent = 'local_fire_department';
         cell.appendChild(m);
       }
@@ -347,7 +424,7 @@
       if (!Array.isArray(entries) || !entries.length) break;
       entries.forEach(e => {
         if (!e.completed_at) return;
-        const iso = String(e.completed_at).slice(0,10);
+        const iso  = String(e.completed_at).slice(0,10);
         const prev = workoutDateMap.get(iso) || {sessions:0,minutes:0};
         prev.sessions += 1; prev.minutes += Number(e.duration_minutes||0);
         workoutDateMap.set(iso, prev);
