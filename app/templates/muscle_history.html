@@ -6,206 +6,272 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
 
+{% block additional_styles %}
+<style>
+  /* section icon helpers */
+  .section-icon { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .si-cyan   { background: rgba(34,211,238,0.15); color: #67e8f9; }
+  .si-indigo { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+  /* chart empty */
+  .chart-empty { display: flex; flex-direction: column; align-items: center; justify-content: center;
+                 padding: 2rem; color: rgba(255,255,255,0.25); font-size: 0.8rem; text-align: center; min-height: 120px; }
+  .chart-empty .material-symbols-outlined { font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem; }
+  /* canvas constraint */
+  .sessions-canvas-wrap { position: relative; max-height: 160px; }
+  .sessions-canvas-wrap canvas { max-height: 160px !important; }
+</style>
+{% endblock %}
+
 {% block subpage_content %}
 <div class="container-fluid">
 
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <a href="/dashboard" class="text-muted text-decoration-none small">
-                <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">arrow_back</span>
-                Dashboard
-            </a>
-            <h4 class="fw-bold mt-1 mb-0 text-capitalize">{{ muscle_name }} History</h4>
-        </div>
-        <div class="col-auto">
-            <select id="periodFilter" class="form-select form-select-sm" onchange="loadHistory()">
-                <option value="day" {% if period=='day' %}selected{% endif %}>Today</option>
-                <option value="week" {% if period=='week' %}selected{% endif %}>This Week</option>
-                <option value="month" {% if period=='month' %}selected{% endif %}>This Month</option>
-                <option value="6months" {% if period=='6months' %}selected{% endif %}>Last 6 Months</option>
-                <option value="year" {% if period=='year' %}selected{% endif %}>This Year</option>
-                <option value="all" {% if period=='all' %}selected{% endif %}>All Time</option>
-            </select>
-        </div>
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <a href="/dashboard" class="text-muted text-decoration-none small">
+        <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">arrow_back</span>
+        Dashboard
+      </a>
+      <h4 class="page-title mt-1 mb-0 text-capitalize">{{ muscle_name }} History</h4>
+    </div>
+    <div class="col-auto">
+      <!-- Segmented button group — replaces <select> -->
+      <div class="chart-period-group" id="periodTabGroup">
+        <button class="chart-period {% if period=='week' %}active{% endif %}"    onclick="setPeriodBtn('week',this)">Week</button>
+        <button class="chart-period {% if period=='month' %}active{% endif %}"   onclick="setPeriodBtn('month',this)">Month</button>
+        <button class="chart-period {% if period=='6months' %}active{% endif %}" onclick="setPeriodBtn('6months',this)">6M</button>
+        <button class="chart-period {% if period=='year' %}active{% endif %}"    onclick="setPeriodBtn('year',this)">Year</button>
+        <button class="chart-period {% if period=='all' %}active{% endif %}"     onclick="setPeriodBtn('all',this)">All</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Heatmap — no legend -->
+    <div class="col-lg-3">
+      <div class="card p-3">
+        <h6 class="section-title mb-3">Muscle Map</h6>
+        {{ muscle_heatmap(mode="stats", height="300px", show_legend=False) }}
+      </div>
     </div>
 
-    <div class="row g-4">
-        <!-- Heatmap highlighting this muscle -->
-        <div class="col-lg-3">
-            <div class="card shadow-sm p-3">
-                <h6 class="fw-semibold mb-2">Muscle Map</h6>
-                {{ muscle_heatmap(mode="stats", height="300px") }}
-            </div>
+    <div class="col-lg-9">
+      <!-- Stat cards with gradient numbers -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+          <div class="card stat-card tint-cyan">
+            <div class="stat-number" id="statSets">—</div>
+            <div class="stat-label">Total Sets</div>
+          </div>
         </div>
-
-        <div class="col-lg-9">
-            <!-- Summary -->
-            <div class="row g-3 mb-4">
-                <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="statSets">—</h2>
-                        <small class="text-muted">Total Sets</small>
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="statExercises">—</h2>
-                        <small class="text-muted">Exercises Used</small>
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="card shadow-sm text-center p-3">
-                        <h2 class="fw-bold mb-0" id="statBest">—</h2>
-                        <small class="text-muted">Best Weight (kg)</small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Weight over time -->
-            <div class="card shadow-sm p-3 mb-4">
-                <h6 class="fw-semibold mb-2">Volume Over Time</h6>
-                <canvas id="volumeChart" height="110"></canvas>
-                <p id="noChartMsg" class="text-muted text-center small mt-2" style="display:none;">No data for this period.</p>
-            </div>
-
-            <!-- Exercise breakdown -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header fw-semibold">Exercises Performed</div>
-                <div class="card-body p-0">
-                    <div id="exerciseList" class="p-3 text-muted small">Loading...</div>
-                </div>
-            </div>
-
-            <!-- History table -->
-            <div class="card shadow-sm">
-                <div class="card-header fw-semibold">Full History</div>
-                <div class="card-body p-0">
-                    <div id="historyTable">
-                        <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-                    </div>
-                </div>
-            </div>
+        <div class="col-sm-4">
+          <div class="card stat-card tint-green">
+            <div class="stat-number" id="statExercises">—</div>
+            <div class="stat-label">Exercises Used</div>
+          </div>
         </div>
+        <div class="col-sm-4">
+          <div class="card stat-card tint-amber">
+            <div class="stat-number" id="statBest">—</div>
+            <div class="stat-label">Best Weight kg</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Volume chart — modern gradient line -->
+      <div class="card chart-card mb-4">
+        <div class="chart-card-header">
+          <div>
+            <p class="chart-title">Volume Over Time</p>
+            <p class="chart-subtitle">Sets per session</p>
+          </div>
+        </div>
+        <div class="chart-body">
+          <div class="sessions-canvas-wrap">
+            <canvas id="volumeChart" height="110"></canvas>
+          </div>
+          <p id="noChartMsg" class="chart-empty" style="display:none;">
+            <span class="material-symbols-outlined">bar_chart</span>
+            No data for this period.
+          </p>
+        </div>
+      </div>
+
+      <!-- Exercises Performed -->
+      <div class="card mb-4">
+        <div class="card-header d-flex align-items-center gap-2" style="padding:.85rem 1.2rem;">
+          <div class="section-icon si-cyan"><span class="material-symbols-outlined" style="font-size:1rem">fitness_center</span></div>
+          <span class="section-title" style="color:var(--text-primary);">Exercises Performed</span>
+        </div>
+        <div class="card-body p-3">
+          <div id="exerciseList" class="text-muted small">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Full History table -->
+      <div class="card">
+        <div class="card-header d-flex align-items-center gap-2" style="padding:.85rem 1.2rem;">
+          <div class="section-icon si-indigo"><span class="material-symbols-outlined" style="font-size:1rem">history</span></div>
+          <span class="section-title" style="color:var(--text-primary);">Full History</span>
+        </div>
+        <div class="card-body p-0">
+          <div id="historyTable">
+            <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
 </div>
 {% endblock %}
 
 {% block subpage_scripts %}
 <script>
-    const muscleName = "{{ muscle_name }}";
-    let volumeChart = null;
+  const muscleName = "{{ muscle_name }}";
+  let volumeChart  = null;
+  let currentPeriod = "{{ period }}";
 
-    async function loadHistory() {
-        const period = document.getElementById('periodFilter').value;
-        const res = await fetch(`/api/dashboard/muscle/${encodeURIComponent(muscleName)}/history?period=${period}`);
-        const data = await res.json();
-
-        document.getElementById('statSets').textContent = data.total_sets;
-        document.getElementById('statExercises').textContent = data.exercises.length;
-
-        const best = data.entries.filter(e => e.weight_kg).sort((a,b) => b.weight_kg - a.weight_kg)[0];
-        document.getElementById('statBest').textContent = best ? best.weight_kg + ' kg' : '—';
-
-        renderVolumeChart(data.entries);
-        renderExerciseList(data.exercises);
-        renderHistoryTable(data.entries);
-
-        // Highlight muscle on heatmap
-        setActiveMuscle(muscleName);
+  // Ensure at least one button is active on load
+  document.addEventListener('DOMContentLoaded', () => {
+    const group = document.getElementById('periodTabGroup');
+    if (group && !group.querySelector('.active')) {
+      const first = group.querySelector('.chart-period');
+      if (first) first.classList.add('active');
     }
+  });
 
-    function renderVolumeChart(entries) {
-        const canvas = document.getElementById('volumeChart');
-        const noMsg = document.getElementById('noChartMsg');
-        if (!entries.length) {
-            noMsg.style.display = ''; canvas.style.display = 'none';
-            if (volumeChart) { volumeChart.destroy(); volumeChart = null; }
-            return;
-        }
-        noMsg.style.display = 'none'; canvas.style.display = '';
-
-        // Group sets by date
-        const grouped = {};
-        entries.forEach(e => grouped[e.date] = (grouped[e.date] || 0) + (e.sets || 0));
-        const labels = Object.keys(grouped).sort();
-
-        if (volumeChart) volumeChart.destroy();
-        volumeChart = new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [{ label: 'Sets', data: labels.map(l => grouped[l]),
-                    backgroundColor: 'rgba(13,110,253,0.7)', borderRadius: 4 }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false,
-                        labels: { color: '#94a3b8' }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#64748b' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: { color: '#64748b' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    }
-                }
-            }
-        });
-    }
-
-    function renderExerciseList(exercises) {
-        const el = document.getElementById('exerciseList');
-        if (!exercises.length) { el.textContent = 'No exercises found for this muscle.'; return; }
-        el.innerHTML = exercises.map(e =>
-            `<a href="/exercises/${e.exercise_id}" class="badge bg-primary me-1 mb-1 text-capitalize text-decoration-none"
-                style="font-size:0.8rem;padding:6px 10px;">${e.name}</a>`
-        ).join('');
-    }
-
-    function renderHistoryTable(entries) {
-        const el = document.getElementById('historyTable');
-        if (!entries.length) {
-            el.innerHTML = '<div class="text-center py-4 text-muted">No history for this period.</div>';
-            return;
-        }
-        el.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr><th>Date</th><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Notes</th></tr>
-                    </thead>
-                    <tbody>
-                        ${entries.map(e => `
-                            <tr>
-                                <td>${e.date}</td>
-                                <td class="text-capitalize">
-                                    <a href="/exercises/${e.exercise_db_id}" class="text-decoration-none">${e.exercise_name}</a>
-                                </td>
-                                <td>${e.sets ?? '—'}</td>
-                                <td>${e.reps ?? '—'}</td>
-                                <td>${e.weight_kg ? e.weight_kg + ' kg' : '—'}</td>
-                                <td class="text-muted small">${e.notes || '—'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>`;
-    }
-
-    // onMuscleClick navigates to that muscle's page
-    function onMuscleClick(m) {
-        const period = document.getElementById('periodFilter').value;
-        window.location.href = `/dashboard/muscle/${encodeURIComponent(m)}?period=${period}`;
-    }
-
+  function setPeriodBtn(period, btn) {
+    currentPeriod = period;
+    document.querySelectorAll('#periodTabGroup .chart-period').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
     loadHistory();
+  }
+
+  async function loadHistory() {
+    const res  = await fetch(`/api/dashboard/muscle/${encodeURIComponent(muscleName)}/history?period=${currentPeriod}`);
+    const data = await res.json();
+
+    animateNum('statSets', data.total_sets);
+    animateNum('statExercises', data.exercises.length);
+    const best = data.entries.filter(e => e.weight_kg).sort((a,b) => b.weight_kg - a.weight_kg)[0];
+    document.getElementById('statBest').textContent = best ? best.weight_kg + ' kg' : '—';
+
+    renderVolumeChart(data.entries);
+    renderExerciseList(data.exercises);
+    renderHistoryTable(data.entries);
+    setActiveMuscle(muscleName);
+  }
+
+  function animateNum(id, target) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const start = performance.now(), dur = 700;
+    (function tick(now) {
+      const p = Math.min((now - start) / dur, 1);
+      el.textContent = Math.round(target * (1 - Math.pow(1-p, 3)));
+      if (p < 1) requestAnimationFrame(tick);
+    })(performance.now());
+  }
+
+  function renderVolumeChart(entries) {
+    const canvas = document.getElementById('volumeChart');
+    const noMsg  = document.getElementById('noChartMsg');
+    if (!entries.length) {
+      noMsg.style.display = ''; canvas.style.display = 'none';
+      if (volumeChart) { volumeChart.destroy(); volumeChart = null; }
+      return;
+    }
+    noMsg.style.display = 'none'; canvas.style.display = '';
+    const grouped = {};
+    entries.forEach(e => grouped[e.date] = (grouped[e.date] || 0) + (e.sets || 0));
+    const labels = Object.keys(grouped).sort();
+    if (volumeChart) volumeChart.destroy();
+    volumeChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Sets',
+          data: labels.map(l => grouped[l]),
+          borderColor: '#22d3ee',
+          backgroundColor: (ctx) => {
+            const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+            gradient.addColorStop(0, 'rgba(34,211,238,0.25)');
+            gradient.addColorStop(1, 'rgba(34,211,238,0.00)');
+            return gradient;
+          },
+          tension: 0.4, fill: true,
+          pointRadius: 4, pointHoverRadius: 7,
+          pointBackgroundColor: '#22d3ee',
+          pointBorderColor: 'rgba(8,15,30,0.9)', pointBorderWidth: 2,
+          borderWidth: 2.5,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(8,15,30,0.95)',
+            borderColor: 'rgba(34,211,238,0.3)', borderWidth: 1,
+            titleColor: '#c8d5e8', bodyColor: '#22d3ee',
+            padding: 10, cornerRadius: 8,
+          },
+        },
+        scales: {
+          x: { ticks: { color:'#4a6485', font:{size:10} }, grid: { color:'rgba(255,255,255,0.03)' }, border:{display:false} },
+          y: { beginAtZero: true, ticks: { color:'#4a6485', font:{size:10} }, grid: { color:'rgba(255,255,255,0.03)' }, border:{display:false} },
+        },
+      },
+    });
+  }
+
+  function renderExerciseList(exercises) {
+    const el = document.getElementById('exerciseList');
+    if (!exercises.length) {
+      el.innerHTML = '<span class="text-muted small">No exercises found for this muscle in this period.</span>';
+      return;
+    }
+    el.innerHTML = exercises.map(e =>
+      `<a href="/exercises/${e.exercise_id}"
+          class="badge me-1 mb-1 text-capitalize text-decoration-none"
+          style="font-size:.8rem;padding:6px 12px;background:rgba(34,211,238,0.14);color:#67e8f9;border:0.5px solid rgba(34,211,238,0.28);border-radius:8px;">${e.name}</a>`
+    ).join('');
+  }
+
+  function renderHistoryTable(entries) {
+    const el = document.getElementById('historyTable');
+    if (!entries.length) {
+      el.innerHTML = '<div class="chart-empty"><span class="material-symbols-outlined">fitness_center</span><p>No history for this period.</p></div>';
+      return;
+    }
+    el.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead><tr>
+            <th>Date</th><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Notes</th>
+          </tr></thead>
+          <tbody>${entries.map(e => `
+            <tr>
+              <td>${e.date}</td>
+              <td class="text-capitalize">
+                <a href="/exercises/${e.exercise_db_id}" class="text-decoration-none" style="color:var(--accent-cyan-lt);">${e.exercise_name}</a>
+              </td>
+              <td>${e.sets ?? '—'}</td>
+              <td>${e.reps ?? '—'}</td>
+              <td style="color:var(--text-primary);font-weight:600;">${e.weight_kg ? e.weight_kg + ' kg' : '—'}</td>
+              <td class="text-muted small">${e.notes || '—'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  function onMuscleClick(m) {
+    window.location.href = `/dashboard/muscle/${encodeURIComponent(m)}?period=${currentPeriod}`;
+  }
+
+  loadHistory();
 </script>
 {% endblock %}

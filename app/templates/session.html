@@ -964,6 +964,26 @@ function submitAddExerciseToSession() {
   document.getElementById('addExerciseForm').submit();
 }
 
+// Track this session so the sidebar banner persists across navigation
+(function initSessionTracking() {
+  const startedAt   = "{{ session.started_at.isoformat() }}";
+  const routineName = "{{ routine.name | replace('"', '\\"') | replace("'", "\\'") }}";
+  if (typeof trackActiveSession === 'function') {
+    trackActiveSession({
+      id: SESSION_ID,
+      routineId: {{ session.routine_id }},
+      routineName: routineName,
+      startedAt: startedAt,
+    });
+  }
+})();
+
+// Clear tracking when workout is completed
+document.querySelector('form[action="/api/sessions/{{ session.id }}/complete"]')
+  ?.addEventListener('submit', () => {
+    if (typeof clearActiveSession === 'function') clearActiveSession();
+  });
+
 init();
 </script>
 {% endblock %}

@@ -38,6 +38,10 @@
   font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.09em;
   color: rgba(255,255,255,0.30); font-weight: 700; margin-top: 3px;
 }
+.activity-entry { border-left: 3px solid rgba(34,211,238,0.45) !important; border-radius:16px !important; }
+.activity-entry:hover { border-left-color: rgba(34,211,238,0.75) !important; }
+.activity-ex-item { border-bottom: 1px solid rgba(255,255,255,0.06); padding: .55rem 0; transition: background 0.12s; }
+.activity-ex-item:hover { background: rgba(255,255,255,0.03); border-radius:8px; }
 {% endblock %}
 
 {% block subpage_content %}
@@ -192,9 +196,36 @@
     if (reset) document.getElementById('activityFeed').innerHTML = '';
     if (!entries.length && offset === 0) {
       document.getElementById('activityFeed').innerHTML = `
-        <div class="text-center py-5 text-muted">
-          <span class="material-symbols-outlined" style="font-size:3rem;opacity:.4;">fitness_center</span>
-          <p class="mt-2">No completed workouts yet. <a href="/routines">Start one!</a></p>
+        <div class="animate-slide-up" style="max-width:480px;margin:3rem auto;text-align:center;">
+          <div style="width:80px;height:80px;border-radius:22px;margin:0 auto 1.25rem;
+                      background:linear-gradient(135deg,rgba(34,211,238,0.14),rgba(34,197,94,0.08));
+                      border:0.5px solid rgba(34,211,238,0.25);
+                      display:flex;align-items:center;justify-content:center;
+                      box-shadow:0 0 32px rgba(34,211,238,0.10);animation:emptyFloat 4s ease-in-out infinite;">
+            <span class="material-symbols-outlined" style="font-size:2.5rem;color:#67e8f9;font-variation-settings:'FILL' 1;">fitness_center</span>
+          </div>
+          <h5 style="font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;margin-bottom:.5rem;">
+            No workouts logged yet
+          </h5>
+          <p style="color:var(--text-muted);font-size:.875rem;line-height:1.7;max-width:36ch;margin:0 auto 1.5rem;">
+            Your completed sessions will appear here. Start a routine and finish it to see your first entry.
+          </p>
+          <div class="d-flex gap-2 justify-content-center">
+            <a href="/routines" class="btn btn-primary btn-sm px-4">Start a Workout</a>
+            <a href="/exercises" class="btn btn-outline-secondary btn-sm px-4">Browse Exercises</a>
+          </div>
+          <div style="margin-top:2rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;text-align:left;">
+            ${[
+              {icon:'timer',    color:'#22d3ee', title:'Track Duration',  sub:'Every session is timed automatically'},
+              {icon:'bar_chart',color:'#22c55e', title:'See Progress',    sub:'Volume and sets logged per workout'},
+              {icon:'share',    color:'#f59e0b', title:'Share & Export',  sub:'Generate a shareable workout card'},
+            ].map(c=>`
+              <div style="padding:.75rem;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.07);border-radius:12px;">
+                <span class="material-symbols-outlined" style="font-size:1.3rem;color:${c.color};display:block;margin-bottom:.3rem;font-variation-settings:'FILL' 1;">${c.icon}</span>
+                <p style="font-size:.75rem;font-weight:700;color:var(--text-secondary);margin:0 0 .15rem;">${c.title}</p>
+                <p style="font-size:.68rem;color:var(--text-muted);margin:0;line-height:1.4;">${c.sub}</p>
+              </div>`).join('')}
+          </div>
         </div>`;
       document.getElementById('loadMoreWrap').style.display = 'none';
       return;
@@ -242,10 +273,10 @@
 
     return `
     <div class="card shadow-sm mb-3 activity-entry" id="entry-${e.id}">
-      <div class="card-body">
+      <div class="card-body" style="padding:1rem 1.1rem 0.9rem;">
         <div class="d-flex justify-content-between align-items-start mb-2">
           <div>
-            <h6 class="fw-bold mb-0">${escHtml(routineName)}</h6>
+            <h6 class="fw-bold mb-0" style="color:var(--text-primary);font-size:.92rem;">${escHtml(routineName)}</h6>
             <small class="text-muted">${dateStr} · ${timeStr}</small>
           </div>
           <div class="d-flex gap-1">
@@ -265,16 +296,16 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2 mb-3 mt-1">
-          <span class="pill pill-active">
+          <span class="pill pill-active" style="font-size:.72rem;padding:4px 10px;">
             <span class="material-symbols-outlined me-1" style="font-size:.75rem;vertical-align:middle">schedule</span>
             ${e.duration_minutes ?? '—'} min
           </span>
-          <span class="pill pill-complete">
+          <span class="pill pill-complete" style="font-size:.72rem;padding:4px 10px;">
             <span class="material-symbols-outlined me-1" style="font-size:.75rem;vertical-align:middle">fitness_center</span>
             ${e.total_sets} sets
           </span>
           ${e.total_volume > 0
-            ? `<span class="pill pill-progress">
+            ? `<span class="pill pill-progress" style="font-size:.72rem;padding:4px 10px;">
                  <span class="material-symbols-outlined me-1" style="font-size:.75rem;vertical-align:middle">monitor_weight</span>
                  ${e.total_volume.toLocaleString()} kg
                </span>`

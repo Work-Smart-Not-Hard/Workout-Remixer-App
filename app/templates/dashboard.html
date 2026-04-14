@@ -71,6 +71,8 @@
     font-size: 0.65rem; font-weight: 700; padding: 2px 7px;
     border-radius: 99px;
   }
+  /* Weekly comparison — animated bars */
+  #weeklyComparePanel .trend-badge { font-size: 0.6rem; padding: 1px 6px; }
   .trend-up   { background: rgba(34,197,94,0.14);  color: #4ade80; border: 0.5px solid rgba(34,197,94,0.28); }
   .trend-down { background: rgba(239,68,68,0.14);  color: #f87171; border: 0.5px solid rgba(239,68,68,0.28); }
   .trend-flat { background: rgba(100,116,139,0.14); color: #94a3b8; border: 0.5px solid rgba(100,116,139,0.22); }
@@ -557,27 +559,44 @@
     if (!el) return;
 
     const metrics = [
-      { label: 'Workouts',   curr: data.total_sessions, prev: prevWeekData.total_sessions, color: '#22d3ee' },
-      { label: 'Sets',       curr: data.total_sets,     prev: prevWeekData.total_sets,     color: '#22c55e' },
-      { label: 'Minutes',    curr: data.total_duration, prev: prevWeekData.total_duration, color: '#f59e0b' },
+      { label:'Workouts', curr:data.total_sessions, prev:prevWeekData.total_sessions, color:'#22d3ee', grad:'linear-gradient(90deg,#0891b2,#22d3ee)' },
+      { label:'Sets',     curr:data.total_sets,     prev:prevWeekData.total_sets,     color:'#22c55e', grad:'linear-gradient(90deg,#16a34a,#4ade80)' },
+      { label:'Minutes',  curr:data.total_duration, prev:prevWeekData.total_duration, color:'#f59e0b', grad:'linear-gradient(90deg,#b45309,#fbbf24)' },
     ];
 
+    // compute bar widths relative to the max across current + prev
+    const maxVal = Math.max(1, ...metrics.flatMap(m => [m.curr, m.prev]));
+
     el.innerHTML = metrics.map(m => {
-      const pct   = m.prev ? Math.round(((m.curr - m.prev) / m.prev) * 100) : 0;
-      const delta = m.curr - m.prev;
-      const sign  = delta >= 0 ? '+' : '';
-      const cls   = delta > 0 ? 'trend-up' : delta < 0 ? 'trend-down' : 'trend-flat';
+      const delta   = m.curr - m.prev;
+      const sign    = delta >= 0 ? '+' : '';
+      const pct     = m.prev ? Math.round(((m.curr - m.prev) / m.prev) * 100) : (m.curr > 0 ? 100 : 0);
+      const cls     = delta > 0 ? 'trend-up' : delta < 0 ? 'trend-down' : 'trend-flat';
+      const currW   = Math.round((m.curr / maxVal) * 100);
+      const prevW   = Math.round((m.prev / maxVal) * 100);
+
       return `
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <div>
-            <div style="font-size:.72rem;font-weight:700;color:#c8d5e8;">${m.label}</div>
-            <div style="font-size:1rem;font-weight:700;color:${m.color};font-family:'Space Grotesk',sans-serif;">${m.curr}</div>
-          </div>
-          <div class="text-end">
-            <span class="trend-badge ${cls}">${sign}${delta}</span>
-            <div style="font-size:.62rem;color:rgba(255,255,255,.25);margin-top:2px;">vs last period</div>
-          </div>
-        </div>`;
+    <div class="mb-3">
+      <div class="d-flex align-items-baseline justify-content-between mb-1">
+        <span style="font-size:.72rem;font-weight:700;color:#c8d5e8;letter-spacing:.02em;">${m.label}</span>
+        <div class="d-flex align-items-center gap-2">
+          <span style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;color:${m.color};">${m.curr.toLocaleString()}</span>
+          <span class="trend-badge ${cls}">${sign}${delta}</span>
+        </div>
+      </div>
+      <!-- Current period bar -->
+      <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;margin-bottom:3px;">
+        <div style="height:100%;width:${currW}%;background:${m.grad};border-radius:99px;transition:width 0.6s ease;box-shadow:0 0 8px ${m.color}44;"></div>
+      </div>
+      <!-- Previous period bar (dimmed) -->
+      <div style="height:4px;background:rgba(255,255,255,0.04);border-radius:99px;overflow:hidden;">
+        <div style="height:100%;width:${prevW}%;background:rgba(255,255,255,0.14);border-radius:99px;transition:width 0.6s ease;"></div>
+      </div>
+      <div style="font-size:.6rem;color:rgba(255,255,255,.22);margin-top:2px;display:flex;justify-content:space-between;">
+        <span>This period</span>
+        <span>${m.prev.toLocaleString()} last period${pct !== 0 ? ' · ' + (pct > 0 ? '+':'') + pct + '%' : ''}</span>
+      </div>
+    </div>`;
     }).join('');
   }
 

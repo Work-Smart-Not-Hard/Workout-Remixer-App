@@ -399,6 +399,8 @@
 {% block subpage_scripts %}
 <script>
   let offset = 0, hasMore = true, LIMIT = 20;
+  // Track muted users client-side during session
+  const mutedUserIds = new Set();
   let loadingProfile = false;
 
   // ── Load stats ──
@@ -516,7 +518,9 @@
     }
 
     const muteBtn = p.author.id !== {{ user.id }}
-      ? `<button class="react-btn" onclick="toggleMute(${p.author.id}, this)" style="color:var(--text-ghost);">
+      ? `<button class="react-btn" data-mute-uid="${p.author.id}"
+                 onclick="toggleMute(${p.author.id}, this)"
+                 style="color:var(--text-ghost);" title="Mute user">
            <span class="material-symbols-outlined" style="font-size:.8rem;">block</span>
            Mute
          </button>` : '';
@@ -568,8 +572,19 @@
 
   // ── Mute ──
   async function toggleMute(userId, btn) {
-    const res  = await fetch(`/api/explore/mute/${userId}`, { method: 'POST' });
+    const res  = await fetch(`/api/explore/mute/${userId}`, { method:'POST' });
     const data = await res.json();
+    if (data.muted) {
+      mutedUserIds.add(userId);
+    } else {
+      mutedUserIds.delete(userId);
+    }
+    // Update ALL buttons targeting this user across feed + modal
+    document.querySelectorAll(`[data-mute-uid="${userId}"]`).forEach(el => {
+      el.textContent = data.muted ? 'Unmute' : 'Mute';
+      el.title = data.muted ? 'Unmute user' : 'Mute user';
+    });
+    // Reload feed: muting hides posts, unmuting shows them
     loadFeed(true);
   }
 
@@ -641,8 +656,14 @@
 
     const isOwn = userId === {{ user.id }};
     document.getElementById('profileModalFooter').innerHTML = `
-      ${!isOwn ? `<button class="btn btn-outline-secondary btn-sm" onclick="toggleMute(${userId}, this)">Mute User</button>` : ''}
-      <a href="/users/${userId}/profile" class="btn btn-outline-primary btn-sm ms-auto">Full Profile</a>`;
+      ${!isOwn
+        ? `<button class="btn btn-outline-secondary btn-sm" id="modalMuteBtn_${u.id}"
+                  onclick="toggleMute(${u.id}, this)"
+                  data-mute-uid="${u.id}">
+             ${data.is_muted ? 'Unmute' : 'Mute'} User
+           </button>`
+        : ''}
+      <a href="/users/${u.id}/profile" class="btn btn-outline-primary btn-sm ms-auto">Full Profile</a>`;
   }
 
   function showTab(tabId, btn) {

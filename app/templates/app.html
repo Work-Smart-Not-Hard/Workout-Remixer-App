@@ -4,7 +4,7 @@
 
 {% block additional_styles %}
 <style>
-  /* ── Hero grid overlay ── */
+  /* Hero grid overlay */
   .home-hero-grid {
     position: absolute; inset: 0; pointer-events: none; z-index: 0;
     background-image:
@@ -15,7 +15,7 @@
   }
   .hero-content { position: relative; z-index: 1; }
 
-  /* ── Hero metric mini cards ── */
+  /* Hero metric mini cards */
   .hero-metric-row { display: flex; gap: 0.6rem; }
   .hero-metric {
     flex: 1;
@@ -46,7 +46,7 @@
   .hero-metric-value.v-amber  { background: linear-gradient(135deg,#fbbf24,#f59e0b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   .hero-metric-sub { font-size: 0.62rem; color: rgba(255,255,255,0.22); display: block; margin-top: 2px; }
 
-  /* ── Section header ── */
+  /* Section header */
   .section-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 0.85rem;
@@ -60,7 +60,7 @@
   .section-icon-indigo { background: rgba(99,102,241,0.14); color: #a5b4fc; }
   .section-icon-amber  { background: rgba(245,158,11,0.14); color: #fbbf24; }
 
-  /* ── Calendar ── */
+  /* Calendar */
   .calendar-day {
     height: 36px; border-radius: 7px;
     border: 0.5px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);
@@ -84,7 +84,7 @@
     padding: 3px 0; font-weight: 700;
   }
 
-  /* ── Daily goal (compact, matches target overview card) ── */
+  /* Daily goal compact card */
   .goal-compact-card {
     background: var(--glass-1);
     border: 0.5px solid var(--border-1);
@@ -135,23 +135,13 @@
     font-size: 0.58rem; color: rgba(255,255,255,0.30); text-transform: uppercase;
     letter-spacing: 0.07em; font-weight: 700; margin-top: 2px;
   }
-  .goal-controls-sm {
-    display: flex; flex-direction: column; gap: 0.45rem; width: 100%;
-  }
-  .goal-control-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;
-  }
-  .goal-ctrl-label {
-    font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em;
-    font-weight: 700; color: rgba(255,255,255,0.25); margin-bottom: 0.15rem; display: block;
-  }
 
-  /* ── Bottom legend ── */
+  /* Bottom legend */
   .calendar-legend {
     display: flex; align-items: center; gap: 0.4rem;
     font-size: 0.68rem; color: rgba(255,255,255,0.25); margin-top: 0.65rem;
   }
-  .legend-fire { font-size: 0.9rem; color: #fb7185; font-variation-settings: 'FILL' 1; }
+  .legend-fire { font-size: 0.9rem; line-height: 1; color: #fb7185; font-variation-settings: 'FILL' 1; }
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
@@ -163,7 +153,7 @@
 {% block subpage_content %}
 <div class="container-fluid">
 
-  <!-- ══ HERO (compact) ══════════════════════════════════════════════════ -->
+  <!-- HERO -->
   <div class="card home-hero mb-3 animate-slide-up">
     <div class="home-hero-grid"></div>
     <div class="card-body p-3 p-lg-4 hero-content">
@@ -216,10 +206,10 @@
     </div>
   </div>
 
-  <!-- ══ BOTTOM ROW: Daily Goal | Heatmap | Calendar ═══════════════════ -->
+  <!-- BOTTOM ROW: Daily Goal | Heatmap | Calendar -->
   <div class="row g-3">
 
-    <!-- Daily Goal -->
+    <!-- Daily Goal view only with cycle arrows -->
     <div class="col-lg-3 animate-slide-up stagger-2">
       <div class="goal-compact-card" id="homeGoalWidget" data-goal-storage-key="home-{{ user.id }}">
         <div class="section-header mb-3">
@@ -229,8 +219,17 @@
             </div>
             <div>
               <h6 class="section-title mb-0" style="font-size:0.8rem;">Daily Goal</h6>
-              <p class="page-subtitle" style="font-size:0.65rem;">Clock your training</p>
+              <p class="page-subtitle" style="font-size:0.65rem;" id="homeGoalMetricLabel">Minutes</p>
             </div>
+          </div>
+          <!-- Cycle arrows -->
+          <div class="d-flex gap-1 ms-auto">
+            <button onclick="cycleGoalMetric(-1)" class="calendar-nav-btn" title="Previous metric" style="width:26px;height:26px;">
+              <span class="material-symbols-outlined" style="font-size:12px;">chevron_left</span>
+            </button>
+            <button onclick="cycleGoalMetric(1)" class="calendar-nav-btn" title="Next metric" style="width:26px;height:26px;">
+              <span class="material-symbols-outlined" style="font-size:12px;">chevron_right</span>
+            </button>
           </div>
         </div>
 
@@ -245,27 +244,17 @@
 
           <!-- Progress text -->
           <p class="text-center mb-1" style="font-size:0.72rem;color:var(--text-muted);" data-goal-progress>—</p>
+          <p class="text-center mb-0" style="font-size:0.62rem;color:var(--text-ghost);">
+            Set your target on the <a href="/dashboard" style="color:var(--accent-cyan-lt);">Dashboard</a>
+          </p>
 
-          <!-- Controls -->
-          <div class="goal-controls-sm">
-            <div class="goal-control-row">
-              <div>
-                <span class="goal-ctrl-label">Metric</span>
-                <select class="form-select form-select-sm" data-goal-metric id="homeGoalMetric"
-                        style="font-size:0.72rem;padding:0.25rem 0.5rem;min-height:30px;">
-                  <option value="minutes">Minutes</option>
-                  <option value="sets">Sets</option>
-                  <option value="workouts">Workouts</option>
-                </select>
-              </div>
-              <div>
-                <span class="goal-ctrl-label">Target</span>
-                <input type="number" class="form-control form-control-sm" min="1" step="1" value="45"
-                       data-goal-target id="homeGoalTarget"
-                       style="font-size:0.72rem;padding:0.25rem 0.5rem;min-height:30px;">
-              </div>
-            </div>
-          </div>
+          <!-- Hidden inputs still needed by initDailyGoalWidget -->
+          <select data-goal-metric style="display:none;" id="homeGoalMetric">
+            <option value="minutes">Minutes</option>
+            <option value="sets">Sets</option>
+            <option value="workouts">Workouts</option>
+          </select>
+          <input type="number" data-goal-target style="display:none;" id="homeGoalTarget" value="45">
         </div>
       </div>
     </div>
@@ -283,11 +272,12 @@
               <p class="page-subtitle" style="font-size:0.65rem;">Training muscle balance</p>
             </div>
           </div>
-          <select id="hmPeriod" class="form-select form-select-sm" style="width:auto;font-size:0.72rem;" onchange="reloadHeatmap()">
-            <option value="week"  class="bg-dark">This Week</option>
-            <option value="month" class="bg-dark">This Month</option>
-            <option value="all"   class="bg-dark">All Time</option>
-          </select>
+          <!-- Segmented button group instead of <select> -->
+          <div class="chart-period-group" id="hmPeriodGroup">
+            <button class="chart-period active" onclick="setHmPeriod('week',this)">Week</button>
+            <button class="chart-period" onclick="setHmPeriod('month',this)">Month</button>
+            <button class="chart-period" onclick="setHmPeriod('all',this)">All</button>
+          </div>
         </div>
         {{ muscle_heatmap(mode="stats", height="260px") }}
       </div>
@@ -341,16 +331,40 @@
 
 {% block subpage_scripts %}
 <script>
-  // ── Heatmap ───────────────────────────────────
+  // Goal metric cycling
+  const GOAL_METRICS = ['minutes', 'sets', 'workouts'];
+  const GOAL_LABELS  = { minutes: 'Minutes', sets: 'Sets', workouts: 'Workouts' };
+
+  function cycleGoalMetric(dir) {
+    const sel = document.getElementById('homeGoalMetric');
+    const cur = GOAL_METRICS.indexOf(sel.value);
+    const nxt = (cur + dir + GOAL_METRICS.length) % GOAL_METRICS.length;
+    sel.value = GOAL_METRICS[nxt];
+    sel.dispatchEvent(new Event('change'));
+    const lbl = document.getElementById('homeGoalMetricLabel');
+    if (lbl) lbl.textContent = GOAL_LABELS[GOAL_METRICS[nxt]];
+  }
+
+  // Heatmap with segmented buttons
+  window._hmPeriod = 'week';
+
+  function setHmPeriod(period, btn) {
+    document.querySelectorAll('#hmPeriodGroup .chart-period').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    window._hmPeriod = period;
+    reloadHeatmap();
+  }
+
   async function reloadHeatmap() {
-    const period = document.getElementById('hmPeriod').value;
+    const period = window._hmPeriod || 'week';
     const res  = await fetch(`/api/dashboard/heatmap?period=${period}`);
     const data = await res.json();
     initHeatmap(data);
   }
+
   function onMuscleClick(m) { window.location.href = `/dashboard/muscle/${encodeURIComponent(m)}`; }
 
-  // ── Stats + Goal ──────────────────────────────
+  // Stats + goal
   async function loadQuickStats() {
     const res  = await fetch('/api/dashboard/stats?period=week');
     const data = await res.json();
@@ -360,6 +374,10 @@
     if (typeof initDailyGoalWidget === 'function') {
       initDailyGoalWidget('homeGoalWidget', data);
     }
+    // Sync label after widget init
+    const sel = document.getElementById('homeGoalMetric');
+    const lbl = document.getElementById('homeGoalMetricLabel');
+    if (sel && lbl) lbl.textContent = GOAL_LABELS[sel.value] || 'Minutes';
   }
 
   function animateNumber(id, target) {
@@ -376,7 +394,7 @@
     requestAnimationFrame(update);
   }
 
-  // ── Calendar ──────────────────────────────────
+  // Calendar
   const workoutDateMap = new Map();
   let calendarDate = new Date();
 

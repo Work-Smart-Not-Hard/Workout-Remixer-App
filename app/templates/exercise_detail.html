@@ -6,197 +6,358 @@
 {% endblock %}
 
 {% block subpage_content %}
+<style>
+  .ex-detail-hero {
+    background: linear-gradient(145deg, rgba(34,211,238,0.07), rgba(8,15,30,0.0));
+    border: 0.5px solid rgba(34,211,238,0.15);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap;
+  }
+  .ex-detail-gif-wrap {
+    width: 140px; height: 140px; flex-shrink: 0;
+    background: rgba(255,255,255,0.96); border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; border: 0.5px solid rgba(255,255,255,0.15);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .ex-detail-gif-wrap img { width:100%; height:100%; object-fit:contain; }
+  .metric-tabs {
+    display: flex; gap: 3px;
+    background: rgba(0,0,0,0.3); border-radius: 10px;
+    padding: 3px; border: 0.5px solid rgba(255,255,255,0.08);
+    flex-wrap: wrap;
+  }
+  .metric-tab {
+    padding: 5px 14px; border: none; border-radius: 7px;
+    background: transparent; color: #7a92b4;
+    font-size: 0.72rem; font-weight: 600; cursor: pointer;
+    transition: all 0.18s; white-space: nowrap;
+  }
+  .metric-tab:hover { color: #c8d5e8; background: rgba(255,255,255,0.06); }
+  .metric-tab.active { background: rgba(34,211,238,0.18); color: #a5f3fc; }
+  .best-highlight {
+    background: linear-gradient(135deg, rgba(34,211,238,0.12), rgba(34,211,238,0.04));
+    border: 0.5px solid rgba(34,211,238,0.3);
+    border-radius: var(--radius-md);
+    padding: .75rem 1rem;
+    display: flex; align-items: baseline; gap: .5rem; margin-bottom: 1rem;
+  }
+  .best-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.8rem; font-weight: 800; letter-spacing:-0.04em;
+    background: var(--grad-cyan); -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent; background-clip:text;
+  }
+  .best-label { font-size: .72rem; color: var(--text-muted); font-weight:600; }
+  .best-date  { font-size: .68rem; color: var(--text-ghost); margin-left:.25rem; }
+  .chart-empty { display:flex; flex-direction:column; align-items:center; justify-content:center;
+                 padding:2rem; color:rgba(255,255,255,0.25); font-size:.8rem; text-align:center; min-height:160px; }
+  .chart-empty .material-symbols-outlined { font-size:2rem; opacity:.3; margin-bottom:.5rem; }
+</style>
+
 <div class="container-fluid">
 
-    <!-- Header loaded by JS -->
-    <div class="row mb-4 align-items-start">
-        <div class="col">
-            <a href="/exercises" class="text-secondary text-decoration-none small">
-                <span class="material-symbols-outlined" style="font-size:1.2rem;vertical-align:middle">arrow_back</span>
-                Exercises
-            </a>
-            <h4 class="fw-bold mt-1 mb-0 text-capitalize" id="exName">Loading...</h4>
-            <div id="exBadges" class="mt-1"></div>
-        </div>
-        <div class="col-auto text-center">
-            <img id="exGif" src="" alt="" style="height:100px;border-radius:8px;" class="d-none">
-        </div>
-        <div class="col-auto">
-            <select id="periodFilter" class="form-select form-select-sm" onchange="loadHistory()">
-                <option value="all" class="bg-dark">All Time</option>
-                <option value="6months" class="bg-dark">Last 6 Months</option>
-                <option value="month" class="bg-dark">Last Month</option>
-                <option value="week" class="bg-dark">Last Week</option>
-            </select>
-        </div>
+  <!-- Hero -->
+  <div class="ex-detail-hero animate-slide-up">
+    <div class="ex-detail-gif-wrap">
+      <img id="exGif" src="" alt="" style="display:none;">
+      <span class="material-symbols-outlined text-muted" id="exGifPlaceholder" style="font-size:3rem;">fitness_center</span>
     </div>
+    <div class="flex-grow-1">
+      <a href="/exercises" class="text-muted text-decoration-none small mb-2 d-block">
+        <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">arrow_back</span>
+        Exercises
+      </a>
+      <h4 class="page-title mb-2 text-capitalize" id="exName">Loading…</h4>
+      <div id="exBadges" class="d-flex flex-wrap gap-1"></div>
+      <div id="exSecondary" class="mt-2" style="font-size:.75rem;color:var(--text-muted);"></div>
+    </div>
+    <!-- Period selector -->
+    <div class="align-self-start">
+      <div class="chart-period-group" id="periodGroup">
+        <button class="chart-period active" onclick="setPeriod('all',this)">All</button>
+        <button class="chart-period" onclick="setPeriod('year',this)">Year</button>
+        <button class="chart-period" onclick="setPeriod('6months',this)">6M</button>
+        <button class="chart-period" onclick="setPeriod('month',this)">Month</button>
+        <button class="chart-period" onclick="setPeriod('week',this)">Week</button>
+      </div>
+    </div>
+  </div>
 
-    <!-- Summary cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-sm-4">
-            <div class="card shadow-sm text-center p-3">
-                <h2 class="fw-bold mb-0 text-secondary" id="statSets">—</h2>
-                <small class="text-muted">Total Sets Logged</small>
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="card shadow-sm text-center p-3">
-                <h2 class="fw-bold mb-0 text-secondary" id="statBestWeight">—</h2>
-                <small class="text-muted">Best Weight (kg)</small>
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="card shadow-sm text-center p-3">
-                <h2 class="fw-bold mb-0 text-secondary" id="statBestDate">—</h2>
-                <small class="text-muted">Date of Best</small>
-            </div>
-        </div>
+  <!-- Metric tabs -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2 animate-slide-up stagger-1">
+    <div class="metric-tabs" id="metricTabs">
+      <button class="metric-tab active" onclick="setMetric('weight',this)">Heaviest Weight</button>
+      <button class="metric-tab" onclick="setMetric('e1rm',this)">One Rep Max</button>
+      <button class="metric-tab" onclick="setMetric('volume',this)">Best Set Volume</button>
+      <button class="metric-tab" onclick="setMetric('session',this)">Session Volume</button>
     </div>
+  </div>
 
-    <!-- Weight over time chart -->
-    <div class="card shadow-sm p-3 mb-4">
-        <h6 class="fw-semibold mb-3">Weight Over Time</h6>
-        <canvas id="weightChart" height="100"></canvas>
-        <p id="noDataMsg" class="text-muted text-center small mt-3" style="display:none;">
-            No weight data logged for this exercise yet.
-        </p>
+  <!-- Best performance highlight -->
+  <div class="best-highlight animate-slide-up stagger-1" id="bestHighlight">
+    <span class="best-value" id="bestVal">—</span>
+    <div>
+      <span class="best-label" id="bestLabelUnit">kg</span>
+      <span class="best-date" id="bestDate"></span>
     </div>
+  </div>
 
-    <!-- History table -->
-    <div class="card shadow-sm">
-        <div class="card-header fw-semibold text-secondary">History</div>
-        <div class="card-body p-0">
-            <div id="historyBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border spinner-border-sm text-primary"></div>
-                </div>
-            </div>
-        </div>
+  <!-- Chart -->
+  <div class="card chart-card mb-4 animate-slide-up stagger-2">
+    <div class="chart-body" style="min-height:180px;">
+      <canvas id="mainChart" height="140"></canvas>
+      <p id="noDataMsg" class="chart-empty" style="display:none;">
+        <span class="material-symbols-outlined">show_chart</span>
+        No data for this metric and period.
+      </p>
     </div>
+  </div>
+
+  <!-- Summary stat row -->
+  <div class="row g-3 mb-4 animate-slide-up stagger-2">
+    <div class="col-sm-4">
+      <div class="card stat-card tint-cyan">
+        <div class="stat-number" id="statTotalSets">—</div>
+        <div class="stat-label">Total Sets</div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card stat-card tint-green">
+        <div class="stat-number" id="statSessions">—</div>
+        <div class="stat-label">Sessions</div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card stat-card tint-amber">
+        <div class="stat-number" id="statBestWeightCard">—</div>
+        <div class="stat-label">Best Weight kg</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History table -->
+  <div class="card animate-slide-up stagger-3">
+    <div class="card-header d-flex align-items-center gap-2" style="padding:.85rem 1.2rem;">
+      <div class="section-icon" style="background:rgba(99,102,241,0.14);color:#a5b4fc;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;">
+        <span class="material-symbols-outlined" style="font-size:1rem">history</span>
+      </div>
+      <span class="section-title" style="color:var(--text-primary);font-weight:700;">Set History</span>
+    </div>
+    <div class="card-body p-0">
+      <div id="historyBody">
+        <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+      </div>
+    </div>
+  </div>
 
 </div>
 {% endblock %}
 
 {% block subpage_scripts %}
 <script>
-    const exerciseId = window.location.pathname.split('/').pop();
-    let weightChart = null;
+  const exerciseId  = window.location.pathname.split('/').pop();
+  let mainChart     = null;
+  let currentPeriod = 'all';
+  let currentMetric = 'weight';
+  let allSets       = [];
 
-    async function loadExerciseInfo() {
-        try {
-            const res = await fetch(`/api/exercises/${exerciseId}`);
-            if (!res.ok) return;
-            const ex = await res.json();
-            document.getElementById('exName').textContent = ex.name;
-            document.getElementById('exBadges').innerHTML =
-                (ex.bodyParts || []).map(b => `<span class="badge bg-primary me-1">${b}</span>`).join('') +
-                (ex.targetMuscles || []).map(m => `<span class="badge bg-success me-1">${m}</span>`).join('') +
-                (ex.equipments || []).map(e => `<span class="badge bg-secondary me-1">${e}</span>`).join('');
-            const gif = document.getElementById('exGif');
-            gif.src = ex.gifUrl;
-            gif.classList.remove('d-none');
-        } catch (e) {
-            // ExerciseDB might be asleep — non-critical, page still works
-        }
-    }
+  const METRIC_CONFIG = {
+    weight:  { label:'Heaviest Weight', unit:'kg',   color:'#22d3ee', desc:'Max weight lifted in a single set' },
+    e1rm:    { label:'Estimated 1RM',   unit:'kg',   color:'#a5b4fc', desc:'Epley formula: weight × (1 + reps/30)' },
+    volume:  { label:'Best Set Volume', unit:'kg',   color:'#4ade80', desc:'Best weight × reps in a single set' },
+    session: { label:'Session Volume',  unit:'kg',   color:'#fbbf24', desc:'Total weight × reps across all sets per session' },
+  };
 
-    async function loadHistory() {
-        const period = document.getElementById('periodFilter').value;
-        const res = await fetch(`/api/exercises/${exerciseId}/history?period=${period}`);
-        const data = await res.json();
-
-        document.getElementById('statSets').textContent = data.total_sets || 0;
-        document.getElementById('statBestWeight').textContent =
-            data.best?.weight_kg ? `${data.best.weight_kg} kg` : '—';
-        document.getElementById('statBestDate').textContent = data.best?.date || '—';
-
-        renderWeightChart(data.sets);
-        renderHistoryTable(data.sets);
-    }
-
-    function renderWeightChart(sets) {
-        const withWeight = sets.filter(s => s.weight_kg);
-        const canvas = document.getElementById('weightChart');
-        const noMsg = document.getElementById('noDataMsg');
-
-        if (!withWeight.length) {
-            noMsg.style.display = '';
-            canvas.style.display = 'none';
-            if (weightChart) { weightChart.destroy(); weightChart = null; }
-            return;
-        }
-        noMsg.style.display = 'none';
-        canvas.style.display = '';
-
-        if (weightChart) weightChart.destroy();
-        weightChart = new Chart(canvas, {
-            type: 'line',
-            data: {
-                labels: withWeight.map(s => s.date),
-                datasets: [{
-                    label: 'Weight (kg)',
-                    data: withWeight.map(s => s.weight_kg),
-                    borderColor: '#198754',
-                    backgroundColor: 'rgba(25,135,84,0.08)',
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 4,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false,
-                        labels: { color: '#94a3b8' }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#64748b' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    y: {
-                        beginAtZero: false,
-                        ticks: { color: '#64748b' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    }
-                }
-            }
-        });
-    }
-
-    function renderHistoryTable(sets) {
-        const body = document.getElementById('historyBody');
-        if (!sets.length) {
-            body.innerHTML = `<div class="text-center py-5 text-muted">
-                No history yet. Log this exercise during a workout to see your progress here.
-            </div>`;
-            return;
-        }
-        body.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr><th>Date</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Duration</th><th>Notes</th></tr>
-                    </thead>
-                    <tbody>
-                        ${[...sets].reverse().map(s => `
-                            <tr>
-                                <td>${s.date}</td>
-                                <td>${s.sets ?? '—'}</td>
-                                <td>${s.reps ?? '—'}</td>
-                                <td>${s.weight_kg ? s.weight_kg + ' kg' : '—'}</td>
-                                <td>${s.duration_seconds ? s.duration_seconds + 's' : '—'}</td>
-                                <td class="text-muted small">${s.notes || '—'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>`;
-    }
-
-    loadExerciseInfo();
+  function setPeriod(period, btn) {
+    currentPeriod = period;
+    document.querySelectorAll('#periodGroup .chart-period').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
     loadHistory();
+  }
+
+  function setMetric(metric, btn) {
+    currentMetric = metric;
+    document.querySelectorAll('#metricTabs .metric-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChart(allSets);
+  }
+
+  async function loadExerciseInfo() {
+    try {
+      const res = await fetch(`/api/exercises/${exerciseId}`);
+      if (!res.ok) return;
+      const ex = await res.json();
+      document.getElementById('exName').textContent = ex.name || exerciseId;
+      document.getElementById('exGifPlaceholder').style.display = 'none';
+      const gif = document.getElementById('exGif');
+      gif.src = ex.gifUrl || ''; gif.style.display = ex.gifUrl ? '' : 'none';
+      const badges = [
+        ...(ex.bodyParts    || []).map(b => `<span class="badge" style="background:rgba(34,211,238,0.14);color:#67e8f9;border:0.5px solid rgba(34,211,238,0.28);font-size:.72rem;">${b}</span>`),
+        ...(ex.targetMuscles|| []).map(m => `<span class="badge" style="background:rgba(34,197,94,0.14);color:#4ade80;border:0.5px solid rgba(34,197,94,0.28);font-size:.72rem;">${m}</span>`),
+        ...(ex.equipments   || []).map(e => `<span class="badge" style="background:rgba(100,116,139,0.14);color:#94a3b8;border:0.5px solid rgba(100,116,139,0.22);font-size:.72rem;">${e}</span>`),
+      ];
+      document.getElementById('exBadges').innerHTML = badges.join('');
+      if ((ex.secondaryMuscles || []).length) {
+        document.getElementById('exSecondary').innerHTML =
+          `<span style="color:rgba(255,255,255,.35);">Secondary:</span> ${ex.secondaryMuscles.join(', ')}`;
+      }
+    } catch (e) { /* ExerciseDB might be asleep — non-critical */ }
+  }
+
+  async function loadHistory() {
+    const res  = await fetch(`/api/exercises/${exerciseId}/history?period=${currentPeriod}`);
+    const data = await res.json();
+    allSets = data.sets || [];
+
+    animateNum('statTotalSets', data.total_sets || 0);
+    const sessions = new Set(allSets.map(s => s.session_id)).size;
+    animateNum('statSessions', sessions);
+    const bestW = data.best?.weight_kg || 0;
+    document.getElementById('statBestWeightCard').textContent = bestW ? bestW + ' kg' : '—';
+
+    renderChart(allSets);
+    renderHistoryTable(allSets);
+  }
+
+  function computeMetricData(sets) {
+    const byDate = {};
+    for (const s of sets) {
+      let val = 0;
+      if (currentMetric === 'weight') {
+        val = s.weight_kg || 0;
+      } else if (currentMetric === 'e1rm') {
+        const w = s.weight_kg || 0, r = s.reps || 0;
+        val = r > 0 ? Math.round(w * (1 + r / 30) * 10) / 10 : 0;
+      } else if (currentMetric === 'volume') {
+        val = (s.weight_kg || 0) * (s.reps || 0);
+      } else if (currentMetric === 'session') {
+        if (!byDate[s.date]) byDate[s.date] = {};
+        const sid = s.session_id || s.date;
+        byDate[s.date][sid] = (byDate[s.date][sid] || 0) + (s.weight_kg || 0) * (s.reps || 0);
+        continue;
+      }
+      if (val > 0) {
+        byDate[s.date] = Math.max(byDate[s.date] || 0, val);
+      }
+    }
+    if (currentMetric === 'session') {
+      const flat = {};
+      for (const [date, sessions] of Object.entries(byDate)) {
+        flat[date] = Math.max(...Object.values(sessions));
+      }
+      return flat;
+    }
+    return byDate;
+  }
+
+  function renderChart(sets) {
+    const canvas  = document.getElementById('mainChart');
+    const noMsg   = document.getElementById('noDataMsg');
+    const cfg     = METRIC_CONFIG[currentMetric];
+    const grouped = computeMetricData(sets);
+    const labels  = Object.keys(grouped).sort();
+
+    if (!labels.length) {
+      noMsg.style.display = ''; canvas.style.display = 'none';
+      document.getElementById('bestVal').textContent = '—';
+      document.getElementById('bestDate').textContent = '';
+      if (mainChart) { mainChart.destroy(); mainChart = null; }
+      return;
+    }
+    noMsg.style.display = 'none'; canvas.style.display = '';
+
+    const values = labels.map(l => grouped[l]);
+    const maxVal = Math.max(...values);
+    const maxIdx = values.indexOf(maxVal);
+    document.getElementById('bestVal').textContent = maxVal % 1 === 0 ? maxVal : maxVal.toFixed(1);
+    document.getElementById('bestLabelUnit').textContent = cfg.unit;
+    document.getElementById('bestDate').textContent = labels[maxIdx] ? `· ${labels[maxIdx]}` : '';
+
+    if (mainChart) mainChart.destroy();
+    mainChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor: cfg.color,
+          backgroundColor: (ctx) => {
+            const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+            g.addColorStop(0, cfg.color + '40');
+            g.addColorStop(1, cfg.color + '00');
+            return g;
+          },
+          tension: 0.4, fill: true,
+          pointRadius: (ctx) => ctx.dataIndex === maxIdx ? 7 : 4,
+          pointBackgroundColor: (ctx) => ctx.dataIndex === maxIdx ? '#fff' : cfg.color,
+          pointBorderColor: cfg.color, pointBorderWidth: 2,
+          borderWidth: 2.5,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { display:false },
+          tooltip: {
+            backgroundColor:'rgba(8,15,30,0.95)',
+            borderColor: cfg.color + '50', borderWidth:1,
+            titleColor:'#c8d5e8', bodyColor: cfg.color,
+            padding:10, cornerRadius:8,
+            callbacks: {
+              label: (ctx) => ` ${ctx.parsed.y % 1 === 0 ? ctx.parsed.y : ctx.parsed.y.toFixed(1)} ${cfg.unit}`,
+            },
+          },
+        },
+        scales: {
+          x: { ticks:{color:'#4a6485',font:{size:10}}, grid:{color:'rgba(255,255,255,0.03)'}, border:{display:false} },
+          y: { beginAtZero:false, ticks:{color:'#4a6485',font:{size:10},callback:(v)=>v+' '+cfg.unit}, grid:{color:'rgba(255,255,255,0.03)'}, border:{display:false} },
+        },
+      },
+    });
+  }
+
+  function renderHistoryTable(sets) {
+    const el = document.getElementById('historyBody');
+    if (!sets.length) {
+      el.innerHTML = `<div class="chart-empty"><span class="material-symbols-outlined">show_chart</span><p>No history yet. Log this exercise during a workout to see progress.</p></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="table-responsive"><table class="table table-hover mb-0">
+      <thead><tr>
+        <th>Date</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Est. 1RM</th><th>Duration</th><th>Notes</th>
+      </tr></thead>
+      <tbody>${[...sets].reverse().map(s => {
+        const e1rm = s.weight_kg && s.reps ? Math.round(s.weight_kg * (1 + s.reps/30) * 10)/10 : null;
+        return `<tr>
+          <td>${s.date}</td>
+          <td>${s.sets ?? '—'}</td>
+          <td>${s.reps ?? '—'}</td>
+          <td style="color:var(--text-primary);font-weight:600;">${s.weight_kg ? s.weight_kg+' kg' : '—'}</td>
+          <td style="color:var(--accent-indigo-lt);">${e1rm ? e1rm+' kg' : '—'}</td>
+          <td>${s.duration_seconds ? s.duration_seconds+'s' : '—'}</td>
+          <td class="text-muted small">${s.notes || '—'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>`;
+  }
+
+  function animateNum(id, target) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const start = performance.now(), dur = 700;
+    (function tick(now) {
+      const p = Math.min((now-start)/dur,1);
+      el.textContent = Math.round(target*(1-Math.pow(1-p,3)));
+      if (p<1) requestAnimationFrame(tick);
+    })(performance.now());
+  }
+
+  loadExerciseInfo();
+  loadHistory();
 </script>
 {% endblock %}

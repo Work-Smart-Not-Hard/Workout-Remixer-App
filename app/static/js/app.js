@@ -306,35 +306,50 @@ function exportWorkoutSnapshot(entry, username) {
     ctx.fillText(`+ ${entry.exercises.length - 5} more exercises`, 24, moreY);
   }
 
-  //Right column: muscle tags
-  const muscles = Object.entries(entry.muscle_data || {})
+  // Right column: muscle intensity bars (heatmap summary)
+  const muscleEntries = Object.entries(entry.muscle_data || {})
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([m]) => m);
+    .slice(0, 8);
 
-  if (muscles.length) {
+  if (muscleEntries.length) {
+    const colX = W * 0.58;
+    const colW = W - colX - 24;
+
     ctx.font = '700 10px "DM Sans", sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.fillText('MUSCLES TRAINED', W * 0.6, 276);
+    ctx.fillText('MUSCLES TRAINED', colX, 276);
 
-    let mx = W * 0.6, my = 292;
-    muscles.forEach(muscle => {
+    muscleEntries.forEach(([muscle, intensity], i) => {
+      const barY  = 292 + i * 28;
       const label = muscle.charAt(0).toUpperCase() + muscle.slice(1);
-      ctx.font = '600 11px "DM Sans", sans-serif';
-      const tw = ctx.measureText(label).width + 20;
-      if (mx + tw > W - 20) { mx = W * 0.6; my += 28; }
 
-      ctx.fillStyle = 'rgba(34,211,238,0.12)';
-      roundRect(ctx, mx, my - 14, tw, 22, 6);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(34,211,238,0.3)';
-      ctx.lineWidth = 0.5;
-      roundRect(ctx, mx, my - 14, tw, 22, 6);
-      ctx.stroke();
+      // Intensity colour
+      let barColor;
+      if (intensity >= 0.66)      barColor = '#f59e0b';
+      else if (intensity >= 0.33) barColor = '#22c55e';
+      else                         barColor = '#38bdf8';
 
-      ctx.fillStyle = '#67e8f9';
-      ctx.fillText(label, mx + 10, my + 3);
-      mx += tw + 8;
+      const barW = Math.round(intensity * colW);
+
+      // Track background
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      roundRect(ctx, colX, barY, colW, 18, 4); ctx.fill();
+
+      // Intensity fill
+      ctx.fillStyle = barColor;
+      if (barW > 0) { roundRect(ctx, colX, barY, barW, 18, 4); ctx.fill(); }
+
+      // Label
+      ctx.font = '600 10px "DM Sans", sans-serif';
+      ctx.fillStyle = barW > colW * 0.4 ? 'rgba(0,0,0,0.85)' : '#e2e8f0';
+      ctx.fillText(label, colX + 6, barY + 13);
+
+      // Pct on right
+      ctx.font = '700 9px "DM Sans", sans-serif';
+      ctx.fillStyle = barColor;
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(intensity * 100) + '%', colX + colW - 4, barY + 13);
+      ctx.textAlign = 'left';
     });
   }
 
