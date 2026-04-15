@@ -278,6 +278,25 @@
 {% block subpage_content %}
 <div class="container-fluid">
 
+    <!-- Mobile filter toggle bar -->
+    <div class="mobile-filter-bar d-flex d-lg-none mb-3 gap-2">
+        <div class="search-shell flex-grow-1">
+            <input type="text" id="searchInputMobile" class="form-control" placeholder="Search exercises..."
+                   oninput="document.getElementById('searchInput').value=this.value"
+                   onkeydown="if(event.key==='Enter'){document.getElementById('searchInput').value=this.value;doSearch();}">
+            <button class="btn btn-primary" type="button"
+                    onclick="document.getElementById('searchInput').value=document.getElementById('searchInputMobile').value;doSearch()">
+                <span class="material-symbols-outlined" style="font-size:1rem">search</span>
+            </button>
+        </div>
+        <button class="btn btn-outline-secondary" id="mobileFilterBtn" onclick="openMobileFilter()" style="flex-shrink:0;white-space:nowrap;">
+            <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:middle">tune</span>
+            Filters
+        </button>
+    </div>
+
+    <div class="mobile-filter-backdrop" id="mobileFilterBackdrop" onclick="closeMobileFilter()"></div>
+
     <div class="row mb-3">
         <div class="col-12">
             <h4 class="page-title">Browse Exercises</h4>
@@ -287,9 +306,17 @@
     <div class="row g-4">
 
         <!-- Left sidebar -->
-        <div class="col-lg-3">
+        <div class="col-lg-3 d-none d-lg-block" id="filterColumn">
 
             <div class="filter-shell">
+
+            <div class="mobile-filter-close d-flex d-lg-none">
+                <span class="section-title">Filters</span>
+                <button class="btn btn-outline-secondary btn-sm" onclick="closeMobileFilter()">
+                    <span class="material-symbols-outlined" style="font-size:0.9rem;vertical-align:middle">close</span>
+                    Close
+                </button>
+            </div>
 
             <!-- Search -->
             <div class="search-shell mb-3">
@@ -328,7 +355,7 @@
             </div>
         </div>
 
-        <!-- ── Right: results ────────────────────────────────── -->
+        <!-- Right: results -->
         <div class="col-lg-9">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -706,6 +733,7 @@ function renderCurrentPage() {
 async function doSearch() {
     const searchEl = document.getElementById('searchInput');
     if (!searchEl) return;
+    syncExerciseSearchInputs(searchEl.value);
     const q = searchEl.value.trim();
     await fetchAndRender(q);
 }
@@ -715,6 +743,8 @@ async function clearAllFilters() {
     selectedSvgGrp = "";
     const searchEl = document.getElementById('searchInput');
     if (searchEl) searchEl.value = '';
+    const searchMobileEl = document.getElementById('searchInputMobile');
+    if (searchMobileEl) searchMobileEl.value = '';
     document.getElementById('selectedMuscleLabel').textContent = 'Click a muscle to filter';
     const clearMuscleBtn = document.getElementById('clearMuscleBtn');
     if (clearMuscleBtn) clearMuscleBtn.style.display = 'none';
@@ -726,6 +756,46 @@ async function clearAllFilters() {
         b.classList.remove('active');
     });
     await fetchAndRender('');
+}
+
+function syncExerciseSearchInputs(value) {
+    const searchEl = document.getElementById('searchInput');
+    const searchMobileEl = document.getElementById('searchInputMobile');
+    if (searchEl) searchEl.value = value;
+    if (searchMobileEl) searchMobileEl.value = value;
+}
+
+function openMobileFilter() {
+    const col = document.getElementById('filterColumn');
+    const shell = document.querySelector('.filter-shell');
+    const backdrop = document.getElementById('mobileFilterBackdrop');
+    const mobileSearch = document.getElementById('searchInputMobile');
+    const desktopSearch = document.getElementById('searchInput');
+    if (!col || !shell || !backdrop) return;
+    if (mobileSearch && desktopSearch) mobileSearch.value = desktopSearch.value;
+    col.classList.remove('d-none', 'd-lg-block');
+    col.classList.add('d-block');
+    requestAnimationFrame(() => {
+        shell.classList.add('mobile-open');
+        backdrop.classList.add('active');
+    });
+    document.body.style.overflow = 'hidden';
+}
+
+function closeMobileFilter() {
+    const col = document.getElementById('filterColumn');
+    const shell = document.querySelector('.filter-shell');
+    const backdrop = document.getElementById('mobileFilterBackdrop');
+    if (!shell || !backdrop) return;
+    shell.classList.remove('mobile-open');
+    backdrop.classList.remove('active');
+    document.body.style.overflow = '';
+    setTimeout(() => {
+        if (col) {
+            col.classList.add('d-none', 'd-lg-block');
+            col.classList.remove('d-block');
+        }
+    }, 290);
 }
 
 // Pagination
@@ -964,6 +1034,17 @@ const searchInputEl = document.getElementById('searchInput');
 if (searchInputEl) {
     searchInputEl.addEventListener('keydown', e => {
         if (e.key === 'Enter') doSearch();
+    });
+}
+
+const searchInputMobileEl = document.getElementById('searchInputMobile');
+if (searchInputMobileEl) {
+    searchInputMobileEl.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            syncExerciseSearchInputs(searchInputMobileEl.value);
+            doSearch();
+            closeMobileFilter();
+        }
     });
 }
 
