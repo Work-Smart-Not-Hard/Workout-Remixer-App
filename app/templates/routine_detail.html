@@ -275,7 +275,7 @@
   <div class="row g-4">
 
     <!-- Left: exercise list -->
-    <div class="{% if routine.owner_id == user.id %}col-lg-5{% else %}col-12{% endif %}">
+    <div class="{% if routine.owner_id == user.id %}col-12 col-lg-5 order-2 order-lg-1 routine-detail-left{% else %}col-12{% endif %}">
       <div class="card shadow-sm routine-panel">
         <div class="card-header routine-panel-header fw-semibold text-secondary d-flex align-items-center justify-content-between">
           <span>
@@ -357,7 +357,7 @@
 
     <!-- Right: add exercise (owner only) -->
     {% if routine.owner_id == user.id %}
-    <div class="col-lg-7">
+    <div class="col-12 col-lg-7 order-1 order-lg-2 routine-detail-right">
       <div class="card shadow-sm routine-panel">
         <div class="card-header routine-panel-header d-flex align-items-center justify-content-between">
           <span class="fw-semibold text-secondary">Add Exercise</span>
