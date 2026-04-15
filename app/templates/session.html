@@ -318,6 +318,7 @@
       margin: -1rem -0.5rem 1rem;
       padding: 0.65rem 0.7rem;
     }
+    .workout-header .d-flex { flex-wrap: wrap; }
     .finish-btn {
       padding: 0.4rem 0.7rem;
       font-size: 0.76rem;
@@ -334,7 +335,7 @@
 
   <!-- Sticky header -->
   <div class="workout-header">
-    <div class="d-flex align-items-center justify-content-between gap-2">
+    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
       <div class="overflow-hidden me-auto">
         <p class="routine-title text-truncate">{{ routine.name }}</p>
         <p class="started-at">Started <span data-local-time="{{ session.started_at.isoformat() }}">{{ session.started_at.strftime('%I:%M %p') }}</span></p>
@@ -347,7 +348,8 @@
       </div>
       <button class="finish-btn" data-bs-toggle="modal" data-bs-target="#completeModal">
         <span class="material-symbols-outlined" style="font-size:0.95rem">check_circle</span>
-        Finish Workout
+        <span class="d-none d-sm-inline">Finish Workout</span>
+        <span class="d-sm-none">Finish</span>
       </button>
     </div>
   </div>
@@ -395,26 +397,28 @@
       </div>
     </div>
 
-    <table class="sets-table">
-      <thead>
-        <tr>
-          <th class="col-set">Set</th>
-          <th class="col-prev">Previous</th>
-          <th class="col-kg">KG</th>
-          <th class="col-reps">Reps</th>
-          <th class="col-done"></th>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table class="sets-table">
+        <thead>
+          <tr>
+            <th class="col-set">Set</th>
+            <th class="col-prev">Previous</th>
+            <th class="col-kg">KG</th>
+            <th class="col-reps">Reps</th>
+            <th class="col-done"></th>
+          </tr>
+        </thead>
+        <tbody id="setsBody_{{ re.id }}"></tbody>
+        <tr class="add-set-row">
+          <td colspan="5">
+            <button class="add-set-btn"
+                    onclick="addSet({{ re.id }}, {{ re.exercise_id }}, '{{ re.exercise.exercise_id }}', {{ re.rest_seconds or 60 }})">
+              + Add Set
+            </button>
+          </td>
         </tr>
-      </thead>
-      <tbody id="setsBody_{{ re.id }}"></tbody>
-      <tr class="add-set-row">
-        <td colspan="5">
-          <button class="add-set-btn"
-                  onclick="addSet({{ re.id }}, {{ re.exercise_id }}, '{{ re.exercise.exercise_id }}', {{ re.rest_seconds or 60 }})">
-            + Add Set
-          </button>
-        </td>
-      </tr>
-    </table>
+      </table>
+    </div>
   </div>
   {% endfor %}
 
