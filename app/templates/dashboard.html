@@ -390,6 +390,33 @@
 
   async function reload() { await Promise.all([loadStats(), loadHeatmap()]); }
 
+  async function fetchJsonWithRetry(url, retries = 1, delayMs = 300) {
+    let lastError = null;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok) {
+          const body = contentType.includes('application/json') ? await res.json() : await res.text();
+          const message = typeof body === 'string'
+            ? body.slice(0, 200)
+            : body?.detail || body?.message || `HTTP ${res.status}`;
+          throw new Error(message);
+        }
+        if (contentType.includes('application/json')) {
+          return await res.json();
+        }
+        return JSON.parse(await res.text());
+      } catch (error) {
+        lastError = error;
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+    throw lastError;
+  }
+
   function updatePeriodComparisonLabel() {
     const subtitle = document.getElementById('periodComparisonSubtitle');
     if (!subtitle) return;
@@ -404,9 +431,13 @@
   }
 
   async function loadHeatmap() {
-    const res  = await fetch(`/api/dashboard/heatmap?period=${currentPeriod}`);
-    const data = await res.json();
-    initHeatmap(data);
+    try {
+      const data = await fetchJsonWithRetry(`/api/dashboard/heatmap?period=${currentPeriod}`);
+      initHeatmap(data);
+    } catch (error) {
+      console.warn('Unable to load dashboard heatmap:', error);
+      initHeatmap({});
+    }
   }
 
   function animateNumber(id, target) {
@@ -458,51 +489,60 @@
   }
 
   async function loadStats() {
-    const [res, prevRes] = await Promise.all([
-      fetch(`/api/dashboard/stats?period=${currentPeriod}`),
-      fetch(`/api/dashboard/stats?period=week`),
-    ]);
-    const data = await res.json();
-    const prevData = await prevRes.json();
-  updatePeriodComparisonLabel();
+    try {
+      const [data, prevData] = await Promise.all([
+        fetchJsonWithRetry(`/api/dashboard/stats?period=${currentPeriod}`),
+        fetchJsonWithRetry(`/api/dashboard/stats?period=week`),
+      ]);
+      updatePeriodComparisonLabel();
 
-    animateNumber('statSessions', data.total_sessions);
-    animateNumber('statSets',     data.total_sets);
-    animateNumber('statDuration', data.total_duration);
+      animateNumber('statSessions', data.total_sessions);
+      animateNumber('statSets',     data.total_sets);
+      animateNumber('statDuration', data.total_duration);
 
-    // Trend badges (vs last period)
-    if (currentPeriod !== 'all') {
-      renderTrend('statSessionsTrend', data.total_sessions, prevData.total_sessions);
-      renderTrend('statSetsTrend',     data.total_sets,     prevData.total_sets);
-      renderTrend('statDurationTrend', data.total_duration, prevData.total_duration);
+      // Trend badges (vs last period)
+      if (currentPeriod !== 'all') {
+        renderTrend('statSessionsTrend', data.total_sessions, prevData.total_sessions);
+        renderTrend('statSetsTrend',     data.total_sets,     prevData.total_sets);
+        renderTrend('statDurationTrend', data.total_duration, prevData.total_duration);
+      }
+
+      // Highlights
+      animateNumber('hlWorkouts', data.total_sessions);
+      animateNumber('hlSets',     data.total_sets);
+      animateNumber('hlTime',     data.total_duration);
+
+      const avgMins = data.total_sessions > 0 ? Math.round(data.total_duration / data.total_sessions) : 0;
+      animateNumber('hlAvgMins', avgMins);
+
+      // Streak from sessions over time
+      const streak = calculateStreak(data.sessions_over_time || []);
+      const hlStreak = document.getElementById('hlStreak');
+      if (hlStreak) animateNumber('hlStreak', streak);
+
+      if (data.muscle_volume?.length) {
+        const top = data.muscle_volume[0];
+        document.getElementById('hlTopMuscle').textContent = top.muscle;
+        document.getElementById('hlTopMuscleSets').textContent = `${Math.round(top.sets)} sets`;
+        document.getElementById('hlTopMuscleCard').style.display = '';
+      } else {
+        document.getElementById('hlTopMuscleCard').style.display = 'none';
+      }
+
+      if (typeof initDailyGoalWidget === 'function') initDailyGoalWidget('dashboardGoalWidget', data);
+      renderSessionsChart(data.sessions_over_time);
+      renderMuscleChart(data.muscle_volume);
+      renderWeeklyComparison(data, prevData);
+    } catch (error) {
+      console.warn('Unable to load dashboard stats:', error);
+      updatePeriodComparisonLabel();
+      renderSessionsChart([]);
+      renderMuscleChart([]);
+      renderWeeklyComparison(
+        { total_sessions: 0, total_sets: 0, total_duration: 0 },
+        { total_sessions: 0, total_sets: 0, total_duration: 0 },
+      );
     }
-
-    // Highlights
-    animateNumber('hlWorkouts', data.total_sessions);
-    animateNumber('hlSets',     data.total_sets);
-    animateNumber('hlTime',     data.total_duration);
-
-    const avgMins = data.total_sessions > 0 ? Math.round(data.total_duration / data.total_sessions) : 0;
-    animateNumber('hlAvgMins', avgMins);
-
-    // Streak from sessions over time
-    const streak = calculateStreak(data.sessions_over_time || []);
-    const hlStreak = document.getElementById('hlStreak');
-    if (hlStreak) animateNumber('hlStreak', streak);
-
-    if (data.muscle_volume?.length) {
-      const top = data.muscle_volume[0];
-      document.getElementById('hlTopMuscle').textContent = top.muscle;
-      document.getElementById('hlTopMuscleSets').textContent = `${Math.round(top.sets)} sets`;
-      document.getElementById('hlTopMuscleCard').style.display = '';
-    } else {
-      document.getElementById('hlTopMuscleCard').style.display = 'none';
-    }
-
-    if (typeof initDailyGoalWidget === 'function') initDailyGoalWidget('dashboardGoalWidget', data);
-    renderSessionsChart(data.sessions_over_time);
-    renderMuscleChart(data.muscle_volume);
-    renderWeeklyComparison(data, prevData);
   }
 
   function onMuscleClick(muscleName) {

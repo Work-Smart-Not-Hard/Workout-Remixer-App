@@ -88,11 +88,22 @@ class ExerciseDBService:
                             break
 
                     if not success:
-                        raise Exception(f"Failed to fetch exercises at offset={offset} after retries.")
+                        logger.warning(
+                            "ExerciseDB fetch failed at offset=%s after retries; "
+                            "falling back to cached data (%s items).",
+                            offset,
+                            len(self.__class__._cache),
+                        )
+                        return self.__class__._cache or []
 
                     if not items:
                         if offset == 0:
-                            raise Exception("ExerciseDB returned 0 exercises — server may be starting up.")
+                            logger.warning(
+                                "ExerciseDB returned 0 exercises at offset=0; "
+                                "falling back to cached data (%s items).",
+                                len(self.__class__._cache),
+                            )
+                            return self.__class__._cache or []
                         break
 
                     all_exercises.extend(items)
@@ -107,10 +118,20 @@ class ExerciseDBService:
             logger.info(f"ExerciseDB cache ready: {len(all_exercises)} exercises.")
             return all_exercises
 
+        return self.__class__._cache or []
+
     async def get_exercises_page(
         self, search: str = "", offset: int = 0, limit: int = 100
     ) -> dict:
-        all_ex = await self._fetch_all_exercises()
+        try:
+            all_ex = await self._fetch_all_exercises()
+        except Exception as exc:
+            logger.warning(
+                "ExerciseDB page fetch failed; using cache fallback (%s items): %r",
+                len(self.__class__._cache),
+                exc,
+            )
+            all_ex = self.__class__._cache or []
 
         if search:
             search_lower = search.lower()
@@ -128,18 +149,21 @@ class ExerciseDBService:
                 if ex.get("exerciseId") == exercise_id or ex.get("id") == exercise_id:
                     return ex
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            for attempt in range(5):
-                try:
-                    response = await client.get(f"{EXERCISEDB_BASE}/exercises/{exercise_id}")
-                    if response.status_code == 404:
-                        return None
-                    if response.status_code == 429:
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                for attempt in range(5):
+                    try:
+                        response = await client.get(f"{EXERCISEDB_BASE}/exercises/{exercise_id}")
+                        if response.status_code == 404:
+                            return None
+                        if response.status_code == 429:
+                            await asyncio.sleep((attempt + 1) * 5)
+                            continue
+                        response.raise_for_status()
+                        data = response.json()
+                        return data.get("data") if isinstance(data, dict) else data
+                    except (httpx.ReadTimeout, httpx.ConnectTimeout):
                         await asyncio.sleep((attempt + 1) * 5)
-                        continue
-                    response.raise_for_status()
-                    data = response.json()
-                    return data.get("data") if isinstance(data, dict) else data
-                except (httpx.ReadTimeout, httpx.ConnectTimeout):
-                    await asyncio.sleep((attempt + 1) * 5)
+        except Exception as exc:
+            logger.warning("ExerciseDB detail fetch failed for %s: %r", exercise_id, exc)
         return None

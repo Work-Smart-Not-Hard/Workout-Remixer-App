@@ -1,5 +1,6 @@
 import uvicorn
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Request, status
 from starlette.middleware import Middleware
@@ -200,9 +201,10 @@ async def unauthorized_redirect_handler(request: Request, exc: Exception):
 
 
 if __name__ == "__main__":
+    runtime_port = int(os.getenv("PORT", str(get_settings().app_port)))
     uvicorn.run(
         "app.main:app",
         host=get_settings().app_host,
-        port=get_settings().app_port,
+        port=runtime_port,
         reload=get_settings().env.lower() != "production",
     )
