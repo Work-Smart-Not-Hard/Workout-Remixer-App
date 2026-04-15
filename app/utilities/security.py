@@ -10,9 +10,10 @@ def encrypt_password(password:str):
 def verify_password(plaintext_password:str, encrypted_password):
     return password_hash.verify(password=plaintext_password, hash=encrypted_password)
 
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=get_settings().jwt_access_token_expires)):
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + expires_delta
-    to_encode.update({"exp": expire})
+    if expires_delta is not None:
+        expire = datetime.now(timezone.utc) + expires_delta
+        to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, get_settings().secret_key, algorithm=get_settings().jwt_algorithm)
     return encoded_jwt
